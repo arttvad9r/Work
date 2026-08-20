@@ -36,6 +36,7 @@ All notable product changes will be documented here.
 
 - Prevented month-title/data mismatch during rapid month switching.
 - Prevented placeholder default preferences from being snapshotted into a new entry during cold start.
+- Corrupted Preferences DataStore files now recover to safe defaults through `ReplaceFileCorruptionHandler`.
 - Removed silent fallback to locale currency for invalid stored/display currency codes.
 - Added explicit AndroidX test runner dependency for `AndroidJUnitRunner`.
 - Release ProGuard configuration now includes the standard optimized Android rule set.
