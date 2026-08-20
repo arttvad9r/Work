@@ -12,7 +12,7 @@
     <string name="penalty_value">Штрафы: −%1$s</string>
     <string name="set_hourly_rate">Указать почасовую ставку</string>
     <string name="today">Сегодня</string>
-    <string name="selected">выбрано</string>
+    <string name="day_selected">выбрано</string>
     <string name="has_bonus">есть премия</string>
     <string name="has_penalty">есть штраф</string>
 

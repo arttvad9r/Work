@@ -10,6 +10,7 @@ import com.worktime.app.domain.repository.WorkEntryRepository
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CalendarViewModel(
     private val workEntryRepository: WorkEntryRepository,
     private val userPreferencesRepository: UserPreferencesRepository,

@@ -12,7 +12,7 @@
     <string name="penalty_value">Penalty: −%1$s</string>
     <string name="set_hourly_rate">Set hourly rate</string>
     <string name="today">Today</string>
-    <string name="selected">selected</string>
+    <string name="day_selected">selected</string>
     <string name="has_bonus">bonus added</string>
     <string name="has_penalty">penalty added</string>
 

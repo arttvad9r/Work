@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -37,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,7 +61,7 @@ fun CalendarScreen(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val locale = Locale.getDefault()
+    val locale = LocalLocale.current.platformLocale
     val monthTitle = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
 
     Scaffold(
@@ -117,7 +117,7 @@ fun CalendarScreen(
                 }
             } else {
                 MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
-                CalendarGrid(state = state, onDayClick = onDayClick)
+                CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
             }
         }
     }
@@ -201,12 +201,13 @@ private fun MonthSummaryCard(
 private fun CalendarGrid(
     state: CalendarUiState,
     onDayClick: (LocalDate) -> Unit,
+    locale: Locale,
 ) {
     val weekdays = (0 until 7).map { DayOfWeek.MONDAY.plus(it.toLong()) }
     Row(modifier = Modifier.fillMaxWidth()) {
         weekdays.forEach { day ->
             Text(
-                text = day.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                text = day.getDisplayName(TextStyle.SHORT, locale),
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -230,6 +231,7 @@ private fun CalendarGrid(
                                 isToday = date == today,
                                 isSelected = date == state.selectedDate,
                                 onClick = { onDayClick(date) },
+                                locale = locale,
                             )
                         } else {
                             Spacer(Modifier.aspectRatio(0.9f))
@@ -248,6 +250,7 @@ private fun DayCell(
     isToday: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
+    locale: Locale,
 ) {
     val shape = RoundedCornerShape(14.dp)
     val background = when {
@@ -257,12 +260,12 @@ private fun DayCell(
         else -> MaterialTheme.colorScheme.surface
     }
     val dateLabel = date.format(
-        DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.getDefault()),
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale),
     )
     val a11yDescription = buildString {
         append(dateLabel)
         if (isToday) append(", ").append(stringResource(R.string.today))
-        if (isSelected) append(", ").append(stringResource(R.string.selected))
+        if (isSelected) append(", ").append(stringResource(R.string.day_selected))
         if (entry != null && entry.workedMinutes > 0) {
             append(", ").append(formatDuration(entry.workedMinutes))
         }

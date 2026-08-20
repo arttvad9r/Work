@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -27,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -77,7 +77,7 @@ fun DayEditorSheet(
     val hoursValid = parsedHours != null && parsedHours in 0..24
     val minutesValid = parsedMinutes != null && parsedMinutes in 0..59
     val durationValid = hoursValid && minutesValid && !(parsedHours == 24 && parsedMinutes != 0)
-    val workedMinutes = if (durationValid) parsedHours!! * 60 + parsedMinutes!! else null
+    val workedMinutes = if (durationValid) parsedHours * 60 + parsedMinutes else null
 
     val parsedRate = parseMoneyOrNull(rate)
     val parsedBonus = parseMoneyOrNull(bonus)
@@ -86,7 +86,7 @@ fun DayEditorSheet(
     val bonusWithinLimit = parsedBonus != null && parsedBonus <= MoneyLimits.MAX_COMPONENT_MICROS
     val penaltyWithinLimit = parsedPenalty != null && parsedPenalty <= MoneyLimits.MAX_COMPONENT_MICROS
     val positiveRateRequired = (workedMinutes ?: 0) > 0
-    val rateValid = rateWithinLimit && (!positiveRateRequired || parsedRate!! > 0L)
+    val rateValid = rateWithinLimit && (!positiveRateRequired || parsedRate > 0L)
     val hasEffectiveData = workedMinutes != null && (
         workedMinutes > 0 || (parsedBonus ?: 0L) > 0L || (parsedPenalty ?: 0L) > 0L
     )
@@ -97,10 +97,10 @@ fun DayEditorSheet(
         runCatching {
             WorkEntry(
                 date = date,
-                workedMinutes = workedMinutes!!,
-                hourlyRateMicros = parsedRate!!,
-                bonusMicros = parsedBonus!!,
-                penaltyMicros = parsedPenalty!!,
+                workedMinutes = workedMinutes,
+                hourlyRateMicros = parsedRate,
+                bonusMicros = parsedBonus,
+                penaltyMicros = parsedPenalty,
                 note = note.trim(),
             )
         }.getOrNull()
@@ -147,7 +147,7 @@ fun DayEditorSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault())),
+                date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale)),
                 style = MaterialTheme.typography.titleLarge,
             )
 
