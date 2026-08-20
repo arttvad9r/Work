@@ -2,128 +2,136 @@
 
 ## Goals
 
-The architecture optimizes for a small codebase now without blocking Room persistence, settings, export, or multiple jobs later.
+WorkTime is intentionally small, offline-first and calendar-first. The architecture optimizes for deterministic money calculations and persistence correctness without adding premature module/framework complexity.
 
-The key rule is that **UI never owns business truth**. Salary calculation, work-entry invariants, and persistence boundaries live outside composables.
+The key rule is: **UI never owns business truth**.
 
 ## System context
 
 ```text
-┌──────────────────────── Android app ────────────────────────┐
-│                                                             │
-│   Compose UI                                                 │
-│      │ user intents / immutable UI state                     │
-│      ▼                                                       │
-│   ViewModel                                                  │
-│      │                                                       │
-│      ▼                                                       │
-│   Domain                                                     │
-│   ├─ WorkEntry                                               │
-│   ├─ SalaryCalculator                                        │
-│   ├─ MonthGrid                                               │
-│   └─ use cases (next slice)                                  │
-│      │                                                       │
-│      ▼                                                       │
-│   Repository interfaces                                      │
-│      │                                                       │
-│      ├────────── Room database (work entries)                 │
-│      └────────── DataStore (rate, currency, theme)            │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Compose UI
+   │ user intent / immutable state
+   ▼
+CalendarViewModel
+   │
+   ├──────────────► domain business rules
+   │                ├─ WorkEntry invariants
+   │                ├─ MoneyLimits
+   │                ├─ SalaryCalculator
+   │                └─ MonthGrid
+   │
+   ▼
+domain repository interfaces
+   │
+   ├──────────────► Room implementation → SQLite work entries
+   └──────────────► DataStore implementation → user preferences
 ```
-
-## Layer boundaries
-
-### UI
-
-Responsibilities:
-
-- render state;
-- collect user intent;
-- perform ephemeral presentation logic;
-- accessibility semantics and localization.
-
-The UI must not query Room/DataStore directly and must not calculate persisted salary values independently.
-
-### Domain
-
-Responsibilities:
-
-- work-entry invariants;
-- salary calculations and rounding;
-- monthly aggregation;
-- calendar date layout;
-- future use cases such as SaveWorkEntry and ObserveMonth.
-
-Domain code stays Android-free where practical and is unit tested on the JVM.
-
-### Data
-
-Implemented persistence boundaries:
-
-- `WorkEntryEntity`, `WorkEntryDao` and `WorkTimeDatabase` in Room;
-- explicit mapper between entity and domain model;
-- `WorkEntryRepository` as the single work-entry persistence boundary;
-- DataStore-backed `UserPreferencesRepository` for default rate, currency and theme;
-- Room is the source of truth for work entries and exposes month data as `Flow`.
-
-## Data model
-
-MVP logical record:
-
-```text
-WorkEntry
-- date: LocalDate                 // unique for one-job MVP
-- workedMinutes: Int              // 0..1440
-- hourlyRateMicros: Long          // snapshot at save time
-- bonusMicros: Long               // >= 0
-- penaltyMicros: Long             // >= 0
-- note: String
-```
-
-Room stores the date as `dateEpochDay: Long`, which is the primary key for the one-job MVP. Any future schema change must be migration-tested before release.
-
-## Historical rate rule
-
-`defaultHourlyRate` is only an input when creating a new entry. Saving copies it into `hourlyRateMicros` on that entry. Updating settings later never triggers a historical recalculation.
-
-## Money
-
-Money is represented by `Long` micros. Domain operations use checked arithmetic where practical. Multiplication by minutes is rounded deterministically to the nearest micro using half-up rounding.
-
-Why micros rather than cents:
-
-- hourly rates can contain more than two decimal places;
-- minute conversion can produce fractions of a cent;
-- aggregation remains deterministic;
-- formatting to locale-specific decimal places happens only at the presentation boundary.
-
-## State and UDF
-
-```text
-UI event → ViewModel → domain/repository → StateFlow<UiState> → UI
-```
-
-`CalendarUiState` is immutable. `CalendarViewModel` observes the selected month from `WorkEntryRepository` and combines it with DataStore preferences into a single `StateFlow<CalendarUiState>`. Room remains the work-entry source of truth.
 
 ## Dependency direction
 
 ```text
-ui  ─────► domain
-ui  ─────► data interfaces (through ViewModel/use cases only)
-data ────► domain
+ui   ─────► domain
+data ─────► domain
+app composition root ─► data + domain
 
-domain ─X─► Android UI / Room / DataStore
+domain ─X─► Compose / Android UI / Room / DataStore
 ```
+
+Repository interfaces live in `domain/repository`; UI does not depend on concrete Room/DataStore classes.
+
+## UI/state
+
+`CalendarViewModel` combines:
+
+- the currently requested `YearMonth`;
+- Room's month `Flow`;
+- DataStore preferences;
+- selected editor date;
+- settings visibility;
+- recoverable write-error state.
+
+The month and its Room entries are emitted as one snapshot to avoid showing one month's title with another month's data during rapid navigation.
+
+`CalendarUiState.isReady` remains false until real persistence/preferences data has emitted. This prevents a new editor from snapshotting placeholder rate/currency values during cold start.
+
+Write failures do not log user financial data. The relevant modal remains open with the draft intact and displays a generic operation error.
+
+## Domain model
+
+```text
+WorkEntry
+- date: LocalDate
+- workedMinutes: Int              // 0..1440
+- hourlyRateMicros: Long
+- bonusMicros: Long
+- penaltyMicros: Long
+- note: String                    // <= 200 chars
+```
+
+One aggregate record per date is an MVP constraint. `dateEpochDay` is the Room primary key.
+
+An entry must contain worked time or at least one adjustment. Bonus/penalty-only records are valid. The editor requires a positive hourly rate when worked time is greater than zero.
+
+## Money
+
+Domain/data money is `Long` micros:
+
+```text
+1 major currency unit = 1,000,000 micros
+```
+
+```text
+basePay = roundHalfUp(workedMinutes × hourlyRateMicros / 60)
+entryPay = basePay + bonusMicros - penaltyMicros
+monthPay = Σ entryPay
+```
+
+`SalaryCalculator` uses checked integer arithmetic. `MoneyLimits.MAX_COMPONENT_MICROS` bounds each user-entered rate/bonus/penalty defensively so normal UI input cannot drive the checked arithmetic into `Long` overflow.
+
+The upper bound is a safety implementation limit, not a payroll/product entitlement limit.
+
+Decimal parsing and localized currency formatting exist only at the presentation boundary. Exponent notation is rejected by user-input parsing.
+
+## Historical rate
+
+The default hourly rate is an editor default only. Saving a work entry copies the effective rate into `WorkEntry.hourlyRateMicros`. Changing settings later does not rewrite existing records.
+
+## Currency semantics
+
+MVP has one global ISO currency code in DataStore. Work entries do not store a currency code.
+
+Changing the currency code changes presentation/accounting labels for all existing numeric amounts; **no FX conversion occurs**. This is explicit in settings. Multi-currency support would require a new product/data-model decision and migration.
+
+## Persistence
+
+### Room
+
+- `WorkEntryEntity` maps one-to-one with the MVP domain record.
+- `WorkEntryDao.observeRange()` exposes ordered month-range `Flow` data.
+- `@Upsert` enforces one aggregate record per date through the primary key.
+- no destructive migration fallback is configured;
+- schema export is enabled;
+- generated schema JSON must be committed after the first verified Android build.
+
+### DataStore
+
+Stores:
+
+- default hourly rate;
+- ISO currency code;
+- theme mode.
+
+Malformed stored preferences are normalized to safe defaults where possible. I/O errors during DataStore reads fall back to empty preferences; non-I/O failures still surface.
+
+## Composition root
+
+`WorkTimeApplication` owns `AppContainer`. `AppContainer` constructs the singleton Room database plus concrete repository implementations. Composables receive behavior through the ViewModel rather than service-locating persistence.
 
 ## Module strategy
 
-Start with a single `:app` module and package-by-layer/feature. Do not introduce multi-module overhead before build times or team boundaries justify it.
-
-A future split can be:
+Remain single-module (`:app`) until team/build constraints justify splitting. Package boundaries already make future extraction possible:
 
 ```text
-:app
 :core:model
 :core:database
 :core:datastore
@@ -132,26 +140,21 @@ A future split can be:
 :feature:settings
 ```
 
-The package boundaries are designed so this extraction does not require changing domain contracts.
+## Privacy/security posture
 
-## Persistence status
-
-1. Room and schema export — implemented.
-2. `WorkEntryEntity`, DAO and database — implemented.
-3. Repository interface and Room implementation — implemented.
-4. ViewModel driven by repository `Flow` — implemented.
-5. DataStore preferences — implemented.
-6. Migration tests — required before database version 2 is introduced.
-
-## Security and privacy
-
-The MVP has no account, analytics SDK, advertising SDK, location access, contacts, or background network requirement. Data remains on-device. Android cloud backup is disabled in v1 so local-only semantics remain explicit. Manual export/backup is a post-MVP candidate.
+- no account/backend in MVP;
+- no Internet/dangerous permissions required;
+- Android cloud backup disabled for v1;
+- no analytics/ad SDK;
+- no production logging of work entries, notes, rates or salary totals.
 
 ## Architectural fitness rules
 
-- Domain tests run without an Android device.
+- Domain tests run without Android.
 - Composables contain no direct persistence calls.
-- Money never enters the domain as `Double`/`Float`.
+- Domain/data contain no `Float`/`Double` money representation.
 - Database schema changes require migration tests.
-- A default rate change has no side effect on existing entries.
-- New feature dependencies point inward, not from domain to UI/framework code.
+- No `fallbackToDestructiveMigration` for user work-history data.
+- Default-rate changes do not mutate existing records.
+- Persistence errors must not discard the user's open draft.
+- Currency behavior must remain explicit; never silently introduce FX conversion.

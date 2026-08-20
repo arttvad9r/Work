@@ -1,8 +1,8 @@
 # Privacy and data handling
 
-## MVP privacy posture
+## MVP posture
 
-WorkTime is designed as a local-first personal utility.
+WorkTime is a local-first personal financial/work utility.
 
 The MVP requires:
 
@@ -11,39 +11,49 @@ The MVP requires:
 - no location permission;
 - no microphone/camera permission;
 - no advertising identifier;
-- no background network access for core functionality.
+- no Internet/background network access for core functionality.
 
-The current manifest requests no dangerous permissions and declares no Internet permission.
+The current manifest declares no Internet or dangerous permissions. `scripts/static_audit.py` guards these assumptions.
 
-## Stored data
+## Stored local data
 
-Local data may include:
+Room may contain:
 
 - work date;
 - worked duration;
-- effective hourly rate snapshot;
+- hourly-rate snapshot;
 - bonus;
 - penalty;
-- optional user note;
-- app preferences such as default rate, currency and theme.
+- optional note.
 
-These fields can be financially sensitive to the user even though they are not payment credentials. They are not uploaded or logged by the application.
+DataStore contains:
 
-## Logging
+- default hourly rate;
+- global ISO currency code;
+- theme.
 
-Production logs must not print full work entries, notes, rates or salary totals. Crash reporting, if added later, needs an explicit privacy review and a documented data-retention policy.
+These values can be financially sensitive even though they are not payment credentials.
+
+## Logging/error handling
+
+Production code must not log work entries, notes, rates or salary totals. Current write-error handling exposes only generic operation state to UI, not exception content or user financial values.
+
+Crash/analytics tooling, if ever added, requires a separate privacy review before inclusion.
 
 ## Backup
 
-Android cloud backup is disabled for v1 with `android:allowBackup="false"`. This keeps the implementation consistent with the local-only product promise and avoids silently copying financial work-history data to a cloud backup provider.
+`android:allowBackup="false"` is intentional for v1. It prevents silently putting work-history data into platform cloud backup and matches the local-only promise.
 
-Manual export/backup can be added later as an explicit user action.
+Consequence: uninstalling the app removes local data. Manual export/backup is a later explicit-user-action candidate.
 
-## Play Store readiness
+## Network/dependencies
 
-Before public release:
+No application Internet permission is required. Development-time Gradle dependency downloads and GitHub CI are not runtime app data transfers.
 
-- publish a privacy policy consistent with actual SDKs and permissions;
-- complete the Google Play Data Safety form from the final dependency graph;
-- verify no analytics/ad SDK was introduced indirectly;
-- document the fact that uninstalling the app removes local data unless a future manual export feature is used.
+## Before Play release
+
+- verify final manifest/dependency graph;
+- verify no analytics/ad/transitive data-collection SDK was added;
+- publish a privacy policy matching actual behavior;
+- complete Google Play Data Safety from the release artifact;
+- document local-only/uninstall behavior to users.

@@ -27,8 +27,16 @@ jobs:
           gradle-version: "9.5.0"
       - name: Environment
         run: gradle --version
+      - name: Repository static audit
+        run: python3 scripts/static_audit.py
       - name: Unit tests, lint and Android target compilation
-        run: gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+        run: |
+          gradle --no-daemon \
+            :app:testDebugUnitTest \
+            :app:lintDebug \
+            :app:assembleDebug \
+            :app:assembleDebugAndroidTest \
+            --stacktrace
       - name: Upload verification reports
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,140 +1,128 @@
 # UX specification
 
-## Primary navigation model
+## Navigation model
 
-WorkTime is calendar-first. There is no dashboard and no bottom navigation in MVP.
+WorkTime is calendar-first. MVP has no dashboard or bottom navigation.
 
 ```text
 Calendar month
-   ├─ tap day → Day Editor bottom sheet
-   └─ settings icon → Settings screen
+├─ tap day → Day Editor bottom sheet
+└─ settings icon → Settings bottom sheet
 ```
 
-The calendar must remain the user's spatial context while editing a day.
+Only one modal sheet may be open at a time.
 
-## Calendar screen
+## Cold start
+
+Until Room/DataStore have emitted the first real state, the calendar content shows a compact loading indicator and settings/day editing remain unavailable. This prevents placeholder preferences from being snapshotted into a new record.
+
+## Calendar
 
 ### Header
 
-- Previous month action.
-- Localized month + year title.
-- Next month action.
-- Settings action.
+- previous month;
+- localized month/year;
+- next month;
+- settings.
 
 ### Monthly summary
 
-Always visible above the grid:
+One compact card contains:
 
-- total expected earnings;
-- total worked duration;
-- shift count.
+- expected salary;
+- worked duration;
+- shift count;
+- base/bonus/penalty breakdown when relevant;
+- shortcut to configure rate when the default rate is zero.
 
-The summary should read as one compact block, not three oversized dashboard cards.
+### Grid
 
-### Week grid
-
-- Seven columns.
-- Monday is the MVP default first day.
-- Six fixed rows keep vertical geometry stable while browsing months.
-- Empty leading/trailing cells are visually quiet.
+- seven columns;
+- Monday-first MVP;
+- fixed six rows;
+- localized weekday names;
+- visually quiet out-of-month cells.
 
 ### Day states
 
-**Empty:** day number only.
+- **Empty:** day number.
+- **Today:** subtle tonal state.
+- **Filled:** duration + compact adjustment markers.
+- **Selected:** stronger selected container while editor is open.
 
-**Today:** subtle tonal container or outline; do not use a loud filled primary color.
+TalkBack description combines full localized date, today/selected state, worked duration and adjustment markers.
 
-**Filled:** worked duration plus optional compact bonus/penalty markers.
+## Day editor
 
-**Selected:** selected state may temporarily override the filled/today treatment while the editor is open.
+Material 3 modal bottom sheet preserves the month as context.
 
-Calendar cells must not show the full salary, note, rate, bonus amount and penalty amount simultaneously. Detail belongs in the editor.
+Order:
 
-## Day Editor
-
-Use a Material 3 modal bottom sheet so the month remains mentally visible behind the editing context.
-
-### Information hierarchy
-
-1. Date.
-2. Worked duration.
-3. Quick duration shortcuts.
-4. Hourly rate.
-5. Bonus / penalty.
-6. Optional note.
-7. Live total.
-8. Save.
-9. Delete for existing entries.
-
-### Quick duration chips
-
-Provide 4h, 6h, 8h, 10h and 12h. The selected shortcut only updates duration; it must not save automatically.
+1. date;
+2. worked duration;
+3. quick durations;
+4. hourly rate;
+5. bonus;
+6. penalty;
+7. note;
+8. live total;
+9. persistence error if any;
+10. Save;
+11. Delete for an existing entry.
 
 ### Validation
 
-- hours and minutes must resolve to 0..1440 total minutes;
-- minutes field must not silently accept invalid values that push the total beyond 24h;
-- rate, bonus and penalty are non-negative;
-- invalid monetary input disables save and shows inline feedback before beta;
-- zero hours with a positive bonus remains valid.
+- hours: 0..24;
+- minutes: 0..59;
+- 24h requires 0 additional minutes;
+- rate/bonus/penalty: non-negative decimal input, at most six fractional digits;
+- worked time requires rate > 0;
+- user-entered money is capped by the defensive calculation limit;
+- note: <=200 characters;
+- at least worked time or an adjustment is required.
 
-### Rate snapshot behavior
+Invalid fields display localized supporting text. Save is disabled until the draft is valid. Persistence failure does not close the sheet or discard input.
 
-For a new entry the editor starts with the current default rate. Once saved, that value belongs to the entry. Editing an old day displays its stored rate, not today's settings rate.
+### Rate snapshot
 
-## Settings screen
+New entry uses current default rate. Existing entry always displays its stored rate snapshot. Settings changes do not rewrite it.
 
-MVP settings:
+## Settings
 
 - default hourly rate;
-- currency;
-- theme: system/light/dark.
+- global ISO currency code;
+- system/light/dark theme.
 
-Potential pre-release addition:
+The settings sheet scrolls vertically for small screens / large font scale. Theme chips scroll horizontally rather than wrapping unpredictably.
 
-- first day of week.
+A valid currency displays an explicit warning:
 
-Settings changes affect future defaults, not historical saved entries.
+> Changing currency relabels existing values; no exchange-rate conversion is performed.
 
-## Motion
+Saving settings may use a zero default rate, but worked-time entries themselves require a positive effective rate.
 
-- Month changes should be spatial and restrained.
-- Opening the editor uses standard Material sheet motion.
-- Avoid decorative animations that delay entry.
-- Haptics may be added for save/delete after accessibility testing.
+## Error handling
 
-## Typography and spacing
+Database/DataStore write errors are represented as generic localized UI messages. Financial values, notes and salary totals are never inserted into the error text/logging path. Failed operations keep the relevant modal open when possible.
 
-Use Material 3 typography and an 8dp spacing system with 4dp sub-grid where needed.
+## Responsive/accessibility requirements
 
-Recommended hierarchy:
+Before beta, verify on device/emulator:
 
-- monthly earnings: `headlineMedium`;
-- month title / editor date: `titleLarge` or `titleMedium` depending on width;
-- day number: `labelLarge`;
-- worked duration in cell: `labelMedium`.
-
-## Color
-
-Default to Material 3 dynamic color on Android 12+ and standard light/dark schemes otherwise.
-
-Color must communicate state without becoming the only state indicator. Bonus and penalty markers need semantic text/description for TalkBack.
-
-## Accessibility
-
-Before beta:
-
-- TalkBack reads date, worked duration and adjustment markers as a coherent cell description;
-- icon buttons have localized content descriptions;
-- touch targets meet Android guidance;
-- 200% font scale does not make Save/Delete unreachable;
-- color contrast is checked in both themes;
-- motion does not carry essential information.
+- TalkBack day semantics;
+- localized icon descriptions;
+- 200% font scale;
+- small phone width;
+- Save/Delete remain reachable;
+- light/dark/dynamic-color contrast;
+- no essential information depends on color alone.
 
 ## Core usability benchmark
 
-A user who already configured a default rate should be able to:
+After a default rate is configured:
 
-`open app → tap today → tap 8h → save`
+```text
+open app → tap today → tap 8h → save
+```
 
-in under 10 seconds without reading help text.
+Target: under 10 seconds without help text.

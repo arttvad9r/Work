@@ -1,77 +1,114 @@
 # Testing strategy
 
-## Priorities
+## Risk order
 
-The highest-risk behavior is not animation or navigation; it is **money correctness and persistence correctness**. Tests are ordered accordingly.
+1. money correctness;
+2. data persistence/history correctness;
+3. month/date state correctness;
+4. editor validation/error recovery;
+5. accessibility/layout;
+6. visual motion/polish.
 
-## Test pyramid
+## Non-Android automated coverage
 
-### 1. Domain unit tests — mandatory
+### Salary/domain
 
-Cover:
+Current JVM cases cover:
 
-- hourly rate × whole hours;
+- whole hours;
 - minutes;
-- bonuses;
-- penalties;
-- bonus + penalty together;
-- adjustment-only entries;
+- bonus;
+- penalty;
+- combined adjustments;
+- adjustment-only record;
 - very small rates;
 - one-minute conversion;
-- month aggregation;
-- shift-count rule;
-- checked-overflow boundaries where practical.
+- half-micro rounding;
+- month aggregation and shift-count rule;
+- invalid >24h;
+- negative/unsupported money;
+- empty records;
+- note length;
+- preference money bounds.
 
-Golden examples from the source specification are implemented in `SalaryCalculatorTest`.
+### Calendar
 
-### 2. Calendar/date unit tests
+Current tests cover:
 
-Cover:
-
-- every possible weekday for month start;
+- all seven possible month-start weekdays with Monday-first layout;
+- fixed 42-cell geometry;
 - leap February;
-- 28/29/30/31-day months;
-- first-day-of-week configuration when added.
+- custom Sunday-first calculation path.
 
-### 3. Repository tests — implemented / expanding
+### Formatting
 
-Cover:
+Current tests cover:
 
-- insert/update/delete;
-- uniqueness by date in one-job MVP;
-- observing month ranges;
-- process restart / database reopen;
-- migration tests for every schema change.
+- six fractional digits;
+- half-up decimal-to-micros rounding;
+- exponent-notation rejection;
+- sanitizer normalization;
+- exact `BigDecimal` currency formatting;
+- invalid currency rejection.
 
-### 4. Compose UI tests — next hardening slice
+### Repository/entity
 
-Critical scenarios:
+- domain/entity round-trip;
+- save/observe/delete using a fake DAO;
+- month-range boundary behavior.
 
-1. tap empty date → enter 8h → save → cell and summary update;
-2. add bonus and penalty → total updates;
-3. edit existing day → historical rate remains explicit;
-4. delete → entry disappears and month totals recalculate;
-5. navigate months → summary matches visible month.
+## Static audit script
+
+```bash
+python3 scripts/static_audit.py
+```
+
+Checks:
+
+- XML parseability for checked resources/manifest;
+- base/Russian string-key parity;
+- `allowBackup=false`;
+- absence of Internet/location/contact/microphone/camera permissions;
+- no `Float`/`Double` use in domain/data Kotlin files;
+- no destructive Room fallback.
+
+## Android instrumentation source
+
+`WorkTimeDatabaseTest` creates an in-memory Room database and exercises upsert/observe/delete. It must still be executed on an emulator/device.
+
+Before public beta add Compose UI tests for:
+
+1. empty date → 8h → save → cell/summary update;
+2. bonus/penalty → total update;
+3. edit existing day → stored rate retained;
+4. delete → cell/summary update;
+5. navigate month → correct month data;
+6. settings save/restore;
+7. validation blocks invalid duration/rate.
+
+## CI verification command
+
+```text
+:app:testDebugUnitTest
+:app:lintDebug
+:app:assembleDebug
+:app:assembleDebugAndroidTest
+```
+
+CI compiles instrumentation targets; it does not claim connected/emulator execution.
 
 ## Release gates
 
 Before public beta:
 
-- all domain tests green;
-- no ignored database migration tests;
+- static audit green;
+- JVM test suite green;
+- Android build green;
+- lint reviewed;
+- Room v1 schema committed;
+- instrumentation executed;
 - critical Compose flows green;
-- manual TalkBack smoke test;
-- 200% font-scale smoke test;
-- light and dark theme smoke test;
-- process-death/relaunch data check;
-- golden salary sheet reconciled manually.
-
-## CI target
-
-Current CI compiles the production and instrumentation targets and runs JVM verification:
-
-```bash
-gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
-```
-
-The repository includes an in-memory Room instrumented test. Executing connected Android tests requires an emulator/device job and remains a release-gate item.
+- golden salary sheet manually reconciled;
+- TalkBack and 200% font smoke tests;
+- process-death/relaunch data checks;
+- API/device matrix in `ANDROID_QA.md` completed.

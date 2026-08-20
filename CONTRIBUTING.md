@@ -1,48 +1,65 @@
 # Contributing
 
-This repository is currently a private product project. Keep changes small, reviewable, and tied to the roadmap.
+This repository is currently a private product project. Keep changes small, reviewable and tied to the roadmap.
 
 ## Branching
 
 - `main` is release-oriented and should remain buildable.
 - Use `feat/<scope>`, `fix/<scope>`, `chore/<scope>` branches.
-- Avoid unrelated refactors inside feature changes.
+- Avoid unrelated refactors inside feature work.
 
 ## Commit style
 
-Use concise conventional prefixes:
-
 - `feat:` product behavior;
-- `fix:` bug fix;
-- `test:` tests only;
+- `fix:` bug/correctness fix;
+- `test:` test-only changes;
 - `docs:` documentation;
 - `refactor:` behavior-preserving restructuring;
-- `chore:` tooling/build/maintenance.
+- `chore:` build/tooling/maintenance.
 
 ## Before review
 
-Run at minimum:
+Without Android tooling:
 
 ```bash
-gradle testDebugUnitTest lintDebug
+python3 scripts/static_audit.py
 ```
 
-Also check:
+With JDK 17 + SDK 37 + Gradle 9.5.0:
 
-- no new hard-coded user-facing strings;
-- business logic is not embedded in composables;
-- money uses integer micros in domain/data;
-- default rate changes cannot mutate historical entries;
-- new database versions include migration tests;
-- screenshots or recordings accompany material UI changes.
+```bash
+./scripts/verify.sh
+```
+
+or Windows PowerShell:
+
+```powershell
+./scripts/verify.ps1
+```
+
+Until the complete Gradle Wrapper is bootstrapped, do not document `./gradlew` as if it worked.
+
+Also verify:
+
+- no hard-coded user-facing strings when a resource is appropriate;
+- business logic is outside composables;
+- domain/data money remains integer micros;
+- default-rate changes cannot mutate historical records;
+- currency changes do not imply silent FX conversion;
+- persistence failures do not discard an open draft;
+- no destructive Room fallback;
+- database-version changes include migration tests;
+- docs/ADR are updated when a contract changes.
 
 ## Pull requests
 
-A PR description should state:
+State:
 
 1. problem;
 2. solution;
-3. scope explicitly not included;
-4. test evidence;
-5. screenshots for UI changes;
-6. risk/migration notes if persistence changed.
+3. explicit non-scope;
+4. test/build evidence actually executed;
+5. screenshots/recordings for material UI changes;
+6. persistence/migration/privacy risks.
+
+Never call Android CI/device testing “green” without real evidence from that environment.

@@ -6,146 +6,168 @@ Modern Android app for tracking worked hours and expected salary with a calendar
 
 WorkTime is intentionally small. It is a personal work-hours and salary calculator, not a project tracker, HR system, payroll suite, or shift-planning platform.
 
-## Product goals
+## Status
 
-- Make a typical shift entry possible in under 10 seconds.
-- Keep monthly earnings, worked time, and shift count visible without opening reports.
-- Preserve historical correctness when the default hourly rate changes.
-- Work fully offline without mandatory registration.
-- Keep the core flow free from interstitial ads and dark patterns.
+The repository currently contains a **functionally complete MVP implementation**, but it is **not yet a release candidate** because the Android build and device/emulator QA have not been executed in this environment.
 
-## Current implementation
+What is already implemented:
 
-The current MVP implementation includes:
+- fixed 6×7 month calendar;
+- previous/next month navigation;
+- monthly earnings, worked-time and shift-count summary;
+- persistent create/edit/delete day entries;
+- hours/minutes and 4/6/8/10/12-hour quick entry;
+- hourly-rate snapshots on saved entries;
+- bonuses, penalties and notes;
+- Room as the work-entry source of truth;
+- DataStore for default rate, currency and theme;
+- system/light/dark theme;
+- English and Russian resources;
+- inline validation and persistence error states;
+- deterministic integer-micros money calculation;
+- launcher icon and local-only privacy posture;
+- JVM unit tests plus an instrumented Room test source;
+- CI definition for tests, lint and APK compilation.
 
-- Android/Compose project scaffold with Material 3 and dynamic color;
-- fixed 6×7 month calendar with previous/next month navigation;
-- monthly earnings, worked-hours and shift-count summary;
-- base pay / bonus / penalty breakdown when adjustments exist;
-- persistent day editor with quick durations, hourly rate, bonus, penalty and note;
-- Room database as the source of truth for work entries;
-- DataStore preferences for default hourly rate, currency and theme;
-- historical hourly-rate snapshots on every saved entry;
-- delete confirmation and inline input validation;
-- English and Russian string resources;
-- deterministic money calculations using integer micros end-to-end;
-- unit tests for salary rules, calendar layout, entity mapping and money parsing;
-- CI that runs tests, lint, assembles the debug APK and uploads it as an artifact.
+The remaining release gates are documented in [`docs/ANDROID_QA.md`](docs/ANDROID_QA.md) and [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 
-The remaining work before a release candidate is build/CI verification, accessibility/UI testing, release assets and beta hardening.
+## Product rules
 
-## MVP scope
+- One aggregate work entry per calendar date in MVP.
+- `shiftCount` increments only when `workedMinutes > 0`.
+- Bonus/penalty-only entries are allowed and do not count as shifts.
+- Worked time requires a positive hourly rate in the editor.
+- A saved entry keeps its own hourly-rate snapshot; changing the default rate does not rewrite history.
+- Currency is a global display/accounting unit. Changing the ISO code **does not perform FX conversion**; existing numeric amounts are relabelled.
+- Core functionality is offline and does not require an account.
 
-- Month calendar as the main screen.
-- Worked hours and minutes per day.
-- Default hourly rate with a per-day rate snapshot.
-- Bonus and penalty adjustments attached to a day.
-- Monthly totals: earnings, worked time, shift count.
-- Create, edit, and delete a day entry.
-- Light, dark, and system themes.
-- Local-first persistence.
-
-### Explicit non-goals for v1.0
-
-Timer/clock-in, GPS, clients, projects, tasks, invoices, taxes, cloud accounts, team features, complex overtime rules, and shift-pattern generation.
-
-## Technical direction
+## Technical stack
 
 - **Language:** Kotlin 2.4.x
 - **UI:** Jetpack Compose + Material 3
-- **Build:** AGP 9.3.x, Gradle 9.5, compileSdk 37
-- **Architecture:** layered, unidirectional data flow; UI → domain → data
-- **State:** immutable UI state exposed by ViewModels
-- **Persistence:** Room for work entries, DataStore for preferences
-- **Money:** integer micros; never `Float` or `Double` in domain/data
+- **Build:** AGP 9.3.1, Gradle 9.5.0, compile/target SDK 37
+- **Persistence:** Room 2.8.4 + DataStore 1.2.1
+- **State:** ViewModel + immutable `StateFlow`
 - **Concurrency:** coroutines + Flow
-- **Testing:** domain unit tests first, then repository and Compose UI tests
+- **Money:** `Long` micros; no `Float`/`Double` in domain/data
+- **Testing:** JUnit 5 JVM tests, AndroidX Test/Room instrumentation source
+
+The version matrix was rechecked against official Android/Gradle documentation during the 20 August 2026 static audit. See [`docs/STATIC_AUDIT.md`](docs/STATIC_AUDIT.md).
+
+## Architecture
 
 ```text
-app/
-└── src/main/java/com/worktime/app/
-    ├── data/
-    │   ├── db/
-    │   ├── preferences/
-    │   └── repository/
-    ├── domain/
-    │   ├── calculation/
-    │   ├── calendar/
-    │   ├── model/
-    │   ├── preferences/
-    │   └── repository/
-    └── ui/
-        ├── calendar/
-        ├── dayeditor/
-        ├── settings/
-        └── theme/
+Compose UI
+    ↓ user intent / immutable state
+CalendarViewModel
+    ↓
+domain repository interfaces + business rules
+    ↓
+Room / DataStore implementations
+```
 
-docs/
-├── PRODUCT.md
-├── ARCHITECTURE.md
-├── ROADMAP.md
-├── TESTING.md
-└── DECISIONS.md
+```text
+app/src/main/java/com/worktime/app/
+├── data/
+│   ├── db/
+│   ├── preferences/
+│   └── repository/
+├── domain/
+│   ├── calculation/
+│   ├── calendar/
+│   ├── model/
+│   ├── preferences/
+│   └── repository/
+└── ui/
+    ├── calendar/
+    ├── dayeditor/
+    ├── format/
+    ├── settings/
+    └── theme/
 ```
 
 ## Salary model
 
-For a work entry:
-
 ```text
-basePay = round(workedMinutes × hourlyRateMicros / 60)
-entryPay = basePay + bonusMicros - penaltyMicros
-monthPay = Σ entryPay
+basePayMicros = roundHalfUp(workedMinutes × hourlyRateMicros / 60)
+entryPayMicros = basePayMicros + bonusMicros - penaltyMicros
+monthPayMicros = Σ entryPayMicros
+shiftCount = count(entries where workedMinutes > 0)
 ```
 
-The hourly rate is copied into each saved work entry as a **snapshot**. Changing the default rate later must not silently rewrite historical months.
+Inputs are bounded defensively so checked `Long` arithmetic cannot be driven into overflow by normal UI input.
 
-## Getting started
+## Verification without an Android device
 
-Requirements:
-
-- Android Studio Quail 3 or newer recommended;
-- JDK 17;
-- Android SDK 37.
-
-Open the project in Android Studio, or use Gradle 9.5+ installed locally:
+Run the repository-only audit:
 
 ```bash
-gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+python3 scripts/static_audit.py
 ```
 
-The repository CI uses the same verification command and publishes `app-debug.apk` as a workflow artifact on successful builds.
+It checks XML/resource consistency, EN/RU string-key parity, privacy-sensitive manifest properties, domain/data floating-point regressions and destructive Room fallback usage.
+
+## Android build
+
+See [`docs/BUILD.md`](docs/BUILD.md).
+
+The repository currently requires an installed **Gradle 9.5.0** for command-line builds:
+
+```bash
+./scripts/verify.sh
+```
+
+or, on Windows PowerShell:
+
+```powershell
+./scripts/verify.ps1
+```
+
+The scripts run the static audit and then:
+
+```text
+:app:testDebugUnitTest
+:app:lintDebug
+:app:assembleDebug
+:app:assembleDebugAndroidTest
+```
+
+### Gradle Wrapper note
+
+`gradle/wrapper/gradle-wrapper.properties` pins 9.5.0, but the wrapper scripts/JAR are not yet committed. The binary wrapper JAR cannot be safely generated or retrieved in the current execution environment. This is tracked explicitly rather than committing a fake/broken wrapper. CI installs Gradle 9.5.0 through `gradle/actions/setup-gradle` and does not depend on the wrapper.
 
 ## Documentation
 
+- [Documentation index](docs/README.md)
 - [Product specification](docs/PRODUCT.md)
 - [Competitor research](docs/RESEARCH.md)
 - [UX specification](docs/UX.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Architecture/product decisions](docs/DECISIONS.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Prioritized backlog](docs/BACKLOG.md)
 - [Testing strategy](docs/TESTING.md)
-- [Architecture & product decisions](docs/DECISIONS.md)
-- [Privacy and data handling](docs/PRIVACY.md)
+- [Build & CI](docs/BUILD.md)
+- [Static audit](docs/STATIC_AUDIT.md)
+- [Android QA checklist](docs/ANDROID_QA.md)
+- [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Privacy/data handling](docs/PRIVACY.md)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
 
 ## Quality bar
 
-A feature is not done until:
+A feature is not considered release-ready until:
 
-- acceptance criteria are met;
-- business logic has unit tests;
-- user-facing strings are localizable;
-- the UI works in light/dark themes and with large font scale;
-- no database or settings API is accessed directly from composables;
-- no blocking work runs on the main thread;
-- money calculations are deterministic and covered by golden cases.
-
-## Source specification
-
-The initial product scope, competitor research, UX rules, business rules, architecture, and roadmap were consolidated in **WorkTime Product & Technical Specification v1.0**, dated 20 August 2026. Repository documentation is the implementation-oriented source of truth from this point forward.
+- business invariants are covered by JVM tests where possible;
+- user-facing strings are resources;
+- money does not enter domain/data as binary floating point;
+- persistence is accessed behind repository boundaries;
+- schema changes have migration tests;
+- no destructive database fallback is introduced;
+- Android build/lint passes;
+- critical flows pass device/emulator QA and accessibility checks.
 
 ## License
 
-No open-source license has been selected yet. Until a license is added, the repository should be treated as proprietary / all rights reserved.
+No open-source license has been selected. Until a license is added, the repository is proprietary / all rights reserved.
