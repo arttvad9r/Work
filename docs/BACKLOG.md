@@ -24,7 +24,7 @@ This backlog is implementation-oriented. `P0` means required for a credible v1 M
 | P0 | SET-02 | Currency setting | Implemented |
 | P0 | SET-03 | Theme setting | Implemented |
 | P0 | TEST-01 | Golden salary unit tests | Done |
-| P0 | TEST-02 | Repository/database tests | Next |
+| P0 | TEST-02 | Repository/database tests | Added; Android execution still requires CI/device |
 | P0 | UX-01 | Localize all user-facing strings | Implemented: EN/RU |
 | P0 | A11Y-01 | TalkBack + font scale pass | Next |
 | P1 | DAY-07 | Optional note persistence | Implemented |

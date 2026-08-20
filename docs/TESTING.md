@@ -26,13 +26,24 @@ Golden examples from the source specification are implemented in `SalaryCalculat
 
 ### 2. Calendar/date unit tests
 
-Cover every weekday for month start, leap February, and 28/29/30/31-day months.
+Cover:
 
-### 3. Repository tests — Phase 2
+- every possible weekday for month start;
+- leap February;
+- 28/29/30/31-day months;
+- first-day-of-week configuration when added.
 
-Cover insert/update/delete, uniqueness by date in one-job MVP, observing month ranges, database reopen, and migrations.
+### 3. Repository tests — implemented / expanding
 
-### 4. Compose UI tests — Phase 4
+Cover:
+
+- insert/update/delete;
+- uniqueness by date in one-job MVP;
+- observing month ranges;
+- process restart / database reopen;
+- migration tests for every schema change.
+
+### 4. Compose UI tests — next hardening slice
 
 Critical scenarios:
 
@@ -57,8 +68,10 @@ Before public beta:
 
 ## CI target
 
+Current CI compiles the production and instrumentation targets and runs JVM verification:
+
 ```bash
-gradle testDebugUnitTest lintDebug
+gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 ```
 
-Instrumentation tests can be added as a separate emulator job once the persistent MVP flow exists.
+The repository includes an in-memory Room instrumented test. Executing connected Android tests requires an emulator/device job and remains a release-gate item.

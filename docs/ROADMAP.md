@@ -33,7 +33,8 @@ Exit criteria: entries and settings survive process/app restarts and are source-
 - [x] Repository contract + Room implementation.
 - [x] DataStore settings: default rate, currency, theme.
 - [x] ViewModel backed by repository Flow.
-- [ ] Instrumented database/repository tests.
+- [x] Repository unit test and instrumented Room database test added.
+- [ ] Execute instrumented Room test on emulator/device in CI before release.
 - [x] Backup policy decision: disabled for v1 local-only semantics.
 
 ## Phase 3 — calendar MVP — NEXT

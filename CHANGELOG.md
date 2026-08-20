@@ -20,7 +20,7 @@ All notable product changes will be documented here.
 - Exact BigDecimal/NumberFormat money presentation without `Double` conversion.
 - English and Russian localization resources.
 - CI debug APK assembly and artifact upload.
-- Additional money, model and entity mapping tests.
+- Additional money, model, entity mapping, repository and instrumented Room tests.
 
 ### Planned next
 
