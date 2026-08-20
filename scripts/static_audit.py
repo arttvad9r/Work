@@ -26,7 +26,7 @@ def parse_xml(path: Path) -> ET.Element:
 
 
 manifest_path = APP / "src/main/AndroidManifest.xml"
-manifest = parse_xml(manifest_path)
+parse_xml(manifest_path)
 manifest_text = manifest_path.read_text(encoding="utf-8")
 
 for permission in (
@@ -40,16 +40,24 @@ for permission in (
     if permission in manifest_text:
         fail(f"Unexpected runtime/privacy-sensitive permission: {permission}")
 
-if 'android:allowBackup="false"' not in manifest_text:
-    fail("Android backup must remain disabled for the v1 local-only policy")
+for expected in (
+    'android:allowBackup="false"',
+    'android:dataExtractionRules="@xml/data_extraction_rules"',
+    'android:fullBackupContent="@xml/backup_rules"',
+):
+    if expected not in manifest_text:
+        fail(f"Missing backup/privacy manifest control: {expected}")
 
-for xml_path in (
+xml_paths = (
     APP / "src/main/res/values/strings.xml",
     APP / "src/main/res/values-ru/strings.xml",
     APP / "src/main/res/values/themes.xml",
     APP / "src/main/res/values-night/themes.xml",
     APP / "src/main/res/drawable/ic_launcher.xml",
-):
+    APP / "src/main/res/xml/data_extraction_rules.xml",
+    APP / "src/main/res/xml/backup_rules.xml",
+)
+for xml_path in xml_paths:
     parse_xml(xml_path)
 
 
@@ -69,6 +77,32 @@ if base_keys != ru_keys:
         fail(f"Russian resources missing keys: {', '.join(missing_ru)}")
     if extra_ru:
         fail(f"Russian resources have extra keys: {', '.join(extra_ru)}")
+
+expected_domains = {
+    "root",
+    "file",
+    "database",
+    "sharedpref",
+    "external",
+    "device_root",
+    "device_file",
+    "device_database",
+    "device_sharedpref",
+}
+data_rules = parse_xml(APP / "src/main/res/xml/data_extraction_rules.xml")
+for section_name in ("cloud-backup", "device-transfer"):
+    section = data_rules.find(section_name)
+    if section is None:
+        fail(f"data extraction rules missing {section_name}")
+        continue
+    excluded = {node.attrib.get("domain") for node in section.findall("exclude")}
+    if excluded != expected_domains:
+        fail(f"{section_name} does not exclude every app-data domain")
+
+legacy_rules = parse_xml(APP / "src/main/res/xml/backup_rules.xml")
+legacy_excluded = {node.attrib.get("domain") for node in legacy_rules.findall("exclude")}
+if legacy_excluded != expected_domains:
+    fail("legacy backup rules do not exclude every app-data domain")
 
 framework_money_patterns = re.compile(r"\b(?:Float|Double)\b|\.toFloat\(|\.toDouble\(")
 for source_root in (

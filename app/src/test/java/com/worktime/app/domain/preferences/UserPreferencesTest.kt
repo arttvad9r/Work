@@ -26,9 +26,15 @@ class UserPreferencesTest {
     }
 
     @Test
-    fun `rejects malformed currency code length`() {
+    fun `rejects malformed or unknown currency code`() {
         assertThrows(IllegalArgumentException::class.java) {
             UserPreferences(currencyCode = "EU")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            UserPreferences(currencyCode = "eur")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            UserPreferences(currencyCode = "ZZZ")
         }
     }
 }

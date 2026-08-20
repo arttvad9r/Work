@@ -70,11 +70,13 @@ Adding real multi-currency/FX behavior requires a new ADR and data-model change.
 
 User-entered rate/bonus/penalty components are bounded before calculation. The limit exists to keep checked `Long` arithmetic safely below overflow for maximum daily/monthly aggregation; it is not intended as a normal business restriction.
 
-## ADR-012 — Cloud backup disabled for v1
+## ADR-012 — Backup/transfer excluded for v1
 
 **Status:** accepted
 
-`android:allowBackup="false"` makes the local-only privacy promise explicit. Manual export/backup can be a later user-controlled feature.
+`android:allowBackup="false"` is combined with explicit legacy backup rules and Android 12+ `dataExtractionRules` excluding every supported app-data domain from cloud backup and Android device-to-device transfer. This better matches the local-data promise than relying on the manifest flag alone.
+
+Backup/D2D behavior remains a release-device verification item because platform/OEM behavior can evolve. Manual export/backup is a later user-controlled feature.
 
 ## ADR-013 — No destructive Room fallback
 
