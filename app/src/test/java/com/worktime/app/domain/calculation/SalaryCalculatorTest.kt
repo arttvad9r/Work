@@ -3,6 +3,7 @@ package com.worktime.app.domain.calculation
 import com.worktime.app.domain.model.WorkEntry
 import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -28,6 +29,43 @@ class SalaryCalculatorTest {
         assertEquals(expectedTotalMicros, SalaryCalculator.entryPay(entry).totalPayMicros)
     }
 
+    @Test
+    fun `half micro rounds away from zero`() {
+        val entry = WorkEntry(
+            date = LocalDate.of(2026, 8, 20),
+            workedMinutes = 30,
+            hourlyRateMicros = 1,
+        )
+        assertEquals(1L, SalaryCalculator.entryPay(entry).basePayMicros)
+    }
+
+    @Test
+    fun `month summary separates base adjustments and shift count`() {
+        val entries = listOf(
+            WorkEntry(
+                date = LocalDate.of(2026, 8, 20),
+                workedMinutes = 60,
+                hourlyRateMicros = 10_000_000,
+                bonusMicros = 2_000_000,
+            ),
+            WorkEntry(
+                date = LocalDate.of(2026, 8, 21),
+                workedMinutes = 0,
+                hourlyRateMicros = 0,
+                bonusMicros = 3_000_000,
+                penaltyMicros = 1_000_000,
+            ),
+        )
+
+        val summary = SalaryCalculator.monthSummary(entries)
+        assertEquals(60, summary.workedMinutes)
+        assertEquals(1, summary.shiftCount)
+        assertEquals(10_000_000L, summary.basePayMicros)
+        assertEquals(5_000_000L, summary.bonusMicros)
+        assertEquals(1_000_000L, summary.penaltyMicros)
+        assertEquals(14_000_000L, summary.totalPayMicros)
+    }
+
     companion object {
         @JvmStatic
         fun goldenCases() = listOf(
@@ -39,6 +77,7 @@ class SalaryCalculatorTest {
             Arguments.of(0, 10_000_000L, 50_000_000L, 0L, 50_000_000L),
             Arguments.of(8 * 60, 10_000L, 0L, 0L, 80_000L),
             Arguments.of(1, 60_000_000L, 0L, 0L, 1_000_000L),
+            Arguments.of(30, 1L, 0L, 0L, 1L),
         )
     }
 }
