@@ -15,7 +15,7 @@ class WorkEntryTest {
     }
 
     @Test
-    fun `rejects negative money inputs`() {
+    fun `rejects negative or unsupported money inputs`() {
         assertThrows(IllegalArgumentException::class.java) {
             WorkEntry(date = date, workedMinutes = 60, hourlyRateMicros = -1)
         }
@@ -24,6 +24,32 @@ class WorkEntryTest {
         }
         assertThrows(IllegalArgumentException::class.java) {
             WorkEntry(date = date, workedMinutes = 60, hourlyRateMicros = 1, penaltyMicros = -1)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            WorkEntry(
+                date = date,
+                workedMinutes = 60,
+                hourlyRateMicros = MoneyLimits.MAX_COMPONENT_MICROS + 1,
+            )
+        }
+    }
+
+    @Test
+    fun `rejects empty entries`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            WorkEntry(date = date, workedMinutes = 0, hourlyRateMicros = 0)
+        }
+    }
+
+    @Test
+    fun `rejects notes above storage limit`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            WorkEntry(
+                date = date,
+                workedMinutes = 60,
+                hourlyRateMicros = 1_000_000,
+                note = "x".repeat(MoneyLimits.MAX_NOTE_LENGTH + 1),
+            )
         }
     }
 }
