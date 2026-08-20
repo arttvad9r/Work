@@ -1,5 +1,6 @@
 package com.worktime.app.ui.dayeditor
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,7 +24,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -51,15 +52,23 @@ fun DayEditorSheet(
     onSave: (WorkEntry) -> Unit,
     onDelete: (LocalDate) -> Unit,
 ) {
-    var hours by remember(date, existing) { mutableStateOf(((existing?.workedMinutes ?: 0) / 60).toString()) }
-    var minutes by remember(date, existing) { mutableStateOf(((existing?.workedMinutes ?: 0) % 60).toString()) }
-    var rate by remember(date, existing) {
+    var hours by rememberSaveable(date.toEpochDay(), existing) {
+        mutableStateOf(((existing?.workedMinutes ?: 0) / 60).toString())
+    }
+    var minutes by rememberSaveable(date.toEpochDay(), existing) {
+        mutableStateOf(((existing?.workedMinutes ?: 0) % 60).toString())
+    }
+    var rate by rememberSaveable(date.toEpochDay(), existing) {
         mutableStateOf(formatDecimalMicros(existing?.hourlyRateMicros ?: defaultHourlyRateMicros))
     }
-    var bonus by remember(date, existing) { mutableStateOf(formatDecimalMicros(existing?.bonusMicros ?: 0L)) }
-    var penalty by remember(date, existing) { mutableStateOf(formatDecimalMicros(existing?.penaltyMicros ?: 0L)) }
-    var note by remember(date, existing) { mutableStateOf(existing?.note.orEmpty()) }
-    var confirmDelete by remember(date, existing) { mutableStateOf(false) }
+    var bonus by rememberSaveable(date.toEpochDay(), existing) {
+        mutableStateOf(formatDecimalMicros(existing?.bonusMicros ?: 0L))
+    }
+    var penalty by rememberSaveable(date.toEpochDay(), existing) {
+        mutableStateOf(formatDecimalMicros(existing?.penaltyMicros ?: 0L))
+    }
+    var note by rememberSaveable(date.toEpochDay(), existing) { mutableStateOf(existing?.note.orEmpty()) }
+    var confirmDelete by rememberSaveable(date.toEpochDay(), existing) { mutableStateOf(false) }
 
     val draft = runCatching {
         val parsedHours = hours.toIntOrNull() ?: 0
@@ -95,7 +104,10 @@ fun DayEditorSheet(
             )
 
             Text(stringResource(R.string.worked), style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 listOf(4, 6, 8, 10, 12).forEach { quickHours ->
                     AssistChip(
                         onClick = {
@@ -190,9 +202,7 @@ fun DayEditorSheet(
                         confirmDelete = false
                         onDelete(date)
                     },
-                ) {
-                    Text(stringResource(R.string.delete))
-                }
+                ) { Text(stringResource(R.string.delete)) }
             },
             dismissButton = {
                 TextButton(onClick = { confirmDelete = false }) {

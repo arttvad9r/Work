@@ -1,10 +1,12 @@
 package com.worktime.app.ui.settings
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -16,7 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -40,11 +42,11 @@ fun SettingsSheet(
     onDismiss: () -> Unit,
     onSave: (Long, String, ThemeMode) -> Unit,
 ) {
-    var rate by remember(defaultHourlyRateMicros) {
+    var rate by rememberSaveable(defaultHourlyRateMicros) {
         mutableStateOf(formatDecimalMicros(defaultHourlyRateMicros))
     }
-    var currency by remember(currencyCode) { mutableStateOf(currencyCode) }
-    var selectedTheme by remember(themeMode) { mutableStateOf(themeMode) }
+    var currency by rememberSaveable(currencyCode) { mutableStateOf(currencyCode) }
+    var selectedTheme by rememberSaveable(themeMode) { mutableStateOf(themeMode) }
 
     val parsedRate = runCatching { parseDecimalMicros(rate) }.getOrNull()
     val normalizedCurrency = currency.trim().uppercase(Locale.ROOT)
@@ -61,10 +63,7 @@ fun SettingsSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Text(
-                stringResource(R.string.settings),
-                style = MaterialTheme.typography.titleLarge,
-            )
+            Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge)
 
             OutlinedTextField(
                 value = rate,
@@ -79,10 +78,7 @@ fun SettingsSheet(
             OutlinedTextField(
                 value = currency,
                 onValueChange = {
-                    currency = it
-                        .filter(Char::isLetter)
-                        .uppercase(Locale.ROOT)
-                        .take(3)
+                    currency = it.filter(Char::isLetter).uppercase(Locale.ROOT).take(3)
                 },
                 label = { Text(stringResource(R.string.currency_code)) },
                 supportingText = {
@@ -91,14 +87,15 @@ fun SettingsSheet(
                 isError = !validCurrency,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Characters,
-                ),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.theme), style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     ThemeMode.entries.forEach { mode ->
                         FilterChip(
                             selected = selectedTheme == mode,

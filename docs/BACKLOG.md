@@ -26,7 +26,7 @@ This backlog is implementation-oriented. `P0` means required for a credible v1 M
 | P0 | TEST-01 | Golden salary unit tests | Done |
 | P0 | TEST-02 | Repository/database tests | Added; Android execution still requires CI/device |
 | P0 | UX-01 | Localize all user-facing strings | Implemented: EN/RU |
-| P0 | A11Y-01 | TalkBack + font scale pass | Next |
+| P0 | A11Y-01 | TalkBack + font scale pass | Partial: day semantics + overflow hardening; device pass next |
 | P1 | DAY-07 | Optional note persistence | Implemented |
 | P1 | CAL-04 | Month picker | Later |
 | P1 | UX-02 | Undo delete | Later; confirmation exists |
@@ -38,9 +38,9 @@ This backlog is implementation-oriented. `P0` means required for a credible v1 M
 ## Next execution order
 
 1. Verify the published branch through Android CI and fix any build/lint failures.
-2. Add instrumented Room repository tests.
+2. Execute the Room instrumentation test on an emulator/device job.
 3. Add Compose UI tests for create/edit/delete and settings.
-4. Perform TalkBack, 200% font-scale and small-screen checks.
+4. Complete TalkBack, 200% font-scale and small-screen checks.
 5. Add launcher icon, screenshots and release signing configuration guidance.
 6. Run beta hardening before merging the foundation branch to `main`.
 

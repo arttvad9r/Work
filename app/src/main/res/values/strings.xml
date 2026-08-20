@@ -11,6 +11,9 @@
     <string name="bonus_value">Bonus: +%1$s</string>
     <string name="penalty_value">Penalty: −%1$s</string>
     <string name="set_hourly_rate">Set hourly rate</string>
+    <string name="today">Today</string>
+    <string name="has_bonus">bonus added</string>
+    <string name="has_penalty">penalty added</string>
 
     <string name="worked">Worked</string>
     <string name="quick_hours">%1$d h</string>

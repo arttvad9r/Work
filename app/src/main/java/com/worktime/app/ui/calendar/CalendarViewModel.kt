@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -26,15 +27,16 @@ class CalendarViewModel(
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
     private val settingsOpen = MutableStateFlow(false)
 
-    private val monthEntries = visibleMonth.flatMapLatest(workEntryRepository::observeMonth)
+    private val monthSnapshot = visibleMonth.flatMapLatest { month ->
+        workEntryRepository.observeMonth(month).map { entries -> month to entries }
+    }
 
     val state: StateFlow<CalendarUiState> = combine(
-        visibleMonth,
-        monthEntries,
+        monthSnapshot,
         userPreferencesRepository.preferences,
         selectedDate,
         settingsOpen,
-    ) { month, entries, preferences, selected, isSettingsOpen ->
+    ) { (month, entries), preferences, selected, isSettingsOpen ->
         CalendarUiState(
             visibleMonth = month,
             entries = entries.associateBy(WorkEntry::date),

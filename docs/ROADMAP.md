@@ -22,7 +22,8 @@ Exit criteria: app shell builds, domain tests are green, basic calendar and edit
 - [x] Day editor prototype with quick durations, rate, bonus, penalty and note.
 - [ ] Verify Android build and CI on GitHub Actions.
 - [x] Replace hard-coded presentation strings with resources (EN/RU).
-- [ ] Accessibility pass for prototype.
+- [x] Day-cell TalkBack descriptions and overflow-safe quick controls.
+- [ ] Full TalkBack and 200% font-scale device pass.
 
 ## Phase 2 — data & settings — IN PROGRESS
 
@@ -56,7 +57,8 @@ Exit criteria: full create/edit/delete flow on persistent data.
 - [x] Locale-tolerant money input and exact currency formatting.
 - [x] Rate snapshot semantics on create vs edit.
 - [x] Delete confirmation.
-- [ ] Process-death/state-restoration checks.
+- [x] Editor/settings draft fields use saveable Compose state across recreation.
+- [ ] Full process-death/state-restoration device check.
 - [ ] Compose UI tests for critical flows.
 
 ## Phase 5 — settings & polish — LATER

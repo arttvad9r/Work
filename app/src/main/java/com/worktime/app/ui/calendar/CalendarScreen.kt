@@ -34,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,7 @@ import com.worktime.app.ui.format.formatMoneyMicros
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -64,12 +67,7 @@ fun CalendarScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        monthTitle,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                },
+                title = { Text(monthTitle, fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onPreviousMonth) {
                         Icon(
@@ -104,10 +102,7 @@ fun CalendarScreen(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            MonthSummaryCard(
-                state = state,
-                onSetHourlyRate = onSettingsClick,
-            )
+            MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
             CalendarGrid(state = state, onDayClick = onDayClick)
         }
     }
@@ -133,10 +128,7 @@ private fun MonthSummaryCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                Text(
-                    formatDuration(summary.workedMinutes),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text(formatDuration(summary.workedMinutes), style = MaterialTheme.typography.bodyMedium)
                 Text(
                     stringResource(R.string.shifts_count, summary.shiftCount),
                     style = MaterialTheme.typography.bodyMedium,
@@ -144,10 +136,7 @@ private fun MonthSummaryCard(
             }
 
             if (summary.bonusMicros > 0L || summary.penaltyMicros > 0L) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         stringResource(
                             R.string.base_pay_value,
@@ -242,6 +231,18 @@ private fun DayCell(
         isToday -> MaterialTheme.colorScheme.surfaceContainerHigh
         else -> MaterialTheme.colorScheme.surface
     }
+    val dateLabel = date.format(
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.getDefault()),
+    )
+    val a11yDescription = buildString {
+        append(dateLabel)
+        if (isToday) append(", ").append(stringResource(R.string.today))
+        if (entry != null && entry.workedMinutes > 0) {
+            append(", ").append(formatDuration(entry.workedMinutes))
+        }
+        if (entry?.bonusMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_bonus))
+        if (entry?.penaltyMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_penalty))
+    }
 
     Column(
         modifier = Modifier
@@ -249,6 +250,7 @@ private fun DayCell(
             .aspectRatio(0.9f)
             .clip(shape)
             .background(background)
+            .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .clickable(onClick = onClick)
             .padding(8.dp),
         verticalArrangement = Arrangement.SpaceBetween,
