@@ -1,6 +1,7 @@
 package com.worktime.app.data.preferences
 
 import android.content.Context
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
@@ -18,7 +19,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
-private val Context.userPreferencesDataStore by preferencesDataStore(name = "user_preferences")
+private val Context.userPreferencesDataStore by preferencesDataStore(
+    name = "user_preferences",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+)
 
 class DataStoreUserPreferencesRepository(
     private val context: Context,
