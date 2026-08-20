@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WorkTime</string>
+    <string name="previous_month">Предыдущий месяц</string>
+    <string name="next_month">Следующий месяц</string>
+    <string name="settings">Настройки</string>
+    <string name="shifts_count">Смен: %1$d</string>
+    <string name="duration_hours">%1$d ч</string>
+    <string name="duration_hours_minutes">%1$d ч %2$d мин</string>
+    <string name="base_pay_value">По ставке: %1$s</string>
+    <string name="bonus_value">Премии: +%1$s</string>
+    <string name="penalty_value">Штрафы: −%1$s</string>
+    <string name="set_hourly_rate">Указать почасовую ставку</string>
+
+    <string name="worked">Отработано</string>
+    <string name="quick_hours">%1$d ч</string>
+    <string name="hours">Часы</string>
+    <string name="minutes">Минуты</string>
+    <string name="hourly_rate">Почасовая ставка</string>
+    <string name="bonus">Премия</string>
+    <string name="penalty">Штраф</string>
+    <string name="note">Заметка</string>
+    <string name="total_value">Итого: %1$s</string>
+    <string name="total_unavailable">Итого: —</string>
+    <string name="save">Сохранить</string>
+    <string name="delete_entry">Удалить запись</string>
+
+    <string name="default_hourly_rate">Ставка по умолчанию</string>
+    <string name="currency_code">Валюта</string>
+    <string name="currency_code_hint">Введите ISO-код: EUR, USD, RUB</string>
+    <string name="theme">Тема</string>
+    <string name="theme_system">Системная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="save_settings">Сохранить настройки</string>
+    <string name="delete_entry_confirmation">Удалить запись за этот день? Это действие нельзя отменить.</string>
+    <string name="delete">Удалить</string>
+    <string name="cancel">Отмена</string>
+</resources>

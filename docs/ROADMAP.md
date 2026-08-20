@@ -20,21 +20,21 @@ Exit criteria: app shell builds, domain tests are green, basic calendar and edit
 - [x] Fixed 6×7 month grid + unit test.
 - [x] Calendar summary prototype.
 - [x] Day editor prototype with quick durations, rate, bonus, penalty and note.
-- [ ] Add Gradle wrapper binary and verify CI on GitHub Actions.
-- [ ] Replace hard-coded presentation strings with resources.
+- [ ] Verify Android build and CI on GitHub Actions.
+- [x] Replace hard-coded presentation strings with resources (EN/RU).
 - [ ] Accessibility pass for prototype.
 
-## Phase 2 — data & settings — NEXT
+## Phase 2 — data & settings — IN PROGRESS
 
 Exit criteria: entries and settings survive process/app restarts and are source-of-truth driven.
 
-- [ ] Room database with schema export.
-- [ ] `WorkEntryEntity`, DAO and mappings.
-- [ ] Repository contract + Room implementation.
-- [ ] DataStore settings: default rate, currency, theme.
-- [ ] ViewModel backed by repository Flow.
-- [ ] Database/repository tests.
-- [ ] Backup policy decision.
+- [x] Room database with schema export.
+- [x] `WorkEntryEntity`, DAO and mappings.
+- [x] Repository contract + Room implementation.
+- [x] DataStore settings: default rate, currency, theme.
+- [x] ViewModel backed by repository Flow.
+- [ ] Instrumented database/repository tests.
+- [x] Backup policy decision: disabled for v1 local-only semantics.
 
 ## Phase 3 — calendar MVP — NEXT
 
@@ -42,27 +42,27 @@ Exit criteria: production-quality monthly browsing and state rendering.
 
 - [ ] Previous/next month motion and swipe behavior.
 - [ ] Today/selected/filled states final design.
-- [ ] Localized weekday and month labels.
+- [x] Localized weekday and month labels.
 - [ ] Empty/loading/error states where applicable.
-- [ ] Month summary with base/bonus/penalty breakdown.
+- [x] Month summary with base/bonus/penalty breakdown.
 - [ ] Responsive behavior and 200% font-scale checks.
 
 ## Phase 4 — day editor MVP — NEXT
 
 Exit criteria: full create/edit/delete flow on persistent data.
 
-- [ ] Inline validation for hours/minutes/rate/adjustments.
-- [ ] Locale-aware money parser/formatter.
-- [ ] Rate snapshot semantics on create vs edit.
-- [ ] Delete confirmation or undo.
+- [x] Inline validation for hours/minutes/rate/adjustments.
+- [x] Locale-tolerant money input and exact currency formatting.
+- [x] Rate snapshot semantics on create vs edit.
+- [x] Delete confirmation.
 - [ ] Process-death/state-restoration checks.
 - [ ] Compose UI tests for critical flows.
 
 ## Phase 5 — settings & polish — LATER
 
-- [ ] Settings screen.
-- [ ] Theme: system/light/dark.
-- [ ] Currency selection.
+- [x] Settings bottom sheet.
+- [x] Theme: system/light/dark.
+- [x] Currency selection by ISO currency code.
 - [ ] First day of week if beta feedback warrants it.
 - [ ] Motion, haptics and visual polish.
 - [ ] TalkBack semantics audit.

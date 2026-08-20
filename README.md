@@ -16,18 +16,23 @@ WorkTime is intentionally small. It is a personal work-hours and salary calculat
 
 ## Current implementation
 
-The first foundation slice now includes:
+The current MVP implementation includes:
 
-- Android/Compose project scaffold;
-- Material 3 theme;
-- fixed 6×7 month calendar prototype;
-- monthly earnings/hours/shift summary;
-- day editor bottom sheet with quick durations, hourly rate, bonus, penalty and note;
-- deterministic salary calculations using integer micros;
-- golden salary tests and month-grid tests;
-- CI, Dependabot, issue templates and PR template.
+- Android/Compose project scaffold with Material 3 and dynamic color;
+- fixed 6×7 month calendar with previous/next month navigation;
+- monthly earnings, worked-hours and shift-count summary;
+- base pay / bonus / penalty breakdown when adjustments exist;
+- persistent day editor with quick durations, hourly rate, bonus, penalty and note;
+- Room database as the source of truth for work entries;
+- DataStore preferences for default hourly rate, currency and theme;
+- historical hourly-rate snapshots on every saved entry;
+- delete confirmation and inline input validation;
+- English and Russian string resources;
+- deterministic money calculations using integer micros end-to-end;
+- unit tests for salary rules, calendar layout, entity mapping and money parsing;
+- CI that runs tests, lint, assembles the debug APK and uploads it as an artifact.
 
-Persistence is intentionally the next slice: the current prototype keeps entries in ViewModel memory while Room/DataStore boundaries are implemented.
+The remaining work before a release candidate is build/CI verification, accessibility/UI testing, release assets and beta hardening.
 
 ## MVP scope
 
@@ -59,13 +64,20 @@ Timer/clock-in, GPS, clients, projects, tasks, invoices, taxes, cloud accounts, 
 ```text
 app/
 └── src/main/java/com/worktime/app/
+    ├── data/
+    │   ├── db/
+    │   ├── preferences/
+    │   └── repository/
     ├── domain/
     │   ├── calculation/
     │   ├── calendar/
-    │   └── model/
+    │   ├── model/
+    │   ├── preferences/
+    │   └── repository/
     └── ui/
         ├── calendar/
         ├── dayeditor/
+        ├── settings/
         └── theme/
 
 docs/
@@ -96,19 +108,25 @@ Requirements:
 - JDK 17;
 - Android SDK 37.
 
-Until the Gradle wrapper binary is added, either open the project in Android Studio or use Gradle 9.5 installed locally:
+Open the project in Android Studio, or use Gradle 9.5+ installed locally:
 
 ```bash
-gradle testDebugUnitTest lintDebug
+gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
+
+The repository CI uses the same verification command and publishes `app-debug.apk` as a workflow artifact on successful builds.
 
 ## Documentation
 
 - [Product specification](docs/PRODUCT.md)
+- [Competitor research](docs/RESEARCH.md)
+- [UX specification](docs/UX.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Prioritized backlog](docs/BACKLOG.md)
 - [Testing strategy](docs/TESTING.md)
 - [Architecture & product decisions](docs/DECISIONS.md)
+- [Privacy and data handling](docs/PRIVACY.md)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
 

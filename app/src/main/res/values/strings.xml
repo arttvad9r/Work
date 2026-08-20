@@ -1,4 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WorkTime</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+    <string name="settings">Settings</string>
+    <string name="shifts_count">Shifts: %1$d</string>
+    <string name="duration_hours">%1$d h</string>
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
+    <string name="base_pay_value">Base: %1$s</string>
+    <string name="bonus_value">Bonus: +%1$s</string>
+    <string name="penalty_value">Penalty: −%1$s</string>
+    <string name="set_hourly_rate">Set hourly rate</string>
+
+    <string name="worked">Worked</string>
+    <string name="quick_hours">%1$d h</string>
+    <string name="hours">Hours</string>
+    <string name="minutes">Minutes</string>
+    <string name="hourly_rate">Hourly rate</string>
+    <string name="bonus">Bonus</string>
+    <string name="penalty">Penalty</string>
+    <string name="note">Note</string>
+    <string name="total_value">Total: %1$s</string>
+    <string name="total_unavailable">Total: —</string>
+    <string name="save">Save</string>
+    <string name="delete_entry">Delete entry</string>
+
+    <string name="default_hourly_rate">Default hourly rate</string>
+    <string name="currency_code">Currency</string>
+    <string name="currency_code_hint">Enter a valid ISO code, e.g. EUR, USD, RUB</string>
+    <string name="theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="save_settings">Save settings</string>
+    <string name="delete_entry_confirmation">Delete this day entry? This cannot be undone.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
 </resources>

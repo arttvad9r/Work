@@ -59,13 +59,13 @@ Domain code stays Android-free where practical and is unit tested on the JVM.
 
 ### Data
 
-Planned next slice:
+Implemented persistence boundaries:
 
-- `WorkEntryEntity` and DAO in Room;
-- mapper between entity and domain model;
-- `WorkEntryRepository` as the single persistence boundary;
-- DataStore-backed `UserPreferencesRepository`;
-- Room is the source of truth for work entries.
+- `WorkEntryEntity`, `WorkEntryDao` and `WorkTimeDatabase` in Room;
+- explicit mapper between entity and domain model;
+- `WorkEntryRepository` as the single work-entry persistence boundary;
+- DataStore-backed `UserPreferencesRepository` for default rate, currency and theme;
+- Room is the source of truth for work entries and exposes month data as `Flow`.
 
 ## Data model
 
@@ -81,7 +81,7 @@ WorkEntry
 - note: String
 ```
 
-Planned Room representation uses an ISO date string or epoch day with a unique index. The exact storage representation must be migration-tested before beta.
+Room stores the date as `dateEpochDay: Long`, which is the primary key for the one-job MVP. Any future schema change must be migration-tested before release.
 
 ## Historical rate rule
 
@@ -104,12 +104,13 @@ Why micros rather than cents:
 UI event → ViewModel → domain/repository → StateFlow<UiState> → UI
 ```
 
-`CalendarUiState` is immutable. The current first slice uses an in-memory map inside `CalendarViewModel`; this is intentionally temporary and tracked as technical debt until Room is connected.
+`CalendarUiState` is immutable. `CalendarViewModel` observes the selected month from `WorkEntryRepository` and combines it with DataStore preferences into a single `StateFlow<CalendarUiState>`. Room remains the work-entry source of truth.
 
 ## Dependency direction
 
 ```text
 ui  ─────► domain
+ui  ─────► data interfaces (through ViewModel/use cases only)
 data ────► domain
 
 domain ─X─► Android UI / Room / DataStore
@@ -131,18 +132,20 @@ A future split can be:
 :feature:settings
 ```
 
-## Persistence roadmap
+The package boundaries are designed so this extraction does not require changing domain contracts.
 
-1. Add Room and schema export.
-2. Add `WorkEntryEntity`, DAO, database.
-3. Add repository interface and Room implementation.
-4. Replace in-memory ViewModel map with repository Flow.
-5. Add DataStore preferences.
-6. Add migration tests before database version 2 exists.
+## Persistence status
+
+1. Room and schema export — implemented.
+2. `WorkEntryEntity`, DAO and database — implemented.
+3. Repository interface and Room implementation — implemented.
+4. ViewModel driven by repository `Flow` — implemented.
+5. DataStore preferences — implemented.
+6. Migration tests — required before database version 2 is introduced.
 
 ## Security and privacy
 
-The MVP has no account, analytics SDK, advertising SDK, location access, contacts, or background network requirement. Data remains on-device. Backup policy must be explicitly decided before production release.
+The MVP has no account, analytics SDK, advertising SDK, location access, contacts, or background network requirement. Data remains on-device. Android cloud backup is disabled in v1 so local-only semantics remain explicit. Manual export/backup is a post-MVP candidate.
 
 ## Architectural fitness rules
 

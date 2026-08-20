@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -16,20 +19,26 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
-import java.math.BigDecimal
-import java.math.RoundingMode
+import com.worktime.app.ui.format.formatDecimalMicros
+import com.worktime.app.ui.format.formatMoneyMicros
+import com.worktime.app.ui.format.parseDecimalMicros
+import com.worktime.app.ui.format.sanitizeMoneyInput
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,37 +59,50 @@ fun DayEditorSheet(
     var bonus by remember(date, existing) { mutableStateOf(formatDecimalMicros(existing?.bonusMicros ?: 0L)) }
     var penalty by remember(date, existing) { mutableStateOf(formatDecimalMicros(existing?.penaltyMicros ?: 0L)) }
     var note by remember(date, existing) { mutableStateOf(existing?.note.orEmpty()) }
+    var confirmDelete by remember(date, existing) { mutableStateOf(false) }
 
     val draft = runCatching {
+        val parsedHours = hours.toIntOrNull() ?: 0
+        val parsedMinutes = minutes.toIntOrNull() ?: 0
+        require(parsedHours in 0..24)
+        require(parsedMinutes in 0..59)
+        require(parsedHours < 24 || parsedMinutes == 0)
+
         WorkEntry(
             date = date,
-            workedMinutes = (hours.toIntOrNull() ?: 0) * 60 + (minutes.toIntOrNull() ?: 0),
+            workedMinutes = parsedHours * 60 + parsedMinutes,
             hourlyRateMicros = parseDecimalMicros(rate),
             bonusMicros = parseDecimalMicros(bonus),
             penaltyMicros = parseDecimalMicros(penalty),
             note = note.trim(),
         )
-    }.getOrNull()
+    }.getOrNull()?.takeIf { entry ->
+        entry.workedMinutes > 0 || entry.bonusMicros > 0L || entry.penaltyMicros > 0L
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM")),
+                date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault())),
                 style = MaterialTheme.typography.titleLarge,
             )
 
-            Text("Worked", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.worked), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(4, 6, 8, 10, 12).forEach { quickHours ->
                     AssistChip(
-                        onClick = { hours = quickHours.toString(); minutes = "0" },
-                        label = { Text("${quickHours}h") },
+                        onClick = {
+                            hours = quickHours.toString()
+                            minutes = "0"
+                        },
+                        label = { Text(stringResource(R.string.quick_hours, quickHours)) },
                     )
                 }
             }
@@ -88,36 +110,43 @@ fun DayEditorSheet(
                 NumberField(
                     value = hours,
                     onValueChange = { hours = it.filter(Char::isDigit).take(2) },
-                    label = "Hours",
+                    label = stringResource(R.string.hours),
                     modifier = Modifier.weight(1f),
                 )
                 NumberField(
                     value = minutes,
                     onValueChange = { minutes = it.filter(Char::isDigit).take(2) },
-                    label = "Minutes",
+                    label = stringResource(R.string.minutes),
                     modifier = Modifier.weight(1f),
                 )
             }
 
-            MoneyField(value = rate, onValueChange = { rate = sanitizeMoneyInput(it) }, label = "Hourly rate")
+            MoneyField(
+                value = rate,
+                onValueChange = { rate = sanitizeMoneyInput(it) },
+                label = stringResource(R.string.hourly_rate),
+                currencyCode = currencyCode,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 MoneyField(
                     value = bonus,
                     onValueChange = { bonus = sanitizeMoneyInput(it) },
-                    label = "Bonus",
+                    label = stringResource(R.string.bonus),
+                    currencyCode = currencyCode,
                     modifier = Modifier.weight(1f),
                 )
                 MoneyField(
                     value = penalty,
                     onValueChange = { penalty = sanitizeMoneyInput(it) },
-                    label = "Penalty",
+                    label = stringResource(R.string.penalty),
+                    currencyCode = currencyCode,
                     modifier = Modifier.weight(1f),
                 )
             }
             OutlinedTextField(
                 value = note,
                 onValueChange = { note = it.take(200) },
-                label = { Text("Note") },
+                label = { Text(stringResource(R.string.note)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4,
@@ -126,7 +155,9 @@ fun DayEditorSheet(
             HorizontalDivider()
             val total = draft?.let { SalaryCalculator.entryPay(it).totalPayMicros }
             Text(
-                text = "Total: ${total?.let(::formatDecimalMicros) ?: "—"} $currencyCode",
+                text = total?.let {
+                    stringResource(R.string.total_value, formatMoneyMicros(it, currencyCode))
+                } ?: stringResource(R.string.total_unavailable),
                 style = MaterialTheme.typography.titleMedium,
             )
 
@@ -135,17 +166,40 @@ fun DayEditorSheet(
                 enabled = draft != null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Save")
+                Text(stringResource(R.string.save))
             }
             if (existing != null) {
                 OutlinedButton(
-                    onClick = { onDelete(date) },
+                    onClick = { confirmDelete = true },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Delete entry")
+                    Text(stringResource(R.string.delete_entry))
                 }
             }
         }
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.delete_entry)) },
+            text = { Text(stringResource(R.string.delete_entry_confirmation)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        onDelete(date)
+                    },
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 
@@ -171,39 +225,16 @@ private fun MoneyField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
+    currencyCode: String,
     modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        suffix = { Text(currencyCode) },
         modifier = modifier,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     )
 }
-
-private fun sanitizeMoneyInput(value: String): String = value
-    .replace(',', '.')
-    .filter { it.isDigit() || it == '.' }
-    .let { filtered ->
-        val firstDot = filtered.indexOf('.')
-        if (firstDot < 0) filtered else {
-            filtered.take(firstDot + 1) + filtered.drop(firstDot + 1).replace(".", "").take(6)
-        }
-    }
-    .take(18)
-
-private fun parseDecimalMicros(text: String): Long {
-    if (text.isBlank()) return 0L
-    val normalized = text.replace(',', '.')
-    return BigDecimal(normalized)
-        .movePointRight(6)
-        .setScale(0, RoundingMode.HALF_UP)
-        .longValueExact()
-        .also { require(it >= 0) }
-}
-
-private fun formatDecimalMicros(micros: Long): String = BigDecimal.valueOf(micros, 6)
-    .stripTrailingZeros()
-    .toPlainString()

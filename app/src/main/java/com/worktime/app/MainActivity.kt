@@ -5,16 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.worktime.app.ui.WorkTimeApp
-import com.worktime.app.ui.theme.WorkTimeTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val container = (application as WorkTimeApplication).container
         setContent {
-            WorkTimeTheme {
-                WorkTimeApp()
-            }
+            WorkTimeApp(container = container)
         }
     }
 }
