@@ -74,9 +74,9 @@ Checks:
 
 ## Android instrumentation source
 
-`WorkTimeDatabaseTest` creates an in-memory Room database and exercises upsert/observe/delete. It must still be executed on an emulator/device.
+`WorkTimeDatabaseTest` creates an in-memory Room database and exercises upsert/observe/delete. `WorkTimeSmokeTest` also covers the startup settings action. Both require a functioning emulator/device runtime.
 
-Before public beta add Compose UI tests for:
+Before public beta expand Compose UI tests beyond the current startup smoke test for:
 
 1. empty date → 8h → save → cell/summary update;
 2. bonus/penalty → total update;
@@ -95,7 +95,7 @@ Before public beta add Compose UI tests for:
 :app:assembleDebugAndroidTest
 ```
 
-CI compiles instrumentation targets; it does not claim connected/emulator execution.
+The local build compiled the instrumentation APK. Connected execution was attempted on API 37.0 and API 35 emulators but could not start tests because the runtime did not expose package/activity services.
 
 ## Release gates
 

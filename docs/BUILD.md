@@ -60,9 +60,7 @@ gradle --no-daemon \
 
 ## Gradle Wrapper status
 
-`gradle/wrapper/gradle-wrapper.properties` pins `gradle-9.5.0-bin.zip`, but the repository does **not** yet contain a complete wrapper bootstrap (`gradle-wrapper.jar`, `gradlew`, `gradlew.bat`).
-
-Reason: the binary wrapper JAR cannot be generated/retrieved safely in the current development environment. Do not commit a fabricated or unrelated wrapper binary.
+The complete wrapper bootstrap is committed (`gradle-wrapper.jar`, `gradlew`, `gradlew.bat`) and pins `gradle-9.5.0-bin.zip`.
 
 From a trusted local Gradle 9.5.0 installation, bootstrap it with:
 
@@ -79,7 +77,7 @@ gradle/wrapper/gradle-wrapper.jar
 gradle/wrapper/gradle-wrapper.properties
 ```
 
-After the wrapper is committed, CI/local documentation can switch from `gradle` to `./gradlew`.
+`./gradlew --version` reports Gradle 9.5.0. On NixOS, the verified build additionally used the installed SDK `aapt2` through `-Pandroid.aapt2FromMavenOverride=...` inside `steam-run`.
 
 ## Room schemas
 
@@ -109,4 +107,4 @@ The workflow **compiles** Android instrumentation tests but does not execute the
 
 ## Build evidence policy
 
-Do not mark Android build/CI as green until an actual workflow/local Android build has produced a successful result. Source inspection and JVM-only smoke checks are not substitutes for an Android build.
+Local evidence on 21 August 2026: JVM tests, lint, debug APK and instrumentation APK assembly passed. Connected execution is documented separately as pending/blocked.

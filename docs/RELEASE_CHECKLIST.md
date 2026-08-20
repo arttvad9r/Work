@@ -2,13 +2,13 @@
 
 ## Code/build
 
-- [ ] Complete Gradle Wrapper bootstrap is committed from a trusted environment.
-- [ ] `scripts/static_audit.py` passes.
-- [ ] JVM unit tests pass.
-- [ ] Android lint passes with reviewed output.
-- [ ] Debug APK builds.
-- [ ] Instrumentation APK builds.
-- [ ] Room v1 schema JSON is generated and committed.
+- [x] Complete Gradle Wrapper bootstrap is committed from a trusted environment.
+- [x] `scripts/static_audit.py` passes.
+- [x] JVM unit tests pass.
+- [x] Android lint passes with reviewed output.
+- [x] Debug APK builds.
+- [x] Instrumentation APK builds.
+- [x] Room v1 schema JSON is generated and committed.
 - [ ] No destructive Room migration fallback exists.
 - [ ] Release build/signing configuration is prepared outside source control.
 

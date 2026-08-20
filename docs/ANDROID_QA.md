@@ -2,6 +2,10 @@
 
 Run this only after the project builds successfully.
 
+## Execution record — 21 August 2026
+
+Build prerequisites were installed and API 37.0/API 35 emulator launches were attempted. Both ADB endpoints remained unusable for test execution (`package`/`activity` services unavailable; API 37.0 was also reported as unknown by the test runner). No emulator checklist item below is marked verified.
+
 ## Minimum device matrix
 
 At minimum verify:

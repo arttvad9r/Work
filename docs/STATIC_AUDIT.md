@@ -87,3 +87,10 @@ A complete Gradle Wrapper cannot be committed from the current environment becau
 ## Conclusion
 
 After these fixes, no additional high-confidence non-Android correctness defect was identified in the reviewed code. The next useful evidence is a real Android build/device pass rather than speculative feature/refactor work.
+
+## Follow-up execution — 21 August 2026
+
+- `python3 scripts/static_audit.py`: passed.
+- Gradle 9.5.0 wrapper: bootstrapped and verified.
+- JVM tests, lint, debug APK and debug instrumentation APK: passed.
+- Connected tests: attempted, but emulator services were unavailable; no connected test result is claimed.

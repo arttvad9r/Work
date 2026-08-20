@@ -8,7 +8,7 @@ WorkTime is intentionally small. It is a personal work-hours and salary calculat
 
 ## Status
 
-The repository contains a **functionally complete MVP implementation**, but it is **not yet a release candidate** because the Android build and device/emulator QA have not been executed in this environment.
+The repository contains a **functionally complete MVP implementation**. Android build, lint, JVM tests and APK assembly passed in this environment; connected emulator QA remains blocked by the available emulator runtime.
 
 Implemented:
 
@@ -28,7 +28,7 @@ Implemented:
 - JVM tests plus instrumented Room test source;
 - CI definition for static audit, tests, lint and APK target compilation.
 
-Remaining release gates: [`docs/ANDROID_QA.md`](docs/ANDROID_QA.md) and [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
+Remaining release gates: connected instrumentation/Compose execution, device QA and [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 
 ## Product rules
 
@@ -108,7 +108,7 @@ The audit checks XML/resource consistency, EN/RU string parity, privacy-sensitiv
 
 See [`docs/BUILD.md`](docs/BUILD.md).
 
-Until Gradle Wrapper bootstrap is completed, command-line verification requires trusted Gradle 9.5.0 on `PATH`:
+The committed Gradle Wrapper is the preferred command-line entry point:
 
 ```bash
 ./scripts/verify.sh
@@ -131,7 +131,7 @@ These run the static audit and then:
 
 ### Gradle Wrapper note
 
-`gradle/wrapper/gradle-wrapper.properties` pins 9.5.0, but wrapper scripts/JAR are not yet committed. The binary wrapper JAR cannot be safely generated or retrieved in the current execution environment. This is tracked explicitly instead of committing a fake/broken binary. CI installs Gradle 9.5.0 through `gradle/actions/setup-gradle`.
+The wrapper pins Gradle 9.5.0 and is committed. On this NixOS host Android resource processing additionally requires the host SDK `aapt2` override and an FHS-compatible runner.
 
 ## Documentation
 

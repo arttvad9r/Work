@@ -12,7 +12,7 @@ Status legend: `DONE`, `IN PROGRESS`, `NEXT`, `LATER`.
 
 ## Phase 1 — repository/foundation — IN PROGRESS
 
-Implementation is complete; Android build verification remains.
+Implementation is complete; connected/device QA remains.
 
 - [x] Repository/docs structure.
 - [x] Compose/Material 3 project source.
@@ -20,9 +20,9 @@ Implementation is complete; Android build verification remains.
 - [x] CI definition for JVM tests/lint/APK target compilation.
 - [x] Build/static-audit scripts.
 - [x] Launcher icon placeholder.
-- [ ] Complete trusted Gradle Wrapper bootstrap.
-- [ ] Confirm real Android build/lint result.
-- [ ] Generate/commit Room v1 schema JSON.
+- [x] Complete trusted Gradle Wrapper bootstrap.
+- [x] Confirm real Android build/lint result.
+- [x] Generate/commit Room v1 schema JSON.
 
 ## Phase 2 — data/settings — DONE IN SOURCE
 
@@ -34,7 +34,7 @@ Implementation is complete; Android build verification remains.
 - [x] Backup disabled.
 - [x] Repository JVM test.
 - [x] Instrumented Room test source.
-- [ ] Execute instrumented test on Android emulator/device.
+- [ ] Execute instrumented test on Android emulator/device (runtime blocked in this host).
 
 ## Phase 3 — calendar MVP — DONE IN SOURCE
 
@@ -75,14 +75,14 @@ Implementation is complete; Android build verification remains.
 
 ## Phase 6 — Android QA/hardening — NEXT
 
-- [ ] Full Android build green.
+- [x] Full Android build green.
 - [ ] Lint report reviewed.
 - [ ] Instrumented Room test executed.
 - [ ] Compose critical-flow tests.
 - [ ] API 26 / 31+ / 37 device matrix.
 - [ ] Process-death/relaunch checks.
 - [ ] Performance/startup/ANR check.
-- [ ] `ANDROID_QA.md` completed.
+- [ ] `ANDROID_QA.md` completed (runtime/device verification pending).
 
 ## Phase 7 — beta/Play release — LATER
 

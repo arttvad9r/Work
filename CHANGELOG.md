@@ -4,6 +4,12 @@ All notable product changes will be documented here.
 
 ## [Unreleased]
 
+### Verification — 2026-08-21
+
+- Bootstrapped and verified the Gradle 9.5.0 wrapper.
+- Passed static audit, JVM tests, lint, debug APK and instrumentation APK assembly.
+- Added a Compose startup smoke test source; connected execution remains pending because the available emulator runtime did not expose package/activity services.
+
 ### Added
 
 - Calendar-first Compose MVP.
