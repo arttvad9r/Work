@@ -9,6 +9,7 @@ import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,7 @@ class CalendarViewModel(
     private val visibleMonth = MutableStateFlow(YearMonth.now())
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
     private val settingsOpen = MutableStateFlow(false)
+    private val operationError = MutableStateFlow<CalendarOperationError?>(null)
 
     private val monthSnapshot = visibleMonth.flatMapLatest { month ->
         workEntryRepository.observeMonth(month).map { entries -> month to entries }
@@ -36,7 +38,9 @@ class CalendarViewModel(
         userPreferencesRepository.preferences,
         selectedDate,
         settingsOpen,
-    ) { (month, entries), preferences, selected, isSettingsOpen ->
+        operationError,
+    ) { monthAndEntries, preferences, selected, isSettingsOpen, error ->
+        val (month, entries) = monthAndEntries
         CalendarUiState(
             visibleMonth = month,
             entries = entries.associateBy(WorkEntry::date),
@@ -45,6 +49,8 @@ class CalendarViewModel(
             defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
             themeMode = preferences.themeMode,
             isSettingsOpen = isSettingsOpen,
+            isReady = true,
+            operationError = error,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -56,25 +62,51 @@ class CalendarViewModel(
 
     fun nextMonth() = visibleMonth.update { it.plusMonths(1) }
 
-    fun selectDate(date: LocalDate) = selectedDate.update { date }
+    fun selectDate(date: LocalDate) {
+        operationError.value = null
+        settingsOpen.value = false
+        selectedDate.value = date
+    }
 
-    fun dismissEditor() = selectedDate.update { null }
+    fun dismissEditor() {
+        operationError.value = null
+        selectedDate.value = null
+    }
 
-    fun openSettings() = settingsOpen.update { true }
+    fun openSettings() {
+        operationError.value = null
+        selectedDate.value = null
+        settingsOpen.value = true
+    }
 
-    fun dismissSettings() = settingsOpen.update { false }
+    fun dismissSettings() {
+        operationError.value = null
+        settingsOpen.value = false
+    }
 
     fun saveEntry(entry: WorkEntry) {
+        operationError.value = null
         viewModelScope.launch {
-            workEntryRepository.save(entry)
-            selectedDate.value = null
+            try {
+                workEntryRepository.save(entry)
+                selectedDate.value = null
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                operationError.value = CalendarOperationError.SAVE_ENTRY
+            }
         }
     }
 
     fun deleteEntry(date: LocalDate) {
+        operationError.value = null
         viewModelScope.launch {
-            workEntryRepository.delete(date)
-            selectedDate.value = null
+            try {
+                workEntryRepository.delete(date)
+                selectedDate.value = null
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                operationError.value = CalendarOperationError.DELETE_ENTRY
+            }
         }
     }
 
@@ -83,13 +115,19 @@ class CalendarViewModel(
         currencyCode: String,
         themeMode: ThemeMode,
     ) {
+        operationError.value = null
         viewModelScope.launch {
-            userPreferencesRepository.update(
-                defaultHourlyRateMicros = defaultHourlyRateMicros,
-                currencyCode = currencyCode,
-                themeMode = themeMode,
-            )
-            settingsOpen.value = false
+            try {
+                userPreferencesRepository.update(
+                    defaultHourlyRateMicros = defaultHourlyRateMicros,
+                    currencyCode = currencyCode,
+                    themeMode = themeMode,
+                )
+                settingsOpen.value = false
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                operationError.value = CalendarOperationError.SAVE_SETTINGS
+            }
         }
     }
 

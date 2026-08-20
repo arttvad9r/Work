@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -26,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
+import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
@@ -39,6 +41,7 @@ fun SettingsSheet(
     defaultHourlyRateMicros: Long,
     currencyCode: String,
     themeMode: ThemeMode,
+    operationErrorMessage: String?,
     onDismiss: () -> Unit,
     onSave: (Long, String, ThemeMode) -> Unit,
 ) {
@@ -49,16 +52,26 @@ fun SettingsSheet(
     var selectedTheme by rememberSaveable(themeMode) { mutableStateOf(themeMode) }
 
     val parsedRate = runCatching { parseDecimalMicros(rate) }.getOrNull()
+    val rateValid = parsedRate != null && parsedRate <= MoneyLimits.MAX_COMPONENT_MICROS
     val normalizedCurrency = currency.trim().uppercase(Locale.ROOT)
     val validCurrency = normalizedCurrency.length == 3 && runCatching {
         Currency.getInstance(normalizedCurrency)
     }.isSuccess
-    val canSave = parsedRate != null && validCurrency
+    val canSave = rateValid && validCurrency
+    val rateError = when {
+        parsedRate == null -> stringResource(R.string.invalid_money_value)
+        parsedRate > MoneyLimits.MAX_COMPONENT_MICROS -> stringResource(
+            R.string.money_value_too_large,
+            formatDecimalMicros(MoneyLimits.MAX_COMPONENT_MICROS),
+        )
+        else -> null
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -70,6 +83,10 @@ fun SettingsSheet(
                 onValueChange = { rate = sanitizeMoneyInput(it) },
                 label = { Text(stringResource(R.string.default_hourly_rate)) },
                 suffix = { Text(normalizedCurrency.ifBlank { currencyCode }) },
+                supportingText = {
+                    Text(rateError ?: stringResource(R.string.default_rate_help))
+                },
+                isError = rateError != null,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -82,7 +99,13 @@ fun SettingsSheet(
                 },
                 label = { Text(stringResource(R.string.currency_code)) },
                 supportingText = {
-                    if (!validCurrency) Text(stringResource(R.string.currency_code_hint))
+                    Text(
+                        if (!validCurrency) {
+                            stringResource(R.string.currency_code_hint)
+                        } else {
+                            stringResource(R.string.currency_no_conversion)
+                        },
+                    )
                 },
                 isError = !validCurrency,
                 modifier = Modifier.fillMaxWidth(),
@@ -104,6 +127,14 @@ fun SettingsSheet(
                         )
                     }
                 }
+            }
+
+            if (operationErrorMessage != null) {
+                Text(
+                    text = operationErrorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
 
             Button(

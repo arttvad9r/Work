@@ -12,6 +12,7 @@
     <string name="penalty_value">Penalty: −%1$s</string>
     <string name="set_hourly_rate">Set hourly rate</string>
     <string name="today">Today</string>
+    <string name="selected">selected</string>
     <string name="has_bonus">bonus added</string>
     <string name="has_penalty">penalty added</string>
 
@@ -23,14 +24,24 @@
     <string name="bonus">Bonus</string>
     <string name="penalty">Penalty</string>
     <string name="note">Note</string>
+    <string name="note_length">%1$d/%2$d</string>
     <string name="total_value">Total: %1$s</string>
     <string name="total_unavailable">Total: —</string>
     <string name="save">Save</string>
     <string name="delete_entry">Delete entry</string>
+    <string name="hours_range_error">Enter 0–24 hours</string>
+    <string name="minutes_range_error">Enter 0–59 minutes</string>
+    <string name="duration_24h_error">24 hours cannot include extra minutes</string>
+    <string name="invalid_money_value">Enter a valid non-negative amount</string>
+    <string name="money_value_too_large">Maximum supported value: %1$s</string>
+    <string name="hourly_rate_required">Set a rate above 0 for worked time</string>
+    <string name="empty_entry_error">Add worked time, a bonus, or a penalty</string>
 
     <string name="default_hourly_rate">Default hourly rate</string>
+    <string name="default_rate_help">A positive rate is required when saving worked time</string>
     <string name="currency_code">Currency</string>
     <string name="currency_code_hint">Enter a valid ISO code, e.g. EUR, USD, RUB</string>
+    <string name="currency_no_conversion">Changing currency relabels all amounts; no exchange-rate conversion is performed</string>
     <string name="theme">Theme</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
@@ -39,4 +50,8 @@
     <string name="delete_entry_confirmation">Delete this day entry? This cannot be undone.</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
+
+    <string name="save_entry_failed">Could not save the entry. Your draft is still open.</string>
+    <string name="delete_entry_failed">Could not delete the entry. Try again.</string>
+    <string name="save_settings_failed">Could not save settings. Your changes are still open.</string>
 </resources>

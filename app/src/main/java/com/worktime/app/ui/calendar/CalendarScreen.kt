@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,7 +84,10 @@ fun CalendarScreen(
                             contentDescription = stringResource(R.string.next_month),
                         )
                     }
-                    IconButton(onClick = onSettingsClick) {
+                    IconButton(
+                        onClick = onSettingsClick,
+                        enabled = state.isReady,
+                    ) {
                         Icon(
                             Icons.Rounded.Settings,
                             contentDescription = stringResource(R.string.settings),
@@ -102,8 +106,19 @@ fun CalendarScreen(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
-            CalendarGrid(state = state, onDayClick = onDayClick)
+            if (!state.isReady) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 72.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
+                CalendarGrid(state = state, onDayClick = onDayClick)
+            }
         }
     }
 }
@@ -128,9 +143,14 @@ private fun MonthSummaryCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                Text(formatDuration(summary.workedMinutes), style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    formatDuration(summary.workedMinutes),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
                 Text(
                     stringResource(R.string.shifts_count, summary.shiftCount),
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -191,11 +211,13 @@ private fun CalendarGrid(
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
             )
         }
     }
 
     val cells = MonthGrid.build(state.visibleMonth)
+    val today = LocalDate.now()
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         cells.chunked(7).forEach { week ->
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -205,7 +227,8 @@ private fun CalendarGrid(
                             DayCell(
                                 date = date,
                                 entry = state.entries[date],
-                                isToday = date == LocalDate.now(),
+                                isToday = date == today,
+                                isSelected = date == state.selectedDate,
                                 onClick = { onDayClick(date) },
                             )
                         } else {
@@ -223,10 +246,12 @@ private fun DayCell(
     date: LocalDate,
     entry: WorkEntry?,
     isToday: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(14.dp)
     val background = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
         entry != null -> MaterialTheme.colorScheme.secondaryContainer
         isToday -> MaterialTheme.colorScheme.surfaceContainerHigh
         else -> MaterialTheme.colorScheme.surface
@@ -237,6 +262,7 @@ private fun DayCell(
     val a11yDescription = buildString {
         append(dateLabel)
         if (isToday) append(", ").append(stringResource(R.string.today))
+        if (isSelected) append(", ").append(stringResource(R.string.selected))
         if (entry != null && entry.workedMinutes > 0) {
             append(", ").append(formatDuration(entry.workedMinutes))
         }
@@ -252,13 +278,14 @@ private fun DayCell(
             .background(background)
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .clickable(onClick = onClick)
-            .padding(8.dp),
+            .padding(6.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = date.dayOfMonth.toString(),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+            maxLines = 1,
         )
         if (entry != null) {
             Column {
@@ -267,6 +294,7 @@ private fun DayCell(
                         text = formatDuration(entry.workedMinutes),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -288,7 +316,7 @@ private fun Marker(text: String) {
             .background(MaterialTheme.colorScheme.tertiaryContainer),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, style = MaterialTheme.typography.labelSmall)
+        Text(text, style = MaterialTheme.typography.labelSmall, maxLines = 1)
     }
 }
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
+import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.formatMoneyMicros
@@ -48,6 +49,7 @@ fun DayEditorSheet(
     existing: WorkEntry?,
     defaultHourlyRateMicros: Long,
     currencyCode: String,
+    operationErrorMessage: String?,
     onDismiss: () -> Unit,
     onSave: (WorkEntry) -> Unit,
     onDelete: (LocalDate) -> Unit,
@@ -70,24 +72,70 @@ fun DayEditorSheet(
     var note by rememberSaveable(date.toEpochDay(), existing) { mutableStateOf(existing?.note.orEmpty()) }
     var confirmDelete by rememberSaveable(date.toEpochDay(), existing) { mutableStateOf(false) }
 
-    val draft = runCatching {
-        val parsedHours = hours.toIntOrNull() ?: 0
-        val parsedMinutes = minutes.toIntOrNull() ?: 0
-        require(parsedHours in 0..24)
-        require(parsedMinutes in 0..59)
-        require(parsedHours < 24 || parsedMinutes == 0)
+    val parsedHours = parseWholeNumberOrZero(hours)
+    val parsedMinutes = parseWholeNumberOrZero(minutes)
+    val hoursValid = parsedHours != null && parsedHours in 0..24
+    val minutesValid = parsedMinutes != null && parsedMinutes in 0..59
+    val durationValid = hoursValid && minutesValid && !(parsedHours == 24 && parsedMinutes != 0)
+    val workedMinutes = if (durationValid) parsedHours!! * 60 + parsedMinutes!! else null
 
-        WorkEntry(
-            date = date,
-            workedMinutes = parsedHours * 60 + parsedMinutes,
-            hourlyRateMicros = parseDecimalMicros(rate),
-            bonusMicros = parseDecimalMicros(bonus),
-            penaltyMicros = parseDecimalMicros(penalty),
-            note = note.trim(),
-        )
-    }.getOrNull()?.takeIf { entry ->
-        entry.workedMinutes > 0 || entry.bonusMicros > 0L || entry.penaltyMicros > 0L
+    val parsedRate = parseMoneyOrNull(rate)
+    val parsedBonus = parseMoneyOrNull(bonus)
+    val parsedPenalty = parseMoneyOrNull(penalty)
+    val rateWithinLimit = parsedRate != null && parsedRate <= MoneyLimits.MAX_COMPONENT_MICROS
+    val bonusWithinLimit = parsedBonus != null && parsedBonus <= MoneyLimits.MAX_COMPONENT_MICROS
+    val penaltyWithinLimit = parsedPenalty != null && parsedPenalty <= MoneyLimits.MAX_COMPONENT_MICROS
+    val positiveRateRequired = (workedMinutes ?: 0) > 0
+    val rateValid = rateWithinLimit && (!positiveRateRequired || parsedRate!! > 0L)
+    val hasEffectiveData = workedMinutes != null && (
+        workedMinutes > 0 || (parsedBonus ?: 0L) > 0L || (parsedPenalty ?: 0L) > 0L
+    )
+
+    val draft = if (
+        durationValid && rateValid && bonusWithinLimit && penaltyWithinLimit && hasEffectiveData
+    ) {
+        runCatching {
+            WorkEntry(
+                date = date,
+                workedMinutes = workedMinutes!!,
+                hourlyRateMicros = parsedRate!!,
+                bonusMicros = parsedBonus!!,
+                penaltyMicros = parsedPenalty!!,
+                note = note.trim(),
+            )
+        }.getOrNull()
+    } else {
+        null
     }
+
+    val maxMoneyLabel = formatDecimalMicros(MoneyLimits.MAX_COMPONENT_MICROS)
+    val hoursError = when {
+        !hoursValid -> stringResource(R.string.hours_range_error)
+        !durationValid -> stringResource(R.string.duration_24h_error)
+        else -> null
+    }
+    val minutesError = when {
+        !minutesValid -> stringResource(R.string.minutes_range_error)
+        !durationValid -> stringResource(R.string.duration_24h_error)
+        else -> null
+    }
+    val rateError = when {
+        parsedRate == null -> stringResource(R.string.invalid_money_value)
+        parsedRate > MoneyLimits.MAX_COMPONENT_MICROS -> stringResource(R.string.money_value_too_large, maxMoneyLabel)
+        positiveRateRequired && parsedRate == 0L -> stringResource(R.string.hourly_rate_required)
+        else -> null
+    }
+    val bonusError = when {
+        parsedBonus == null -> stringResource(R.string.invalid_money_value)
+        parsedBonus > MoneyLimits.MAX_COMPONENT_MICROS -> stringResource(R.string.money_value_too_large, maxMoneyLabel)
+        else -> null
+    }
+    val penaltyError = when {
+        parsedPenalty == null -> stringResource(R.string.invalid_money_value)
+        parsedPenalty > MoneyLimits.MAX_COMPONENT_MICROS -> stringResource(R.string.money_value_too_large, maxMoneyLabel)
+        else -> null
+    }
+    val totalMicros = draft?.let { runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull() }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -123,12 +171,16 @@ fun DayEditorSheet(
                     value = hours,
                     onValueChange = { hours = it.filter(Char::isDigit).take(2) },
                     label = stringResource(R.string.hours),
+                    isError = hoursError != null,
+                    supportingText = hoursError,
                     modifier = Modifier.weight(1f),
                 )
                 NumberField(
                     value = minutes,
                     onValueChange = { minutes = it.filter(Char::isDigit).take(2) },
                     label = stringResource(R.string.minutes),
+                    isError = minutesError != null,
+                    supportingText = minutesError,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -138,44 +190,62 @@ fun DayEditorSheet(
                 onValueChange = { rate = sanitizeMoneyInput(it) },
                 label = stringResource(R.string.hourly_rate),
                 currencyCode = currencyCode,
+                isError = rateError != null,
+                supportingText = rateError,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MoneyField(
-                    value = bonus,
-                    onValueChange = { bonus = sanitizeMoneyInput(it) },
-                    label = stringResource(R.string.bonus),
-                    currencyCode = currencyCode,
-                    modifier = Modifier.weight(1f),
-                )
-                MoneyField(
-                    value = penalty,
-                    onValueChange = { penalty = sanitizeMoneyInput(it) },
-                    label = stringResource(R.string.penalty),
-                    currencyCode = currencyCode,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            MoneyField(
+                value = bonus,
+                onValueChange = { bonus = sanitizeMoneyInput(it) },
+                label = stringResource(R.string.bonus),
+                currencyCode = currencyCode,
+                isError = bonusError != null,
+                supportingText = bonusError,
+            )
+            MoneyField(
+                value = penalty,
+                onValueChange = { penalty = sanitizeMoneyInput(it) },
+                label = stringResource(R.string.penalty),
+                currencyCode = currencyCode,
+                isError = penaltyError != null,
+                supportingText = penaltyError,
+            )
             OutlinedTextField(
                 value = note,
-                onValueChange = { note = it.take(200) },
+                onValueChange = { note = it.take(MoneyLimits.MAX_NOTE_LENGTH) },
                 label = { Text(stringResource(R.string.note)) },
+                supportingText = {
+                    Text(stringResource(R.string.note_length, note.length, MoneyLimits.MAX_NOTE_LENGTH))
+                },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4,
             )
 
             HorizontalDivider()
-            val total = draft?.let { SalaryCalculator.entryPay(it).totalPayMicros }
             Text(
-                text = total?.let {
+                text = totalMicros?.let {
                     stringResource(R.string.total_value, formatMoneyMicros(it, currencyCode))
                 } ?: stringResource(R.string.total_unavailable),
                 style = MaterialTheme.typography.titleMedium,
             )
+            if (durationValid && rateValid && bonusWithinLimit && penaltyWithinLimit && !hasEffectiveData) {
+                Text(
+                    text = stringResource(R.string.empty_entry_error),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (operationErrorMessage != null) {
+                Text(
+                    text = operationErrorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
 
             Button(
                 onClick = { draft?.let(onSave) },
-                enabled = draft != null,
+                enabled = draft != null && totalMicros != null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.save))
@@ -213,17 +283,28 @@ fun DayEditorSheet(
     }
 }
 
+private fun parseWholeNumberOrZero(text: String): Int? = if (text.isBlank()) 0 else text.toIntOrNull()
+
+private fun parseMoneyOrNull(text: String): Long? = runCatching { parseDecimalMicros(text) }.getOrNull()
+
 @Composable
 private fun NumberField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
+    isError: Boolean,
+    supportingText: String?,
     modifier: Modifier = Modifier,
 ) {
+    val supportingContent: @Composable (() -> Unit)? = supportingText?.let { message ->
+        { Text(message) }
+    }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        supportingText = supportingContent,
+        isError = isError,
         modifier = modifier,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -236,13 +317,20 @@ private fun MoneyField(
     onValueChange: (String) -> Unit,
     label: String,
     currencyCode: String,
+    isError: Boolean,
+    supportingText: String?,
     modifier: Modifier = Modifier,
 ) {
+    val supportingContent: @Composable (() -> Unit)? = supportingText?.let { message ->
+        { Text(message) }
+    }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
         suffix = { Text(currencyCode) },
+        supportingText = supportingContent,
+        isError = isError,
         modifier = modifier,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

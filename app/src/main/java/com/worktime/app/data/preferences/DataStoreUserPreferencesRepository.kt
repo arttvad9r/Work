@@ -3,9 +3,11 @@ package com.worktime.app.data.preferences
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.preferences.UserPreferences
 import com.worktime.app.domain.repository.UserPreferencesRepository
@@ -23,7 +25,7 @@ class DataStoreUserPreferencesRepository(
 ) : UserPreferencesRepository {
     override val preferences: Flow<UserPreferences> = context.userPreferencesDataStore.data
         .catch { error ->
-            if (error is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw error
+            if (error is IOException) emit(emptyPreferences()) else throw error
         }
         .map(::toUserPreferences)
 
@@ -32,7 +34,7 @@ class DataStoreUserPreferencesRepository(
         currencyCode: String,
         themeMode: ThemeMode,
     ) {
-        require(defaultHourlyRateMicros >= 0L)
+        require(defaultHourlyRateMicros in 0..MoneyLimits.MAX_COMPONENT_MICROS)
         val normalizedCurrency = currencyCode.trim().uppercase(Locale.ROOT)
         require(normalizedCurrency.length == 3)
         Currency.getInstance(normalizedCurrency)
@@ -54,14 +56,18 @@ class DataStoreUserPreferencesRepository(
             ?.takeIf(::isValidCurrencyCode)
             ?: defaultCurrencyCode()
 
+        val defaultRate = preferences[Keys.DEFAULT_HOURLY_RATE_MICROS]
+            ?.takeIf { it in 0..MoneyLimits.MAX_COMPONENT_MICROS }
+            ?: 0L
+
         return UserPreferences(
-            defaultHourlyRateMicros = preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] ?: 0L,
+            defaultHourlyRateMicros = defaultRate,
             currencyCode = currencyCode,
             themeMode = themeMode,
         )
     }
 
-    private fun isValidCurrencyCode(code: String): Boolean = runCatching {
+    private fun isValidCurrencyCode(code: String): Boolean = code.length == 3 && runCatching {
         Currency.getInstance(code)
     }.isSuccess
 

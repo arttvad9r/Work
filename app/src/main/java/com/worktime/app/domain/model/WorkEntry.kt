@@ -12,8 +12,20 @@ data class WorkEntry(
 ) {
     init {
         require(workedMinutes in 0..24 * 60) { "workedMinutes must be in 0..1440" }
-        require(hourlyRateMicros >= 0L) { "hourlyRateMicros must be non-negative" }
-        require(bonusMicros >= 0L) { "bonusMicros must be non-negative" }
-        require(penaltyMicros >= 0L) { "penaltyMicros must be non-negative" }
+        require(hourlyRateMicros in 0..MoneyLimits.MAX_COMPONENT_MICROS) {
+            "hourlyRateMicros is outside the supported range"
+        }
+        require(bonusMicros in 0..MoneyLimits.MAX_COMPONENT_MICROS) {
+            "bonusMicros is outside the supported range"
+        }
+        require(penaltyMicros in 0..MoneyLimits.MAX_COMPONENT_MICROS) {
+            "penaltyMicros is outside the supported range"
+        }
+        require(note.length <= MoneyLimits.MAX_NOTE_LENGTH) {
+            "note must be at most ${MoneyLimits.MAX_NOTE_LENGTH} characters"
+        }
+        require(workedMinutes > 0 || bonusMicros > 0L || penaltyMicros > 0L) {
+            "work entry must contain worked time, a bonus, or a penalty"
+        }
     }
 }

@@ -15,7 +15,15 @@ data class CalendarUiState(
     val defaultHourlyRateMicros: Long = 0L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isSettingsOpen: Boolean = false,
+    val isReady: Boolean = false,
+    val operationError: CalendarOperationError? = null,
 ) {
     val summary: MonthSummary
         get() = SalaryCalculator.monthSummary(entries.values)
+}
+
+enum class CalendarOperationError {
+    SAVE_ENTRY,
+    DELETE_ENTRY,
+    SAVE_SETTINGS,
 }

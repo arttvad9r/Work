@@ -6,6 +6,8 @@ import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
 
+private val DECIMAL_INPUT_PATTERN = Regex("^(?:\\d+(?:\\.\\d*)?|\\.\\d+)$")
+
 fun sanitizeMoneyInput(value: String): String = value
     .replace(',', '.')
     .filter { it.isDigit() || it == '.' }
@@ -19,7 +21,9 @@ fun sanitizeMoneyInput(value: String): String = value
 
 fun parseDecimalMicros(text: String): Long {
     if (text.isBlank()) return 0L
-    return BigDecimal(text.replace(',', '.'))
+    val normalized = text.replace(',', '.')
+    require(DECIMAL_INPUT_PATTERN.matches(normalized)) { "Invalid decimal amount" }
+    return BigDecimal(normalized)
         .movePointRight(6)
         .setScale(0, RoundingMode.HALF_UP)
         .longValueExact()
@@ -35,7 +39,11 @@ fun formatMoneyMicros(
     currencyCode: String,
     locale: Locale = Locale.getDefault(),
 ): String {
+    val currency = Currency.getInstance(currencyCode)
     val formatter = NumberFormat.getCurrencyInstance(locale)
-    runCatching { formatter.currency = Currency.getInstance(currencyCode) }
+    formatter.currency = currency
+    val fractionDigits = currency.defaultFractionDigits.takeIf { it >= 0 } ?: 2
+    formatter.minimumFractionDigits = fractionDigits
+    formatter.maximumFractionDigits = fractionDigits
     return formatter.format(BigDecimal.valueOf(micros, 6))
 }

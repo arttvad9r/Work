@@ -12,6 +12,7 @@
     <string name="penalty_value">Штрафы: −%1$s</string>
     <string name="set_hourly_rate">Указать почасовую ставку</string>
     <string name="today">Сегодня</string>
+    <string name="selected">выбрано</string>
     <string name="has_bonus">есть премия</string>
     <string name="has_penalty">есть штраф</string>
 
@@ -23,14 +24,24 @@
     <string name="bonus">Премия</string>
     <string name="penalty">Штраф</string>
     <string name="note">Заметка</string>
+    <string name="note_length">%1$d/%2$d</string>
     <string name="total_value">Итого: %1$s</string>
     <string name="total_unavailable">Итого: —</string>
     <string name="save">Сохранить</string>
     <string name="delete_entry">Удалить запись</string>
+    <string name="hours_range_error">Введите от 0 до 24 часов</string>
+    <string name="minutes_range_error">Введите от 0 до 59 минут</string>
+    <string name="duration_24h_error">К 24 часам нельзя добавлять минуты</string>
+    <string name="invalid_money_value">Введите корректную неотрицательную сумму</string>
+    <string name="money_value_too_large">Максимальное поддерживаемое значение: %1$s</string>
+    <string name="hourly_rate_required">Для отработанного времени укажите ставку больше 0</string>
+    <string name="empty_entry_error">Укажите рабочее время, премию или штраф</string>
 
     <string name="default_hourly_rate">Ставка по умолчанию</string>
+    <string name="default_rate_help">Для сохранения отработанного времени нужна ставка больше 0</string>
     <string name="currency_code">Валюта</string>
     <string name="currency_code_hint">Введите ISO-код: EUR, USD, RUB</string>
+    <string name="currency_no_conversion">Смена валюты меняет обозначение всех сумм без пересчёта по курсу</string>
     <string name="theme">Тема</string>
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
@@ -39,4 +50,8 @@
     <string name="delete_entry_confirmation">Удалить запись за этот день? Это действие нельзя отменить.</string>
     <string name="delete">Удалить</string>
     <string name="cancel">Отмена</string>
+
+    <string name="save_entry_failed">Не удалось сохранить запись. Введённые данные остались открыты.</string>
+    <string name="delete_entry_failed">Не удалось удалить запись. Попробуйте ещё раз.</string>
+    <string name="save_settings_failed">Не удалось сохранить настройки. Изменения остались открыты.</string>
 </resources>
