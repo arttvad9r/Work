@@ -276,6 +276,14 @@ fun DayEditorSheet(
                 totalMicros = totalMicros,
             )
 
+            if (!operationErrorMessage.isNullOrBlank()) {
+                Text(
+                    text = operationErrorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
             Button(
                 onClick = { draft?.let(onSave) },
                 enabled = draft != null && totalMicros != null,
@@ -326,6 +334,7 @@ private fun CalculationSummary(
     draft: WorkEntry?,
     totalMicros: Long?,
 ) {
+    val locale = LocalLocale.current.platformLocale
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -345,18 +354,18 @@ private fun CalculationSummary(
                     val entryPay = SalaryCalculator.entryPay(draft)
                     CalculationRow(
                         label = stringResource(R.string.calculation_base),
-                        value = formatAmountMicros(entryPay.basePayMicros),
+                        value = formatAmountMicros(entryPay.basePayMicros, locale),
                     )
                     if (draft.bonusMicros > 0L) {
                         CalculationRow(
                             label = "+ ${stringResource(R.string.calculation_bonus)}",
-                            value = formatAmountMicros(draft.bonusMicros),
+                            value = formatAmountMicros(draft.bonusMicros, locale),
                         )
                     }
                     if (draft.penaltyMicros > 0L) {
                         CalculationRow(
                             label = "− ${stringResource(R.string.calculation_penalty)}",
-                            value = formatAmountMicros(draft.penaltyMicros),
+                            value = formatAmountMicros(draft.penaltyMicros, locale),
                         )
                     }
                     HorizontalDivider(
@@ -365,7 +374,7 @@ private fun CalculationSummary(
                 }
                 CalculationRow(
                     label = stringResource(R.string.calculation_total),
-                    value = formatAmountMicros(totalMicros),
+                    value = formatAmountMicros(totalMicros, locale),
                     emphasized = true,
                 )
             } else {
