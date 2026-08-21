@@ -13,7 +13,7 @@ fun sanitizeMoneyInput(value: String): String = value
     .let { filtered ->
         val firstDot = filtered.indexOf('.')
         if (firstDot < 0) filtered else {
-            filtered.take(firstDot + 1) + filtered.drop(firstDot + 1).replace(".", "").take(6)
+            filtered.take(firstDot + 1) + filtered.drop(firstDot + 1).replace(".", "").take(2)
         }
     }
     .take(18)
@@ -39,7 +39,7 @@ fun formatAmountMicros(
 ): String {
     val formatter = NumberFormat.getNumberInstance(locale)
     formatter.minimumFractionDigits = 0
-    formatter.maximumFractionDigits = 6
+    formatter.maximumFractionDigits = 2
     formatter.roundingMode = RoundingMode.HALF_UP
     return formatter.format(BigDecimal.valueOf(micros, 6))
 }
