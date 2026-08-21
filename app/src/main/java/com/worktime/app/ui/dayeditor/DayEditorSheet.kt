@@ -32,16 +32,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.format.formatDecimalMicros
-import com.worktime.app.ui.format.formatMoneyMicros
+import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.parseDecimalMicros
 import com.worktime.app.ui.format.sanitizeMoneyInput
 import java.time.LocalDate
@@ -176,7 +178,6 @@ fun DayEditorSheet(
                     value = rate,
                     onValueChange = { rate = sanitizeMoneyInput(it) },
                     label = stringResource(R.string.hourly_rate),
-                    currencyCode = currencyCode,
                     isError = rateError != null,
                     supportingText = rateError,
                     modifier = Modifier.weight(1f),
@@ -212,7 +213,6 @@ fun DayEditorSheet(
                             value = bonus,
                             onValueChange = { bonus = sanitizeMoneyInput(it) },
                             label = stringResource(R.string.bonus),
-                            currencyCode = currencyCode,
                             isError = bonusError != null,
                             supportingText = bonusError,
                         )
@@ -232,7 +232,6 @@ fun DayEditorSheet(
                             value = penalty,
                             onValueChange = { penalty = sanitizeMoneyInput(it) },
                             label = stringResource(R.string.penalty),
-                            currencyCode = currencyCode,
                             isError = penaltyError != null,
                             supportingText = penaltyError,
                         )
@@ -333,18 +332,18 @@ private fun CalculationSummary(
                     val entryPay = SalaryCalculator.entryPay(draft)
                     CalculationRow(
                         label = stringResource(R.string.calculation_base),
-                        value = formatMoneyMicros(entryPay.basePayMicros, currencyCode),
+                        value = formatAmountMicros(entryPay.basePayMicros, currencyCode),
                     )
                     if (draft.bonusMicros > 0L) {
                         CalculationRow(
                             label = "+ ${stringResource(R.string.calculation_bonus)}",
-                            value = formatMoneyMicros(draft.bonusMicros, currencyCode),
+                            value = formatAmountMicros(draft.bonusMicros, currencyCode),
                         )
                     }
                     if (draft.penaltyMicros > 0L) {
                         CalculationRow(
                             label = "− ${stringResource(R.string.calculation_penalty)}",
-                            value = formatMoneyMicros(draft.penaltyMicros, currencyCode),
+                            value = formatAmountMicros(draft.penaltyMicros, currencyCode),
                         )
                     }
                     HorizontalDivider(
@@ -353,7 +352,7 @@ private fun CalculationSummary(
                 }
                 CalculationRow(
                     label = stringResource(R.string.calculation_total),
-                    value = formatMoneyMicros(totalMicros, currencyCode),
+                    value = formatAmountMicros(totalMicros, currencyCode),
                     emphasized = true,
                 )
             } else {
@@ -389,10 +388,11 @@ private fun CalculationRow(
 
 private data class DurationInput(val hours: Int, val minutes: Int)
 
-private fun formatDurationInput(workedMinutes: Int): String = "%d:%02d".format(
-    workedMinutes / 60,
-    workedMinutes % 60,
-)
+private fun formatDurationInput(workedMinutes: Int): String {
+    val hours = workedMinutes / 60
+    val minutes = workedMinutes % 60
+    return if (minutes == 0) hours.toString() else "%d:%02d".format(hours, minutes)
+}
 
 private fun sanitizeDurationInput(value: String): String {
     val filtered = value.filter { it.isDigit() || it == ':' }
@@ -436,12 +436,13 @@ private fun DurationField(
         label = { Text(label) },
         placeholder = { Text("00:00") },
         supportingText = supportingContent,
+        textStyle = TextStyle(textAlign = TextAlign.Center),
         isError = isError,
         modifier = modifier.onFocusChanged { focusState ->
-            if (focusState.isFocused && value == "0:00") {
+            if (focusState.isFocused && value == "0") {
                 onValueChange("")
             } else if (!focusState.isFocused && value.isBlank()) {
-                onValueChange("0:00")
+                onValueChange("0")
             }
         },
         singleLine = true,
@@ -454,7 +455,6 @@ private fun MoneyField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    currencyCode: String,
     isError: Boolean,
     supportingText: String?,
     modifier: Modifier = Modifier,
@@ -466,8 +466,8 @@ private fun MoneyField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        suffix = { Text(currencyCode) },
         supportingText = supportingContent,
+        textStyle = TextStyle(textAlign = TextAlign.Center),
         isError = isError,
         modifier = modifier.fillMaxWidth(),
         singleLine = true,
