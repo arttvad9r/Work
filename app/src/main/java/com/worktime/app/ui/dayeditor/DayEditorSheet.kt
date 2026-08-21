@@ -465,7 +465,14 @@ private fun DurationField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, maxLines = 1) },
-        placeholder = { Text(stringResource(R.string.duration_placeholder), maxLines = 1) },
+        placeholder = {
+            Text(
+                text = stringResource(R.string.duration_placeholder),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+        },
         supportingText = supportingContent,
         textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
         isError = isError,
@@ -477,7 +484,7 @@ private fun DurationField(
             }
         },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     )
 }
 
