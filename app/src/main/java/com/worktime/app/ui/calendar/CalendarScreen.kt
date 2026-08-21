@@ -136,7 +136,11 @@ fun CalendarScreen(
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
-        sheetContainerColor = Color.Transparent,
+        sheetContainerColor = if (showSummaryContent) {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        } else {
+            Color.Transparent
+        },
         sheetContent = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Box(
