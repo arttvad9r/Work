@@ -27,8 +27,8 @@
     <string name="hourly_rate">Rate per hour</string>
     <string name="bonus">Bonus</string>
     <string name="penalty">Penalty</string>
-    <string name="add_bonus">+ Add bonus</string>
-    <string name="add_penalty">+ Add penalty</string>
+    <string name="add_bonus">+ Bonus</string>
+    <string name="add_penalty">+ Penalty</string>
     <string name="total_value">Total: %1$s</string>
     <string name="total_unavailable">Total: —</string>
     <string name="calculation">Calculation</string>
@@ -50,7 +50,7 @@
     <string name="default_rate_help">A positive rate is required when saving worked time</string>
     <string name="currency_code">Currency</string>
     <string name="currency_code_hint">Enter a valid ISO code, e.g. EUR, USD, RUB</string>
-    <string name="currency_no_conversion">Changing currency relabels all amounts; no exchange-rate conversion is performed</string>
+    <string name="currency_no_conversion">Exchange rates are not converted.</string>
     <string name="theme">Theme</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
