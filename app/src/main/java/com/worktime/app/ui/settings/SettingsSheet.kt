@@ -124,6 +124,7 @@ fun SettingsSheet(
                                 .semantics { contentDescription = rateLabel },
                             textStyle = MaterialTheme.typography.titleMedium.copy(
                                 textAlign = TextAlign.Center,
+                                lineHeight = MaterialTheme.typography.titleMedium.fontSize,
                             ),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
