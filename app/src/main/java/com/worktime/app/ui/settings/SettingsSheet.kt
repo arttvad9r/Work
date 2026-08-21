@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -27,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -37,8 +35,6 @@ import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
 import com.worktime.app.ui.format.sanitizeMoneyInput
-import java.util.Currency
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,16 +49,11 @@ fun SettingsSheet(
     var rate by rememberSaveable(defaultHourlyRateMicros) {
         mutableStateOf(formatDecimalMicros(defaultHourlyRateMicros))
     }
-    var currency by rememberSaveable(currencyCode) { mutableStateOf(currencyCode) }
     var selectedTheme by rememberSaveable(themeMode) { mutableStateOf(themeMode) }
 
     val parsedRate = runCatching { parseDecimalMicros(rate) }.getOrNull()
     val rateValid = parsedRate != null && parsedRate <= MoneyLimits.MAX_COMPONENT_MICROS
-    val normalizedCurrency = currency.trim().uppercase(Locale.ROOT)
-    val validCurrency = normalizedCurrency.length == 3 && runCatching {
-        Currency.getInstance(normalizedCurrency)
-    }.isSuccess
-    val canSave = rateValid && validCurrency
+    val canSave = rateValid
     val rateError = when {
         parsedRate == null -> stringResource(R.string.invalid_money_value)
         parsedRate > MoneyLimits.MAX_COMPONENT_MICROS -> stringResource(
@@ -100,38 +91,19 @@ fun SettingsSheet(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Row(
+                    OutlinedTextField(
+                        value = rate,
+                        onValueChange = { rate = sanitizeMoneyInput(it) },
+                        label = { Text(stringResource(R.string.default_hourly_rate)) },
+                        isError = rateError != null,
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        OutlinedTextField(
-                            value = rate,
-                            onValueChange = { rate = sanitizeMoneyInput(it) },
-                            label = { Text(stringResource(R.string.default_hourly_rate)) },
-                            isError = rateError != null,
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        )
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
 
-                        OutlinedTextField(
-                            value = currency,
-                            onValueChange = {
-                                currency = it.filter(Char::isLetter).uppercase(Locale.ROOT).take(3)
-                            },
-                            label = { Text(stringResource(R.string.currency_code)) },
-                            isError = !validCurrency,
-                            modifier = Modifier.width(112.dp),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                capitalization = KeyboardCapitalization.Characters,
-                            ),
-                        )
-                    }
-
-                    if (rateError != null || !validCurrency) {
+                    if (rateError != null) {
                         Text(
-                            text = rateError ?: stringResource(R.string.currency_code_hint),
+                            text = rateError,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -190,7 +162,7 @@ fun SettingsSheet(
             Button(
                 onClick = {
                     val safeRate = parsedRate ?: return@Button
-                    onSave(safeRate, normalizedCurrency, selectedTheme)
+                    onSave(safeRate, currencyCode, selectedTheme)
                 },
                 enabled = canSave,
                 modifier = Modifier
