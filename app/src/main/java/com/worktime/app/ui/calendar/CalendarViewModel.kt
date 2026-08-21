@@ -47,7 +47,6 @@ class CalendarViewModel(
             visibleMonth = month,
             entries = entries.associateBy(WorkEntry::date),
             selectedDate = selected,
-            currencyCode = preferences.currencyCode,
             defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
             themeMode = preferences.themeMode,
             isSettingsOpen = isSettingsOpen,
@@ -114,7 +113,6 @@ class CalendarViewModel(
 
     fun updatePreferences(
         defaultHourlyRateMicros: Long,
-        currencyCode: String,
         themeMode: ThemeMode,
     ) {
         operationError.value = null
@@ -122,7 +120,6 @@ class CalendarViewModel(
             try {
                 userPreferencesRepository.update(
                     defaultHourlyRateMicros = defaultHourlyRateMicros,
-                    currencyCode = currencyCode,
                     themeMode = themeMode,
                 )
                 settingsOpen.value = false

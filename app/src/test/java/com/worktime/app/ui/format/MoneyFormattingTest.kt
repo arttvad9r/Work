@@ -29,19 +29,12 @@ class MoneyFormattingTest {
     }
 
     @Test
-    fun `formatting does not convert money through double`() {
-        val formatted = formatMoneyMicros(
-            micros = 12_345_678L,
-            currencyCode = "EUR",
-            locale = Locale.US,
-        )
-        assertEquals("€12.35", formatted)
+    fun `amount formatter preserves explicitly entered fractional precision`() {
+        assertEquals("12.345678", formatAmountMicros(12_345_678L, Locale.US))
     }
 
     @Test
-    fun `invalid currency codes fail instead of silently using locale currency`() {
-        assertThrows(IllegalArgumentException::class.java) {
-            formatMoneyMicros(1_000_000L, "ZZZ", Locale.US)
-        }
+    fun `amount formatter omits zero fractional part`() {
+        assertEquals("12", formatAmountMicros(12_000_000L, Locale.US))
     }
 }

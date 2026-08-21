@@ -11,7 +11,6 @@ data class CalendarUiState(
     val visibleMonth: YearMonth = YearMonth.now(),
     val entries: Map<LocalDate, WorkEntry> = emptyMap(),
     val selectedDate: LocalDate? = null,
-    val currencyCode: String = "EUR",
     val defaultHourlyRateMicros: Long = 0L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isSettingsOpen: Boolean = false,

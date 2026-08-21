@@ -9,7 +9,6 @@ interface UserPreferencesRepository {
 
     suspend fun update(
         defaultHourlyRateMicros: Long,
-        currencyCode: String,
         themeMode: ThemeMode,
     )
 }

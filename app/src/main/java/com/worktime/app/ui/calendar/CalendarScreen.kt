@@ -2,7 +2,6 @@ package com.worktime.app.ui.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +22,7 @@ import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,14 +30,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,10 +44,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.format.formatAmountMicros
+import com.worktime.app.ui.format.formatDurationCompact
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
@@ -75,15 +74,30 @@ fun CalendarScreen(
 ) {
     val locale = LocalLocale.current.platformLocale
     val monthTitle = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
-    var isSummaryOpen by rememberSaveable { mutableStateOf(false) }
-
-    Surface(
+    val summarySheetState = rememberStandardBottomSheetState(
+        initialValue = SheetValue.PartiallyExpanded,
+        skipHiddenState = true,
+    )
+    val scaffoldState = rememberBottomSheetScaffoldState(
+        bottomSheetState = summarySheetState,
+    )
+    BottomSheetScaffold(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.background,
-    ) {
+        scaffoldState = scaffoldState,
+        sheetPeekHeight = 28.dp,
+        sheetDragHandle = { SummarySheetHandle() },
+        sheetSwipeEnabled = true,
+        sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        sheetContent = {
+            FullSummaryPanel(state = state)
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -132,22 +146,12 @@ fun CalendarScreen(
                     state = state,
                     onDayClick = onDayClick,
                     locale = locale,
-                    modifier = Modifier.height(428.dp),
+                    modifier = Modifier.weight(1f),
                 )
                 CollapsedSummaryCard(
                     state = state,
                 )
-                SummarySheetHandle(onClick = { isSummaryOpen = true })
             }
-        }
-    }
-
-    if (isSummaryOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { isSummaryOpen = false },
-            dragHandle = null,
-        ) {
-            FullSummaryPanel(state = state)
         }
     }
 }
@@ -192,23 +196,26 @@ private fun CollapsedSummaryCard(
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             SummaryRow(stringResource(R.string.shift_count_label), summary.shiftCount.toString())
-            SummaryRow(stringResource(R.string.worked_duration), formatDurationClock(summary.workedMinutes))
+            SummaryRow(
+                stringResource(R.string.worked_duration),
+                formatDurationCompact(summary.workedMinutes),
+            )
             SummaryRow(
                 stringResource(R.string.monthly_income),
                 formatAmountMicros(summary.totalPayMicros),
-                emphasized = true,
             )
         }
     }
 }
 
 @Composable
-private fun SummarySheetHandle(onClick: () -> Unit) {
+private fun SummarySheetHandle() {
+    val description = stringResource(R.string.monthly_summary)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(28.dp)
-            .clickable(onClick = onClick),
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -222,40 +229,48 @@ private fun SummarySheetHandle(onClick: () -> Unit) {
 }
 
 @Composable
-private fun FullSummaryPanel(state: CalendarUiState) {
+private fun FullSummaryPanel(
+    state: CalendarUiState,
+) {
     val summary = state.summary
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(7.dp),
+            .navigationBarsPadding(),
     ) {
-        Text(
-            text = "Сводка за месяц",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        SummaryRow(stringResource(R.string.shift_count_label), summary.shiftCount.toString())
-        SummaryRow(stringResource(R.string.worked_duration), formatDurationClock(summary.workedMinutes))
-        if (summary.bonusMicros > 0L) {
+        Column(
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 6.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.monthly_summary),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            SummaryRow(stringResource(R.string.shift_count_label), summary.shiftCount.toString())
             SummaryRow(
-                stringResource(R.string.calculation_bonus),
-                "+${formatAmountMicros(summary.bonusMicros)}",
+                stringResource(R.string.worked_duration),
+                formatDurationCompact(summary.workedMinutes),
+            )
+            if (summary.bonusMicros > 0L) {
+                SummaryRow(
+                    stringResource(R.string.calculation_bonus),
+                    "+${formatAmountMicros(summary.bonusMicros)}",
+                )
+            }
+            if (summary.penaltyMicros > 0L) {
+                SummaryRow(
+                    stringResource(R.string.calculation_penalty),
+                    "−${formatAmountMicros(summary.penaltyMicros)}",
+                )
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            SummaryRow(
+                stringResource(R.string.calculation_total),
+                formatAmountMicros(summary.totalPayMicros),
+                emphasized = true,
             )
         }
-        if (summary.penaltyMicros > 0L) {
-            SummaryRow(
-                stringResource(R.string.calculation_penalty),
-                "−${formatAmountMicros(summary.penaltyMicros)}",
-            )
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        SummaryRow(
-            "Итого",
-            formatAmountMicros(summary.totalPayMicros),
-            emphasized = true,
-        )
     }
 }
 
@@ -281,7 +296,7 @@ private fun SummaryRow(
             text = value,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Normal,
+            fontWeight = if (emphasized) FontWeight.Medium else FontWeight.Normal,
             maxLines = 1,
         )
     }
@@ -360,19 +375,21 @@ private fun DayCell(
     onClick: () -> Unit,
     locale: Locale,
 ) {
+    val visibleEntry = entry.takeIf { isInVisibleMonth }
     val shape = RoundedCornerShape(9.dp)
     val background = when {
+        !isInVisibleMonth -> MaterialTheme.colorScheme.surfaceContainerLowest
         isSelected -> MaterialTheme.colorScheme.primaryContainer
-        entry != null -> MaterialTheme.colorScheme.secondaryContainer
+        visibleEntry != null -> MaterialTheme.colorScheme.secondaryContainer
         else -> MaterialTheme.colorScheme.surfaceContainerLowest
     }
     val foreground = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
-        entry != null -> MaterialTheme.colorScheme.onSecondaryContainer
         !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.32f)
+        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+        visibleEntry != null -> MaterialTheme.colorScheme.onSecondaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val totalMicros = entry?.let {
+    val totalMicros = visibleEntry?.let {
         runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull()
     }
     val dateLabel = date.format(
@@ -382,14 +399,14 @@ private fun DayCell(
         append(dateLabel)
         if (isToday) append(", ").append(stringResource(R.string.today))
         if (isSelected) append(", ").append(stringResource(R.string.day_selected))
-        if (entry != null && entry.workedMinutes > 0) {
-            append(", ").append(formatDuration(entry.workedMinutes))
+        if (visibleEntry != null && visibleEntry.workedMinutes > 0) {
+            append(", ").append(formatDuration(visibleEntry.workedMinutes))
         }
         if (totalMicros != null) {
             append(", ").append(formatAmountMicros(totalMicros, locale))
         }
-        if (entry?.bonusMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_bonus))
-        if (entry?.penaltyMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_penalty))
+        if (visibleEntry?.bonusMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_bonus))
+        if (visibleEntry?.penaltyMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_penalty))
     }
 
     Column(
@@ -406,7 +423,7 @@ private fun DayCell(
                 shape = shape,
             )
             .then(
-                if (isToday) {
+                if (isToday && isInVisibleMonth) {
                     Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, shape)
                 } else {
                     Modifier
@@ -426,28 +443,32 @@ private fun DayCell(
                 text = date.dayOfMonth.toString(),
                 style = MaterialTheme.typography.titleSmall,
                 color = foreground,
-                fontWeight = if (isToday || entry != null) FontWeight.Bold else FontWeight.Medium,
+                fontWeight = if ((isToday && isInVisibleMonth) || visibleEntry != null) {
+                    FontWeight.SemiBold
+                } else {
+                    FontWeight.Medium
+                },
                 maxLines = 1,
             )
-            if (entry != null) {
+            if (visibleEntry != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (entry.bonusMicros > 0L) Marker(isBonus = true)
-                    if (entry.penaltyMicros > 0L) Marker(isBonus = false)
+                    if (visibleEntry.bonusMicros > 0L) Marker(isBonus = true)
+                    if (visibleEntry.penaltyMicros > 0L) Marker(isBonus = false)
                 }
             }
         }
-        if (entry != null) {
+        if (visibleEntry != null) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
-                if (entry.workedMinutes > 0) {
+                if (visibleEntry.workedMinutes > 0) {
                     Text(
-                        text = formatCellDuration(entry.workedMinutes),
+                        text = formatDurationCompact(visibleEntry.workedMinutes),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                     )
@@ -474,28 +495,26 @@ private fun Marker(isBonus: Boolean) {
             .padding(start = 1.dp)
             .size(14.dp)
             .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.tertiaryContainer),
+            .background(
+                if (isBonus) {
+                    MaterialTheme.colorScheme.tertiaryContainer
+                } else {
+                    MaterialTheme.colorScheme.errorContainer
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = if (isBonus) Icons.Rounded.Add else Icons.Rounded.Remove,
             contentDescription = null,
             modifier = Modifier.size(10.dp),
-            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            tint = if (isBonus) {
+                MaterialTheme.colorScheme.onTertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.onErrorContainer
+            },
         )
     }
-}
-
-private fun formatCellDuration(minutes: Int): String {
-    val hours = minutes / 60
-    val remainder = minutes % 60
-    return if (remainder == 0) hours.toString() else "%d:%02d".format(hours, remainder)
-}
-
-private fun formatDurationClock(minutes: Int): String {
-    val hours = minutes / 60
-    val remainder = minutes % 60
-    return if (remainder == 0) hours.toString() else "%d:%02d".format(hours, remainder)
 }
 
 private fun formatCellMoney(micros: Long, locale: Locale): String {

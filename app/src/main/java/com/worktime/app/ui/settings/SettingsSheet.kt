@@ -23,12 +23,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.width
 import com.worktime.app.R
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.preferences.ThemeMode
@@ -40,11 +45,10 @@ import com.worktime.app.ui.format.sanitizeMoneyInput
 @Composable
 fun SettingsSheet(
     defaultHourlyRateMicros: Long,
-    currencyCode: String,
     themeMode: ThemeMode,
     operationErrorMessage: String?,
     onDismiss: () -> Unit,
-    onSave: (Long, String, ThemeMode) -> Unit,
+    onSave: (Long, ThemeMode) -> Unit,
 ) {
     var rate by rememberSaveable(defaultHourlyRateMicros) {
         mutableStateOf(formatDecimalMicros(defaultHourlyRateMicros))
@@ -63,6 +67,7 @@ fun SettingsSheet(
         else -> null
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val rateLabel = stringResource(R.string.default_hourly_rate)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -91,15 +96,38 @@ fun SettingsSheet(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    OutlinedTextField(
-                        value = rate,
-                        onValueChange = { rate = sanitizeMoneyInput(it) },
-                        label = { Text(stringResource(R.string.default_hourly_rate)) },
-                        isError = rateError != null,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = rateLabel,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        OutlinedTextField(
+                            value = rate,
+                            onValueChange = { rate = sanitizeMoneyInput(it) },
+                            isError = rateError != null,
+                            modifier = Modifier
+                                .width(120.dp)
+                                .onFocusChanged { focusState ->
+                                    if (focusState.isFocused && rate == "0") {
+                                        rate = ""
+                                    } else if (!focusState.isFocused && rate.isBlank()) {
+                                        rate = "0"
+                                    }
+                                }
+                                .semantics { contentDescription = rateLabel },
+                            textStyle = MaterialTheme.typography.titleMedium.copy(
+                                textAlign = TextAlign.Center,
+                            ),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        )
+                    }
 
                     if (rateError != null) {
                         Text(
@@ -162,7 +190,7 @@ fun SettingsSheet(
             Button(
                 onClick = {
                     val safeRate = parsedRate ?: return@Button
-                    onSave(safeRate, currencyCode, selectedTheme)
+                    onSave(safeRate, selectedTheme)
                 },
                 enabled = canSave,
                 modifier = Modifier

@@ -43,7 +43,6 @@ fun WorkTimeApp(container: AppContainer) {
                 date = date,
                 existing = state.entries[date],
                 defaultHourlyRateMicros = state.defaultHourlyRateMicros,
-                currencyCode = state.currencyCode,
                 operationErrorMessage = operationErrorMessage,
                 onDismiss = viewModel::dismissEditor,
                 onSave = viewModel::saveEntry,
@@ -58,7 +57,6 @@ fun WorkTimeApp(container: AppContainer) {
             }
             SettingsSheet(
                 defaultHourlyRateMicros = state.defaultHourlyRateMicros,
-                currencyCode = state.currencyCode,
                 themeMode = state.themeMode,
                 operationErrorMessage = operationErrorMessage,
                 onDismiss = viewModel::dismissSettings,

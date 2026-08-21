@@ -43,6 +43,7 @@ import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.formatAmountMicros
+import com.worktime.app.ui.format.formatDurationCompact
 import com.worktime.app.ui.format.parseDecimalMicros
 import com.worktime.app.ui.format.sanitizeMoneyInput
 import java.time.LocalDate
@@ -54,7 +55,6 @@ fun DayEditorSheet(
     date: LocalDate,
     existing: WorkEntry?,
     defaultHourlyRateMicros: Long,
-    currencyCode: String,
     operationErrorMessage: String?,
     onDismiss: () -> Unit,
     onSave: (WorkEntry) -> Unit,
@@ -386,9 +386,7 @@ private fun CalculationRow(
 private data class DurationInput(val hours: Int, val minutes: Int)
 
 private fun formatDurationInput(workedMinutes: Int): String {
-    val hours = workedMinutes / 60
-    val minutes = workedMinutes % 60
-    return if (minutes == 0) hours.toString() else "%d:%02d".format(hours, minutes)
+    return formatDurationCompact(workedMinutes)
 }
 
 private fun sanitizeDurationInput(value: String): String {
@@ -431,13 +429,6 @@ private fun DurationField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        placeholder = {
-            Text(
-                text = "00:00",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-        },
         supportingText = supportingContent,
         textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
         isError = isError,
@@ -472,7 +463,15 @@ private fun MoneyField(
         supportingText = supportingContent,
         textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
         isError = isError,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused && value == "0") {
+                    onValueChange("")
+                } else if (!focusState.isFocused && value.isBlank()) {
+                    onValueChange("0")
+                }
+            },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     )
