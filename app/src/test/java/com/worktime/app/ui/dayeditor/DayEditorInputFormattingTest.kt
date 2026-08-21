@@ -32,6 +32,17 @@ class DayEditorInputFormattingTest {
 
     @Test
     fun `sequential four digit input keeps minute order`() {
-        assertEquals("12:34", sanitizeDurationInput("1234"))
+        assertEquals("12:34", typeDuration("1234"))
+    }
+
+    @Test
+    fun `sequential one digit hour entry accepts minutes without transient error`() {
+        assertEquals("3:55", typeDuration("355"))
+    }
+
+    private fun typeDuration(digits: String): String {
+        return digits.fold("") { current, digit ->
+            sanitizeDurationInput(current + digit)
+        }
     }
 }
