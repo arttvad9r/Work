@@ -56,11 +56,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -297,7 +294,6 @@ private fun SummarySheetHandle(
     expanded: Boolean,
     onClick: () -> Unit,
 ) {
-    val description = stringResource(R.string.monthly_summary)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val handleWidth by animateDpAsState(
@@ -332,14 +328,7 @@ private fun SummarySheetHandle(
                     indication = null,
                     onClick = onClick,
                 )
-                .clearAndSetSemantics {
-                    contentDescription = description
-                    role = Role.Button
-                    onClick {
-                        onClick()
-                        true
-                    }
-                },
+                .clearAndSetSemantics { },
             contentAlignment = Alignment.Center,
         ) {
             Box(
