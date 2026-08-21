@@ -1,98 +1,81 @@
 # WorkTime
 
-Modern Android app for tracking worked hours and expected salary with a calendar-first workflow.
+WorkTime is a compact offline Android timesheet for recording worked time and calculating an expected monthly amount.
 
-> **Core loop:** open month → tap a day → enter worked time → save → immediately see updated monthly earnings.
-
-WorkTime is intentionally small. It is a personal work-hours and salary calculator, not a project tracker, HR system, payroll suite, or shift-planning platform.
-
-## Product goals
-
-- Make a typical shift entry possible in under 10 seconds.
-- Keep monthly earnings, worked time, and shift count visible without opening reports.
-- Preserve historical correctness when the default hourly rate changes.
-- Work fully offline without mandatory registration.
-- Keep the core flow free from interstitial ads and dark patterns.
-
-## MVP scope
-
-- Month calendar as the main screen.
-- Worked hours and minutes per day.
-- Default hourly rate with a per-day rate snapshot.
-- Bonus and penalty adjustments attached to a day.
-- Monthly totals: earnings, worked time, shift count.
-- Create, edit, and delete a day entry.
-- Light, dark, and system themes.
-- Local-first persistence.
-
-### Explicit non-goals for v1.0
-
-Timer/clock-in, GPS, clients, projects, tasks, invoices, taxes, cloud accounts, team features, complex overtime rules, and shift-pattern generation.
-
-## Technical direction
-
-- **Language:** Kotlin
-- **UI:** Jetpack Compose + Material 3
-- **Architecture:** layered, unidirectional data flow; UI → domain → data
-- **State:** immutable UI state exposed by ViewModels
-- **Persistence:** Room for work entries, DataStore for preferences
-- **Money:** integer minor units / micros; never `Float` or `Double`
-- **Concurrency:** coroutines + Flow
-- **Testing:** domain unit tests first, repository tests, Compose UI tests for critical flows
-- **Platform:** Android, compile SDK 37
+The core flow is intentionally short:
 
 ```text
-app/
-├── ui/            Compose screens, components, theme
-├── domain/        models, calculations, use cases
-└── data/          persistence and repositories
-
-docs/
-├── PRODUCT.md
-├── ARCHITECTURE.md
-├── ROADMAP.md
-├── TESTING.md
-└── DECISIONS.md
+open month -> tap a day -> enter duration and hourly rate -> save
 ```
 
-## Salary model
+## Current interface
 
-For a work entry:
+- fixed Monday-first 6 x 7 calendar that does not scroll or jump;
+- faint adjacent-month dates for calendar continuity;
+- centered worked duration and daily amount inside filled cells;
+- compact fixed monthly card with work days, hours worked and monthly income;
+- a separate draggable bottom report with days, hours, optional bonus/penalty and total;
+- one day-editor sheet with duration and hourly rate on one row;
+- optional bonus above optional penalty;
+- compact settings sheet with hourly rate and system/light/dark theme;
+- controlled light/dark color palettes and consistent Material 3 shapes.
+
+Currency selection, currency symbols, notes and quick-duration presets are intentionally not part of the product. Numeric amounts are shown as neutral values. A fractional part is shown only when it is non-zero. Durations are displayed as `0`, `15` or `15:30`.
+
+## Product rules
+
+- One aggregate entry per date.
+- Worked time is limited to `0..24:00`.
+- Worked time requires a positive hourly rate.
+- Bonus/penalty-only entries are valid but do not count as work days.
+- A saved entry keeps its hourly-rate snapshot; changing the default rate does not rewrite history.
+- Core functionality is local and requires neither an account nor network access.
 
 ```text
-basePay = workedMinutes × hourlyRate / 60
-entryPay = basePay + bonus - penalty
-monthPay = Σ entryPay
+ratePayMicros = roundHalfUp(workedMinutes x hourlyRateMicros / 60)
+entryTotalMicros = ratePayMicros + bonusMicros - penaltyMicros
+monthTotalMicros = sum(entryTotalMicros)
+workDays = count(entries where workedMinutes > 0)
 ```
 
-The hourly rate is copied into each saved work entry as a **snapshot**. Changing the default rate later must not silently rewrite historical months.
+Amounts use integer micros in domain/data code. `Float` and `Double` are not used for persisted calculations.
 
-## Development status
+## Stack
 
-The repository has been bootstrapped and the first implementation slice is being built around three foundations:
+- Kotlin 2.4.x
+- Jetpack Compose + Material 3
+- AGP 9.3.1 / Gradle 9.5.0 / Java 17
+- Room 2.8.4
+- DataStore 1.2.1
+- coroutines and `StateFlow`
+- JUnit 5 and AndroidX Test
 
-1. deterministic salary calculations;
-2. calendar-first Compose UI;
-3. local persistence and settings.
+## Verification
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for delivery phases and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for technical boundaries.
+Preferred command:
 
-## Quality bar
+```bash
+./scripts/verify.sh
+```
 
-A feature is not done until:
+It runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. Device execution remains a separate release gate.
 
-- acceptance criteria are met;
-- business logic has unit tests;
-- user-facing strings are localizable;
-- the UI works in light/dark themes and with large font scale;
-- no database or settings API is accessed directly from composables;
-- no blocking work runs on the main thread;
-- money calculations are deterministic and covered by golden cases.
+The current feature branch has passed targeted source/resource checks, but the latest GitHub Actions job ended before executing any step. Therefore this repository does not claim a successful CI build or physical-device verification for the newest interface commit. See [the current audit](docs/STATIC_AUDIT.md) and [Android QA checklist](docs/ANDROID_QA.md).
 
-## Source specification
+## Documentation
 
-The initial product scope, competitor research, UX rules, business rules, architecture, and roadmap were consolidated in the **WorkTime Product & Technical Specification v1.0** dated 20 August 2026. Repository documentation is the implementation-oriented source of truth from this point forward.
+- [Product](docs/PRODUCT.md)
+- [UX](docs/UX.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Decisions](docs/DECISIONS.md)
+- [Testing](docs/TESTING.md)
+- [Build and CI](docs/BUILD.md)
+- [Current audit](docs/STATIC_AUDIT.md)
+- [Android QA](docs/ANDROID_QA.md)
+- [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Privacy](docs/PRIVACY.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
-No open-source license has been selected yet. Until a license is added, the repository should be treated as proprietary / all rights reserved.
+No open-source license has been selected. The repository is all rights reserved until a license is added.

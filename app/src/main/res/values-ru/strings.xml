@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WorkTime</string>
+    <string name="previous_month">Предыдущий месяц</string>
+    <string name="next_month">Следующий месяц</string>
+    <string name="settings">Настройки</string>
+    <string name="monthly_income">Доход за месяц</string>
+    <string name="monthly_summary">Сводка за месяц</string>
+    <string name="worked_duration">Отработано часов</string>
+    <string name="shift_count_label">Рабочих дней</string>
+    <string name="duration_hours">%1$d ч</string>
+    <string name="duration_hours_minutes">%1$d ч %2$d мин</string>
+    <string name="today">Сегодня</string>
+    <string name="day_selected">выбрано</string>
+    <string name="has_bonus">есть премия</string>
+    <string name="has_penalty">есть штраф</string>
+
+    <string name="worked">Время</string>
+    <string name="hourly_rate">Ставка за час</string>
+    <string name="bonus">Премия</string>
+    <string name="penalty">Штраф</string>
+    <string name="add_bonus">+ Премия</string>
+    <string name="add_penalty">+ Штраф</string>
+    <string name="total_unavailable">Итого</string>
+    <string name="calculation">Расчёт</string>
+    <string name="duration_placeholder">00:00</string>
+    <string name="calculation_base">По ставке</string>
+    <string name="calculation_bonus">Премия</string>
+    <string name="calculation_penalty">Штраф</string>
+    <string name="calculation_total">Итого</string>
+    <string name="save">Сохранить</string>
+    <string name="delete_entry">Удалить запись</string>
+    <string name="hours_range_error">Введите от 0 до 24 часов</string>
+    <string name="minutes_range_error">Введите от 0 до 59 минут</string>
+    <string name="duration_24h_error">К 24 часам нельзя добавлять минуты</string>
+    <string name="invalid_money_value">Введите корректную неотрицательную сумму</string>
+    <string name="money_value_too_large">Максимальное поддерживаемое значение: %1$s</string>
+    <string name="hourly_rate_required">Для отработанного времени укажите ставку больше 0</string>
+
+    <string name="default_hourly_rate">Ставка за час</string>
+    <string name="theme">Тема</string>
+    <string name="theme_system">Системная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="save_settings">Сохранить настройки</string>
+    <string name="delete_entry_confirmation">Удалить запись за этот день? Это действие нельзя отменить.</string>
+    <string name="delete">Удалить</string>
+    <string name="cancel">Отмена</string>
+
+    <string name="save_entry_failed">Не удалось сохранить запись. Введённые данные остались открыты.</string>
+    <string name="delete_entry_failed">Не удалось удалить запись. Попробуйте ещё раз.</string>
+    <string name="save_settings_failed">Не удалось сохранить настройки. Изменения остались открыты.</string>
+</resources>

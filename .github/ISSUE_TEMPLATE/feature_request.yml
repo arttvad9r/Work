@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose product behavior aligned with the roadmap
+title: "feat: "
+body:
+  - type: textarea
+    id: job
+    attributes:
+      label: User job
+      description: What user problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: core_flow
+    attributes:
+      label: Effect on core flow
+      description: Does this add taps, fields, screens, permissions or persistent concepts?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Simpler alternatives considered
