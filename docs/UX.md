@@ -29,7 +29,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
   - Hours worked / `Отработано часов`;
   - Monthly income.
 - Values use regular weight; the card must not compete visually with the calendar.
-- A single 48 x 5 dp handle is located below this card as the peek of the report sheet.
+- A single 48 x 5 dp handle is located below this card as the peek of the report sheet and remains above system navigation.
 
 ## Monthly report sheet
 
@@ -49,17 +49,19 @@ Normal closed-keyboard state should fit as one compact sheet.
 5. Save.
 6. Delete for an existing entry.
 
-Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. Digits `530` resolve to `5:30`; `1530` resolves to `15:30`.
+The duration field is labeled `Время (часы:минуты)` and shows an example placeholder such as `15:30` when empty. Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. Digits `530` resolve to `5:30`; `1530` resolves to `15:30`.
 
-Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order.
+Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The newly expanded amount field receives focus immediately.
 
-The calculation card uses `At hourly rate` / `По ставке`, then optional bonus/penalty rows, then total. Zero adjustment rows are omitted.
+The calculation card uses `At hourly rate` / `По ставке`, then optional bonus/penalty rows, then total. Before any value is entered it shows only the `Total` / `Итого` label; zero adjustment rows are omitted.
 
 ## Settings
 
 - Compact one-screen sheet.
 - Hourly-rate label and a centered 120 dp input share a row.
 - Theme choices fit in one row, including `Системная`.
+- Selecting light or dark immediately previews the theme.
+- Dismissing settings without saving restores the persisted theme; the selected theme is persisted only after pressing Save.
 - Save remains reachable without scrolling when the keyboard is closed.
 
 ## Visual system
