@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalLocale
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -251,7 +250,6 @@ fun DayEditorSheet(
             CalculationSummary(
                 draft = draft,
                 totalMicros = totalMicros,
-                currencyCode = currencyCode,
             )
 
             if (operationErrorMessage != null) {
@@ -311,7 +309,6 @@ fun DayEditorSheet(
 private fun CalculationSummary(
     draft: WorkEntry?,
     totalMicros: Long?,
-    currencyCode: String,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -332,18 +329,18 @@ private fun CalculationSummary(
                     val entryPay = SalaryCalculator.entryPay(draft)
                     CalculationRow(
                         label = stringResource(R.string.calculation_base),
-                        value = formatAmountMicros(entryPay.basePayMicros, currencyCode),
+                        value = formatAmountMicros(entryPay.basePayMicros),
                     )
                     if (draft.bonusMicros > 0L) {
                         CalculationRow(
                             label = "+ ${stringResource(R.string.calculation_bonus)}",
-                            value = formatAmountMicros(draft.bonusMicros, currencyCode),
+                            value = formatAmountMicros(draft.bonusMicros),
                         )
                     }
                     if (draft.penaltyMicros > 0L) {
                         CalculationRow(
                             label = "− ${stringResource(R.string.calculation_penalty)}",
-                            value = formatAmountMicros(draft.penaltyMicros, currencyCode),
+                            value = formatAmountMicros(draft.penaltyMicros),
                         )
                     }
                     HorizontalDivider(
@@ -352,7 +349,7 @@ private fun CalculationSummary(
                 }
                 CalculationRow(
                     label = stringResource(R.string.calculation_total),
-                    value = formatAmountMicros(totalMicros, currencyCode),
+                    value = formatAmountMicros(totalMicros),
                     emphasized = true,
                 )
             } else {
@@ -434,9 +431,15 @@ private fun DurationField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        placeholder = { Text("00:00") },
+        placeholder = {
+            Text(
+                text = "00:00",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+            )
+        },
         supportingText = supportingContent,
-        textStyle = TextStyle(textAlign = TextAlign.Center),
+        textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
         isError = isError,
         modifier = modifier.onFocusChanged { focusState ->
             if (focusState.isFocused && value == "0") {
@@ -467,7 +470,7 @@ private fun MoneyField(
         onValueChange = onValueChange,
         label = { Text(label) },
         supportingText = supportingContent,
-        textStyle = TextStyle(textAlign = TextAlign.Center),
+        textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
         isError = isError,
         modifier = modifier.fillMaxWidth(),
         singleLine = true,
