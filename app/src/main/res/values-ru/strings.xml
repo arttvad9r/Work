@@ -50,7 +50,6 @@
     <string name="default_rate_help">Для сохранения отработанного времени нужна ставка больше 0</string>
     <string name="currency_code">Валюта</string>
     <string name="currency_code_hint">Введите ISO-код: EUR, USD, RUB</string>
-    <string name="currency_no_conversion">Курс валют не пересчитывается.</string>
     <string name="theme">Тема</string>
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
