@@ -125,19 +125,13 @@ fun SettingsSheet(
                         )
                     }
 
-                    Text(
-                        text = when {
-                            rateError != null -> rateError
-                            !validCurrency -> stringResource(R.string.currency_code_hint)
-                            else -> stringResource(R.string.default_rate_help)
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (rateError != null || !validCurrency) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    )
+                    if (rateError != null || !validCurrency) {
+                        Text(
+                            text = rateError ?: stringResource(R.string.currency_code_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                     Text(
                         text = stringResource(R.string.currency_no_conversion),
                         style = MaterialTheme.typography.bodySmall,
