@@ -99,7 +99,8 @@ fun CalendarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             CenterAlignedTopAppBar(
@@ -147,7 +148,7 @@ fun CalendarScreen(
                     state = state,
                     onDayClick = onDayClick,
                     locale = locale,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.height(456.dp),
                 )
                 CollapsedSummaryCard(
                     state = state,
@@ -188,7 +189,7 @@ private fun CollapsedSummaryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp),
+            .height(112.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(24.dp),
     ) {
@@ -432,8 +433,7 @@ private fun DayCell(
             )
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .clickable(enabled = isInVisibleMonth, onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 3.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+            .padding(horizontal = 3.dp, vertical = 3.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -452,40 +452,81 @@ private fun DayCell(
                 maxLines = 1,
             )
             if (visibleEntry != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (visibleEntry.bonusMicros > 0L) Marker(isBonus = true)
-                    if (visibleEntry.penaltyMicros > 0L) Marker(isBonus = false)
+                MarkerGroup(
+                    hasBonus = visibleEntry.bonusMicros > 0L,
+                    hasPenalty = visibleEntry.penaltyMicros > 0L,
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (visibleEntry != null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                ) {
+                    if (visibleEntry.workedMinutes > 0) {
+                        Text(
+                            text = formatDurationCompact(visibleEntry.workedMinutes),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                        )
+                    }
+                    if (totalMicros != null) {
+                        Text(
+                            text = formatCellMoney(totalMicros, locale),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = foreground.copy(alpha = 0.82f),
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
-        if (visibleEntry != null) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
-                if (visibleEntry.workedMinutes > 0) {
-                    Text(
-                        text = formatDurationCompact(visibleEntry.workedMinutes),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                    )
-                }
-                if (totalMicros != null) {
-                    Text(
-                        text = formatCellMoney(totalMicros, locale),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = foreground.copy(alpha = 0.82f),
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                    )
-                }
-            }
+    }
+}
+
+@Composable
+private fun MarkerGroup(
+    hasBonus: Boolean,
+    hasPenalty: Boolean,
+) {
+    if (hasBonus && hasPenalty) {
+        Row(
+            modifier = Modifier
+                .width(22.dp)
+                .height(14.dp)
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Add,
+                contentDescription = null,
+                modifier = Modifier.size(8.dp),
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Icon(
+                imageVector = Icons.Rounded.Remove,
+                contentDescription = null,
+                modifier = Modifier.size(8.dp),
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+            )
         }
+    } else if (hasBonus) {
+        Marker(isBonus = true)
+    } else if (hasPenalty) {
+        Marker(isBonus = false)
     }
 }
 
@@ -494,7 +535,7 @@ private fun Marker(isBonus: Boolean) {
     Box(
         modifier = Modifier
             .padding(start = 1.dp)
-            .size(14.dp)
+            .size(12.dp)
             .clip(RoundedCornerShape(50))
             .background(
                 if (isBonus) {
@@ -508,7 +549,7 @@ private fun Marker(isBonus: Boolean) {
         Icon(
             imageVector = if (isBonus) Icons.Rounded.Add else Icons.Rounded.Remove,
             contentDescription = null,
-            modifier = Modifier.size(10.dp),
+            modifier = Modifier.size(8.dp),
             tint = if (isBonus) {
                 MaterialTheme.colorScheme.onTertiaryContainer
             } else {
