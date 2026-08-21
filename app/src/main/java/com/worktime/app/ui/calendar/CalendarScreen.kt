@@ -42,10 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,20 +95,7 @@ fun CalendarScreen(
         bottomSheetState = summarySheetState,
     )
     val scope = rememberCoroutineScope()
-    var showSummaryContent by remember { mutableStateOf(false) }
-    LaunchedEffect(summarySheetState.targetValue) {
-        if (summarySheetState.targetValue != SheetValue.Expanded) {
-            showSummaryContent = false
-        }
-    }
-    LaunchedEffect(summarySheetState.currentValue, summarySheetState.targetValue) {
-        if (
-            summarySheetState.currentValue == SheetValue.Expanded &&
-            summarySheetState.targetValue == SheetValue.Expanded
-        ) {
-            showSummaryContent = true
-        }
-    }
+    val summaryExpandingOrExpanded = summarySheetState.targetValue == SheetValue.Expanded
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
         val shouldCollapse =
             summarySheetState.currentValue == SheetValue.Expanded ||
@@ -136,7 +120,7 @@ fun CalendarScreen(
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
-        sheetContainerColor = if (showSummaryContent) {
+        sheetContainerColor = if (summaryExpandingOrExpanded) {
             MaterialTheme.colorScheme.surfaceContainerHigh
         } else {
             Color.Transparent
@@ -158,7 +142,7 @@ fun CalendarScreen(
                         .fillMaxWidth()
                         .height(300.dp),
                 ) {
-                    if (showSummaryContent) {
+                    if (summaryExpandingOrExpanded) {
                         Surface(
                             modifier = Modifier.fillMaxSize(),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
