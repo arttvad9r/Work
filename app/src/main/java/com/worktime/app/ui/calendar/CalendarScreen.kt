@@ -85,7 +85,7 @@ fun CalendarScreen(
     BottomSheetScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
-        sheetPeekHeight = 28.dp,
+        sheetPeekHeight = 52.dp,
         sheetDragHandle = { SummarySheetHandle() },
         sheetSwipeEnabled = true,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
@@ -100,10 +100,11 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 12.dp)
-                .padding(bottom = 36.dp),
+                .padding(bottom = 60.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             CenterAlignedTopAppBar(
+                modifier = Modifier.height(56.dp),
                 title = {
                     Text(
                         text = monthTitle,
