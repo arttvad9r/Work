@@ -1,12 +1,14 @@
 package com.worktime.app.ui.settings
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -15,6 +17,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,8 +26,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.model.MoneyLimits
@@ -72,59 +77,108 @@ fun SettingsSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge)
-
-            OutlinedTextField(
-                value = rate,
-                onValueChange = { rate = sanitizeMoneyInput(it) },
-                label = { Text(stringResource(R.string.default_hourly_rate)) },
-                suffix = { Text(normalizedCurrency.ifBlank { currencyCode }) },
-                supportingText = {
-                    Text(rateError ?: stringResource(R.string.default_rate_help))
-                },
-                isError = rateError != null,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            Text(
+                text = stringResource(R.string.settings),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
             )
 
-            OutlinedTextField(
-                value = currency,
-                onValueChange = {
-                    currency = it.filter(Char::isLetter).uppercase(Locale.ROOT).take(3)
-                },
-                label = { Text(stringResource(R.string.currency_code)) },
-                supportingText = {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = rate,
+                            onValueChange = { rate = sanitizeMoneyInput(it) },
+                            label = { Text(stringResource(R.string.default_hourly_rate)) },
+                            isError = rateError != null,
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        )
+
+                        OutlinedTextField(
+                            value = currency,
+                            onValueChange = {
+                                currency = it.filter(Char::isLetter).uppercase(Locale.ROOT).take(3)
+                            },
+                            label = { Text(stringResource(R.string.currency_code)) },
+                            isError = !validCurrency,
+                            modifier = Modifier.width(112.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Characters,
+                            ),
+                        )
+                    }
+
                     Text(
-                        if (!validCurrency) {
-                            stringResource(R.string.currency_code_hint)
+                        text = when {
+                            rateError != null -> rateError
+                            !validCurrency -> stringResource(R.string.currency_code_hint)
+                            else -> stringResource(R.string.default_rate_help)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (rateError != null || !validCurrency) {
+                            MaterialTheme.colorScheme.error
                         } else {
-                            stringResource(R.string.currency_no_conversion)
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         },
                     )
-                },
-                isError = !validCurrency,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
-            )
+                    Text(
+                        text = stringResource(R.string.currency_no_conversion),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.theme), style = MaterialTheme.typography.labelLarge)
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ThemeMode.entries.forEach { mode ->
-                        FilterChip(
-                            selected = selectedTheme == mode,
-                            onClick = { selectedTheme = mode },
-                            label = { Text(themeLabel(mode)) },
-                        )
+                    Text(
+                        text = stringResource(R.string.theme),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        ThemeMode.entries.forEach { mode ->
+                            FilterChip(
+                                selected = selectedTheme == mode,
+                                onClick = { selectedTheme = mode },
+                                label = {
+                                    Text(
+                                        text = themeLabel(mode),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
             }
@@ -143,7 +197,9 @@ fun SettingsSheet(
                     onSave(safeRate, normalizedCurrency, selectedTheme)
                 },
                 enabled = canSave,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp),
             ) {
                 Text(stringResource(R.string.save_settings))
             }
