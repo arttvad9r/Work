@@ -63,6 +63,7 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
+import com.worktime.app.ui.components.PlainDragHandle
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import java.math.BigDecimal
@@ -137,9 +138,7 @@ fun CalendarScreen(
         modifier = modifier,
         scaffoldState = scaffoldState,
         sheetPeekHeight = 88.dp,
-        sheetDragHandle = {
-            SummarySheetHandle(expanded = summaryTargetExpanded)
-        },
+        sheetDragHandle = { PlainDragHandle() },
         // Keep the sheet draggable from its handle in both states. The custom
         // handle itself has no click action, so a tap cannot flash or toggle it.
         sheetSwipeEnabled = true,
@@ -285,38 +284,6 @@ private fun CollapsedSummaryCard(
 }
 
 @Composable
-private fun SummarySheetHandle(
-    expanded: Boolean,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(28.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        // Deliberately visual-only: dragging is provided by BottomSheetScaffold,
-        // while a tap has no action or accessibility tooltip.
-        Box(
-            modifier = Modifier
-                .width(72.dp)
-                .height(24.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(48.dp)
-                    .height(5.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                            alpha = if (expanded) 0.68f else 0.55f,
-                        ),
-                    ),
-            )
-        }
-    }
-}
-
 @Composable
 private fun FullSummaryPanel(
     state: CalendarUiState,
