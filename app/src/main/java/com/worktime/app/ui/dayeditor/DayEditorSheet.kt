@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -31,15 +32,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
@@ -281,6 +286,13 @@ fun DayEditorSheet(
                 }
             }
 
+            ValidationMessage(
+                message = durationError
+                    ?: rateError
+                    ?: (if (bonusVisible) bonusError else null)
+                    ?: (if (penaltyVisible) penaltyError else null),
+            )
+
             CalculationSummary(
                 draft = draft,
                 totalMicros = totalMicros,
@@ -434,7 +446,10 @@ internal fun sanitizeDurationInput(value: String): String {
 
     val digits = filtered.filter(Char::isDigit).take(4)
     return when (digits.length) {
-        0, 1, 2 -> digits
+        0, 1 -> digits
+        2 -> {
+            if (digits.toInt() <= 24) digits else "${digits.take(1)}:${digits.drop(1)}"
+        }
         3 -> {
             val twoDigitHours = digits.take(2).toInt()
             if (twoDigitHours <= 24) {
@@ -467,12 +482,19 @@ private fun DurationField(
     supportingText: String?,
     modifier: Modifier = Modifier,
 ) {
-    val supportingContent: @Composable (() -> Unit)? = supportingText?.let { message ->
-        { Text(message) }
+    var fieldValue by remember(value) {
+        mutableStateOf(TextFieldValue(value, TextRange(value.length)))
     }
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
+        value = fieldValue,
+        onValueChange = { updated ->
+            val sanitized = sanitizeDurationInput(updated.text)
+            fieldValue = TextFieldValue(
+                text = sanitized,
+                selection = TextRange(sanitized.length),
+            )
+            onValueChange(sanitized)
+        },
         label = { Text(label, maxLines = 1) },
         placeholder = {
             Text(
@@ -484,17 +506,17 @@ private fun DurationField(
                 maxLines = 1,
             )
         },
-        supportingText = supportingContent,
         textStyle = MaterialTheme.typography.titleMedium.copy(
             textAlign = TextAlign.Center,
             lineHeight = MaterialTheme.typography.titleMedium.fontSize,
         ),
         isError = isError,
         modifier = modifier.onFocusChanged { focusState ->
-            if (focusState.isFocused && value == "0") {
+            if (focusState.isFocused && fieldValue.text == "0") {
+                fieldValue = TextFieldValue("", TextRange(0))
                 onValueChange("")
-            } else if (!focusState.isFocused && value.isBlank()) {
-                onValueChange("0")
+            } else if (!focusState.isFocused && fieldValue.text.isBlank()) {
+                fieldValue = TextFieldValue("0", TextRange(1))
             }
         },
         singleLine = true,
@@ -511,14 +533,20 @@ private fun MoneyField(
     supportingText: String?,
     modifier: Modifier = Modifier,
 ) {
-    val supportingContent: @Composable (() -> Unit)? = supportingText?.let { message ->
-        { Text(message) }
+    var fieldValue by remember(value) {
+        mutableStateOf(TextFieldValue(value, TextRange(value.length)))
     }
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
+        value = fieldValue,
+        onValueChange = { updated ->
+            val sanitized = sanitizeMoneyInput(updated.text)
+            fieldValue = TextFieldValue(
+                text = sanitized,
+                selection = TextRange(sanitized.length),
+            )
+            onValueChange(sanitized)
+        },
         label = { Text(label) },
-        supportingText = supportingContent,
         textStyle = MaterialTheme.typography.titleMedium.copy(
             textAlign = TextAlign.Center,
             lineHeight = MaterialTheme.typography.titleMedium.fontSize,
@@ -527,13 +555,33 @@ private fun MoneyField(
         modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { focusState ->
-                if (focusState.isFocused && value == "0") {
-                    onValueChange("")
-                } else if (!focusState.isFocused && value.isBlank()) {
-                    onValueChange("0")
+                if (focusState.isFocused && fieldValue.text == "0") {
+                    fieldValue = fieldValue.copy(
+                        selection = TextRange(0, fieldValue.text.length),
+                    )
                 }
             },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     )
+}
+
+@Composable
+private fun ValidationMessage(message: String?) {
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(36.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        if (message != null) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
