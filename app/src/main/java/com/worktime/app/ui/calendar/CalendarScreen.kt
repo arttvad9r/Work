@@ -2,10 +2,7 @@ package com.worktime.app.ui.calendar
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,7 +46,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
@@ -58,6 +54,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import com.worktime.app.R
@@ -99,15 +96,6 @@ fun CalendarScreen(
     )
     val scope = rememberCoroutineScope()
     val summaryTargetExpanded = summarySheetState.targetValue == SheetValue.Expanded
-    val summaryContentAlpha by animateFloatAsState(
-        targetValue = if (summaryTargetExpanded) 1f else 0f,
-        animationSpec = if (summaryTargetExpanded) {
-            tween(durationMillis = 160, easing = FastOutSlowInEasing)
-        } else {
-            snap()
-        },
-        label = "summaryContentAlpha",
-    )
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
         val shouldCollapse =
             summarySheetState.currentValue == SheetValue.Expanded ||
@@ -121,38 +109,38 @@ fun CalendarScreen(
             }
         }
     }
-    val toggleSummary: () -> Unit = {
-        scope.launch {
-            if (
-                summarySheetState.currentValue == SheetValue.Expanded ||
-                summarySheetState.targetValue == SheetValue.Expanded
-            ) {
-                summarySheetState.partialExpand()
-            } else {
-                summarySheetState.expand()
-            }
-        }
-    }
-
     BottomSheetScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
         sheetPeekHeight = 88.dp,
-        sheetDragHandle = { PlainDragHandle() },
-        // Keep the sheet draggable from its handle in both states. The custom
-        // handle itself has no click action, so a tap cannot flash or toggle it.
+        sheetDragHandle = null,
+        // The visual handle lives in sheetContent. Avoid Material's drag-handle
+        // slot because it adds an accessibility tooltip on long press.
         sheetSwipeEnabled = true,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
-        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(
-            alpha = summaryContentAlpha,
-        ),
+        sheetContainerColor = if (summaryTargetExpanded) {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        } else {
+            Color.Transparent
+        },
         sheetContent = {
-            FullSummaryPanel(
-                state = state,
-                modifier = Modifier.alpha(summaryContentAlpha),
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    PlainDragHandle()
+                }
+                // Do not compose summary text while collapsed: it prevents delayed
+                // text flashes behind the closed sheet.
+                if (summaryTargetExpanded) {
+                    FullSummaryPanel(state = state)
+                }
+            }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
@@ -284,7 +272,6 @@ private fun CollapsedSummaryCard(
     }
 }
 
-@Composable
 @Composable
 private fun FullSummaryPanel(
     state: CalendarUiState,
