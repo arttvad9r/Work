@@ -114,15 +114,17 @@ fun CalendarScreen(
         },
         label = "summaryContentAlpha",
     )
-    val closeSummaryThen: (() -> Unit) -> Unit = { action ->
-        scope.launch {
-            if (
-                summarySheetState.currentValue == SheetValue.Expanded ||
+    val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
+        val shouldCollapse =
+            summarySheetState.currentValue == SheetValue.Expanded ||
                 summarySheetState.targetValue == SheetValue.Expanded
-            ) {
+
+        action()
+
+        if (shouldCollapse) {
+            scope.launch {
                 runCatching { summarySheetState.partialExpand() }
             }
-            action()
         }
     }
     val toggleSummary: () -> Unit = {
@@ -152,7 +154,7 @@ fun CalendarScreen(
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
-        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(
+        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(
             alpha = summaryContentAlpha,
         ),
         sheetContent = {
@@ -188,7 +190,7 @@ fun CalendarScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { closeSummaryThen(onPreviousMonth) }) {
+                    IconButton(onClick = { closeSummaryBehind(onPreviousMonth) }) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = stringResource(R.string.previous_month),
@@ -196,14 +198,14 @@ fun CalendarScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { closeSummaryThen(onNextMonth) }) {
+                    IconButton(onClick = { closeSummaryBehind(onNextMonth) }) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowForward,
                             contentDescription = stringResource(R.string.next_month),
                         )
                     }
                     IconButton(
-                        onClick = { closeSummaryThen(onSettingsClick) },
+                        onClick = { closeSummaryBehind(onSettingsClick) },
                         enabled = state.isReady,
                     ) {
                         Icon(
@@ -225,7 +227,7 @@ fun CalendarScreen(
             } else {
                 CalendarCard(
                     state = state,
-                    onDayClick = { date -> closeSummaryThen { onDayClick(date) } },
+                    onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
                     locale = locale,
                     modifier = Modifier.height(392.dp),
                 )
@@ -542,7 +544,7 @@ private fun DayCell(
         if (visibleEntry?.penaltyMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_penalty))
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .padding(1.dp)
             .fillMaxSize()
@@ -564,63 +566,44 @@ private fun DayCell(
             )
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .clickable(enabled = isInVisibleMonth, onClick = onClick)
-            .padding(horizontal = 3.dp, vertical = 3.dp),
+            .padding(horizontal = 4.dp, vertical = 4.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.titleSmall,
-                color = foreground,
-                fontWeight = if ((isToday && isInVisibleMonth) || visibleEntry != null) {
-                    FontWeight.SemiBold
-                } else {
-                    FontWeight.Medium
-                },
-                maxLines = 1,
+        Text(
+            text = date.dayOfMonth.toString(),
+            modifier = Modifier.align(Alignment.TopStart),
+            style = MaterialTheme.typography.titleSmall,
+            color = foreground,
+            fontWeight = if (isInVisibleMonth) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 1,
+        )
+
+        if (visibleEntry != null) {
+            MarkerGroup(
+                hasBonus = visibleEntry.bonusMicros > 0L,
+                hasPenalty = visibleEntry.penaltyMicros > 0L,
+                modifier = Modifier.align(Alignment.TopEnd),
             )
-            if (visibleEntry != null) {
-                MarkerGroup(
-                    hasBonus = visibleEntry.bonusMicros > 0L,
-                    hasPenalty = visibleEntry.penaltyMicros > 0L,
+            if (visibleEntry.workedMinutes > 0) {
+                Text(
+                    text = formatDurationCompact(visibleEntry.workedMinutes),
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
                 )
             }
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (visibleEntry != null) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(1.dp),
-                ) {
-                    if (visibleEntry.workedMinutes > 0) {
-                        Text(
-                            text = formatDurationCompact(visibleEntry.workedMinutes),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                        )
-                    }
-                    if (totalMicros != null) {
-                        Text(
-                            text = formatCellMoney(totalMicros, locale),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = foreground.copy(alpha = 0.82f),
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                        )
-                    }
-                }
+            if (totalMicros != null) {
+                Text(
+                    text = formatCellMoney(totalMicros, locale),
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = foreground.copy(alpha = 0.82f),
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
             }
         }
     }
@@ -630,10 +613,11 @@ private fun DayCell(
 private fun MarkerGroup(
     hasBonus: Boolean,
     hasPenalty: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     if (hasBonus && hasPenalty) {
         Row(
-            modifier = Modifier
+            modifier = modifier
                 .width(22.dp)
                 .height(14.dp)
                 .clip(RoundedCornerShape(50))
@@ -655,16 +639,19 @@ private fun MarkerGroup(
             )
         }
     } else if (hasBonus) {
-        Marker(isBonus = true)
+        Marker(isBonus = true, modifier = modifier)
     } else if (hasPenalty) {
-        Marker(isBonus = false)
+        Marker(isBonus = false, modifier = modifier)
     }
 }
 
 @Composable
-private fun Marker(isBonus: Boolean) {
+private fun Marker(
+    isBonus: Boolean,
+    modifier: Modifier = Modifier,
+) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .padding(start = 1.dp)
             .size(12.dp)
             .clip(RoundedCornerShape(50))
