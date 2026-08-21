@@ -1,7 +1,11 @@
 package com.worktime.app.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -23,8 +27,15 @@ fun WorkTimeApp(container: AppContainer) {
         ),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var previewTheme by remember { mutableStateOf(state.themeMode) }
 
-    WorkTimeTheme(themeMode = state.themeMode) {
+    LaunchedEffect(state.isSettingsOpen, state.themeMode) {
+        previewTheme = state.themeMode
+    }
+
+    WorkTimeTheme(
+        themeMode = if (state.isSettingsOpen) previewTheme else state.themeMode,
+    ) {
         CalendarScreen(
             state = state,
             onPreviousMonth = viewModel::previousMonth,
@@ -61,6 +72,7 @@ fun WorkTimeApp(container: AppContainer) {
                 operationErrorMessage = operationErrorMessage,
                 onDismiss = viewModel::dismissSettings,
                 onSave = viewModel::updatePreferences,
+                onPreviewTheme = { previewTheme = it },
             )
         }
     }
