@@ -58,11 +58,14 @@ fun DayEditorSheet(
     onSave: (WorkEntry) -> Unit,
     onDelete: (LocalDate) -> Unit,
 ) {
-    var hours by rememberSaveable(date.toEpochDay(), existing) {
-        mutableStateOf(((existing?.workedMinutes ?: 0) / 60).toString())
-    }
-    var minutes by rememberSaveable(date.toEpochDay(), existing) {
-        mutableStateOf(((existing?.workedMinutes ?: 0) % 60).toString())
+    var duration by rememberSaveable(date.toEpochDay(), existing) {
+        mutableStateOf(
+            existing
+                ?.workedMinutes
+                ?.takeIf { it > 0 }
+                ?.let(::formatDurationInput)
+                .orEmpty(),
+        )
     }
     var rate by rememberSaveable(date.toEpochDay(), existing) {
         mutableStateOf(formatDecimalMicros(existing?.hourlyRateMicros ?: defaultHourlyRateMicros))
@@ -81,8 +84,9 @@ fun DayEditorSheet(
     }
     var confirmDelete by rememberSaveable(date.toEpochDay(), existing) { mutableStateOf(false) }
 
-    val parsedHours = parseWholeNumberOrZero(hours)
-    val parsedMinutes = parseWholeNumberOrZero(minutes)
+    val parsedDuration = parseDurationInput(duration)
+    val parsedHours = parsedDuration?.hours
+    val parsedMinutes = parsedDuration?.minutes
     val hoursValid = parsedHours != null && parsedHours in 0..24
     val minutesValid = parsedMinutes != null && parsedMinutes in 0..59
     val durationValid = hoursValid && minutesValid && !(parsedHours == 24 && parsedMinutes != 0)
@@ -118,12 +122,8 @@ fun DayEditorSheet(
     }
 
     val maxMoneyLabel = formatDecimalMicros(MoneyLimits.MAX_COMPONENT_MICROS)
-    val hoursError = when {
+    val durationError = when {
         !hoursValid -> stringResource(R.string.hours_range_error)
-        !durationValid -> stringResource(R.string.duration_24h_error)
-        else -> null
-    }
-    val minutesError = when {
         !minutesValid -> stringResource(R.string.minutes_range_error)
         !durationValid -> stringResource(R.string.duration_24h_error)
         else -> null
@@ -168,37 +168,25 @@ fun DayEditorSheet(
                 fontWeight = FontWeight.SemiBold,
             )
 
-            Text(
-                text = stringResource(R.string.worked),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumberField(
-                    value = hours,
-                    onValueChange = { hours = it.filter(Char::isDigit).take(2) },
-                    label = stringResource(R.string.hours),
-                    isError = hoursError != null,
-                    supportingText = hoursError,
+                DurationField(
+                    value = duration,
+                    onValueChange = { duration = sanitizeDurationInput(it) },
+                    label = stringResource(R.string.worked),
+                    isError = durationError != null,
+                    supportingText = durationError,
                     modifier = Modifier.weight(1f),
                 )
-                NumberField(
-                    value = minutes,
-                    onValueChange = { minutes = it.filter(Char::isDigit).take(2) },
-                    label = stringResource(R.string.minutes),
-                    isError = minutesError != null,
-                    supportingText = minutesError,
+                MoneyField(
+                    value = rate,
+                    onValueChange = { rate = sanitizeMoneyInput(it) },
+                    label = stringResource(R.string.hourly_rate),
+                    currencyCode = currencyCode,
+                    isError = rateError != null,
+                    supportingText = rateError,
                     modifier = Modifier.weight(1f),
                 )
             }
-            MoneyField(
-                value = rate,
-                onValueChange = { rate = sanitizeMoneyInput(it) },
-                label = stringResource(R.string.hourly_rate),
-                currencyCode = currencyCode,
-                isError = rateError != null,
-                supportingText = rateError,
-            )
 
             if (!bonusVisible || !penaltyVisible) {
                 Row(
@@ -259,13 +247,6 @@ fun DayEditorSheet(
                 currencyCode = currencyCode,
             )
 
-            if (durationValid && rateValid && bonusWithinLimit && penaltyWithinLimit && !hasEffectiveData) {
-                Text(
-                    text = stringResource(R.string.empty_entry_error),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
             if (operationErrorMessage != null) {
                 Text(
                     text = operationErrorMessage,
@@ -340,8 +321,8 @@ private fun CalculationSummary(
                 fontWeight = FontWeight.SemiBold,
             )
             if (draft != null && totalMicros != null) {
-                val entryPay = SalaryCalculator.entryPay(draft)
                 if (draft.bonusMicros > 0L || draft.penaltyMicros > 0L) {
+                    val entryPay = SalaryCalculator.entryPay(draft)
                     CalculationRow(
                         label = stringResource(R.string.calculation_base),
                         value = formatMoneyMicros(entryPay.basePayMicros, currencyCode),
@@ -398,12 +379,39 @@ private fun CalculationRow(
     }
 }
 
-private fun parseWholeNumberOrZero(text: String): Int? = if (text.isBlank()) 0 else text.toIntOrNull()
+private data class DurationInput(val hours: Int, val minutes: Int)
+
+private fun formatDurationInput(workedMinutes: Int): String = "%d:%02d".format(
+    workedMinutes / 60,
+    workedMinutes % 60,
+)
+
+private fun sanitizeDurationInput(value: String): String {
+    val filtered = value.filter { it.isDigit() || it == ':' }
+    val firstColon = filtered.indexOf(':')
+    if (firstColon >= 0) {
+        val hours = filtered.take(firstColon).filter(Char::isDigit).take(2)
+        val minutes = filtered.drop(firstColon + 1).filter(Char::isDigit).take(2)
+        return "$hours:$minutes"
+    }
+
+    val digits = filtered.filter(Char::isDigit).take(4)
+    return if (digits.length <= 2) digits else "${digits.take(2)}:${digits.drop(2)}"
+}
+
+private fun parseDurationInput(text: String): DurationInput? {
+    if (text.isBlank()) return DurationInput(hours = 0, minutes = 0)
+    val parts = text.split(':')
+    if (parts.size > 2) return null
+    val hours = parts[0].ifBlank { "0" }.toIntOrNull() ?: return null
+    val minutes = parts.getOrNull(1)?.ifBlank { "0" }?.toIntOrNull() ?: 0
+    return DurationInput(hours = hours, minutes = minutes)
+}
 
 private fun parseMoneyOrNull(text: String): Long? = runCatching { parseDecimalMicros(text) }.getOrNull()
 
 @Composable
-private fun NumberField(
+private fun DurationField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
@@ -418,6 +426,7 @@ private fun NumberField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        placeholder = { Text("00:00") },
         supportingText = supportingContent,
         isError = isError,
         modifier = modifier,
