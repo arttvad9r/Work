@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -126,14 +129,19 @@ fun CalendarScreen(
                     state = state,
                     onDayClick = onDayClick,
                     locale = locale,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.height(428.dp),
                 )
-                MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
-                if (state.entries.isEmpty()) {
-                    EmptyMonthState(
-                        onSetHourlyRate = onSettingsClick,
-                        showRateAction = state.defaultHourlyRateMicros == 0L,
-                    )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
+                    if (state.entries.isEmpty()) {
+                        EmptyMonthState(
+                            onSetHourlyRate = onSettingsClick,
+                            showRateAction = state.defaultHourlyRateMicros == 0L,
+                        )
+                    }
                 }
             }
         }
@@ -175,25 +183,29 @@ private fun MonthSummaryCard(
         shape = RoundedCornerShape(24.dp),
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = stringResource(R.string.monthly_income),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
                 )
                 Text(
                     text = formatMoneyMicros(summary.totalPayMicros, state.currencyCode),
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
                     maxLines = 1,
                 )
             }
@@ -217,27 +229,33 @@ private fun MonthSummaryCard(
             }
 
             if (summary.bonusMicros > 0L || summary.penaltyMicros > 0L) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    SummaryLine(
-                        stringResource(
-                            R.string.base_pay_value,
-                            formatMoneyMicros(summary.basePayMicros, state.currencyCode),
-                        ),
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.08f),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    KpiMetric(
+                        label = stringResource(R.string.calculation_base),
+                        value = formatMoneyMicros(summary.basePayMicros, state.currencyCode),
+                        modifier = Modifier.weight(1f),
+                        compact = true,
                     )
                     if (summary.bonusMicros > 0L) {
-                        SummaryLine(
-                            stringResource(
-                                R.string.bonus_value,
-                                formatMoneyMicros(summary.bonusMicros, state.currencyCode),
-                            ),
+                        KpiMetric(
+                            label = stringResource(R.string.calculation_bonus),
+                            value = "+${formatMoneyMicros(summary.bonusMicros, state.currencyCode)}",
+                            modifier = Modifier.weight(1f),
+                            compact = true,
                         )
                     }
                     if (summary.penaltyMicros > 0L) {
-                        SummaryLine(
-                            stringResource(
-                                R.string.penalty_value,
-                                formatMoneyMicros(summary.penaltyMicros, state.currencyCode),
-                            ),
+                        KpiMetric(
+                            label = stringResource(R.string.calculation_penalty),
+                            value = "−${formatMoneyMicros(summary.penaltyMicros, state.currencyCode)}",
+                            modifier = Modifier.weight(1f),
+                            compact = true,
                         )
                     }
                 }
@@ -253,31 +271,39 @@ private fun MonthSummaryCard(
 }
 
 @Composable
-private fun SummaryLine(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
-    )
-}
-
-@Composable
 private fun KpiMetric(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+    ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
+            style = if (compact) {
+                MaterialTheme.typography.labelSmall
+            } else {
+                MaterialTheme.typography.labelMedium
+            },
             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
+            textAlign = TextAlign.Center,
+            maxLines = 1,
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.titleMedium,
+            style = if (compact) {
+                MaterialTheme.typography.bodySmall
+            } else {
+                MaterialTheme.typography.titleMedium
+            },
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
         )
     }
 }
@@ -459,19 +485,24 @@ private fun DayCell(
             )
             if (entry != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (entry.bonusMicros > 0L) Marker("+")
-                    if (entry.penaltyMicros > 0L) Marker("−")
+                    if (entry.bonusMicros > 0L) Marker(isBonus = true)
+                    if (entry.penaltyMicros > 0L) Marker(isBonus = false)
                 }
             }
         }
         if (entry != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
                 if (entry.workedMinutes > 0) {
                     Text(
-                        text = formatDuration(entry.workedMinutes),
+                        text = formatCellDuration(entry.workedMinutes),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
                         maxLines = 1,
                     )
                 }
@@ -481,6 +512,7 @@ private fun DayCell(
                         style = MaterialTheme.typography.labelSmall,
                         color = foreground.copy(alpha = 0.82f),
                         fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
                         maxLines = 1,
                     )
                 }
@@ -490,22 +522,28 @@ private fun DayCell(
 }
 
 @Composable
-private fun Marker(text: String) {
+private fun Marker(isBonus: Boolean) {
     Box(
         modifier = Modifier
             .padding(start = 1.dp)
-            .size(11.dp)
+            .size(14.dp)
             .clip(RoundedCornerShape(50))
             .background(MaterialTheme.colorScheme.tertiaryContainer),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            maxLines = 1,
+        Icon(
+            imageVector = if (isBonus) Icons.Rounded.Add else Icons.Rounded.Remove,
+            contentDescription = null,
+            modifier = Modifier.size(10.dp),
+            tint = MaterialTheme.colorScheme.onTertiaryContainer,
         )
     }
+}
+
+private fun formatCellDuration(minutes: Int): String {
+    val hours = minutes / 60
+    val remainder = minutes % 60
+    return if (remainder == 0) hours.toString() else "%d:%02d".format(hours, remainder)
 }
 
 private fun formatCellMoney(micros: Long, locale: Locale): String {
