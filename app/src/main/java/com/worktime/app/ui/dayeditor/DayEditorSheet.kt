@@ -3,10 +3,8 @@ package com.worktime.app.ui.dayeditor
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -100,14 +99,18 @@ fun DayEditorSheet(
         focusPenaltyOnExpand = true
     }
 
-    LaunchedEffect(focusBonusOnExpand) {
-        if (focusBonusOnExpand) {
+    LaunchedEffect(focusBonusOnExpand, bonusVisible) {
+        if (focusBonusOnExpand && bonusVisible) {
+            // Move focus directly between fields; never clear the previous focus first,
+            // otherwise Android briefly hides and recreates the IME.
+            withFrameNanos { }
             bonusFocusRequester.requestFocus()
             focusBonusOnExpand = false
         }
     }
-    LaunchedEffect(focusPenaltyOnExpand) {
-        if (focusPenaltyOnExpand) {
+    LaunchedEffect(focusPenaltyOnExpand, penaltyVisible) {
+        if (focusPenaltyOnExpand && penaltyVisible) {
+            withFrameNanos { }
             penaltyFocusRequester.requestFocus()
             focusPenaltyOnExpand = false
         }
@@ -167,19 +170,19 @@ fun DayEditorSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
-        dragHandle = { PlainDragHandle() },
+        dragHandle = null,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .imePadding()
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            PlainDragHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
+
             Text(
                 text = date.format(
                     DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale),
@@ -275,14 +278,6 @@ fun DayEditorSheet(
                 draft = draft,
                 totalMicros = totalMicros,
             )
-
-            if (!operationErrorMessage.isNullOrBlank()) {
-                Text(
-                    text = operationErrorMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
 
             Button(
                 onClick = { draft?.let(onSave) },
