@@ -33,7 +33,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 
 ## Monthly report sheet
 
-- In the collapsed state only the handle is visible; the report surface and text remain transparent until expansion starts.
+- In the collapsed state only the handle is visible; the report surface, text and shadow remain hidden until expansion starts.
 - Opens by tapping the handle or dragging from it upward.
 - Collapses by downward drag or the standard sheet action.
 - Contains one heading with a trailing colon, work days, hours worked, optional bonus, optional penalty, divider and total.
@@ -50,11 +50,17 @@ Normal closed-keyboard state should fit as one compact sheet.
 5. Save.
 6. Delete for an existing entry.
 
-The duration field is labeled `Время` and shows a faint `00:00` format hint only while focused and empty. Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. The hint and the entered value use the same typography and centered alignment. Digits `530` resolve to `5:30`; `1530` resolves to `15:30`. Switching between duration and amount fields keeps the same numeric keyboard mode and does not apply a second IME inset, so the sheet remains stationary while the keyboard stays open.
+The duration field is labeled `Время` and shows a faint `00:00` format hint only while focused and empty. Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. The hint and the entered value use the same typography and centered alignment. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`. Switching between duration and amount fields keeps the same numeric keyboard mode and does not apply a second IME inset, so the sheet remains stationary while the keyboard stays open.
 
 Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The newly expanded amount field receives focus immediately.
 
 The calculation card uses `At hourly rate` / `По ставке`, then optional bonus/penalty rows, then total. Before any value is entered it shows only the `Total` / `Итого` label; zero adjustment rows are omitted.
+
+## Amount formatting
+
+- Input accepts at most two fractional digits.
+- Display rounds to at most two fractional digits and omits a zero fractional part.
+- Calculations keep deterministic micros precision internally; the UI precision limit applies only to entry and presentation.
 
 ## Settings
 
