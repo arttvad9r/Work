@@ -1,65 +1,29 @@
 # Contributing
 
-This repository is currently a private product project. Keep changes small, reviewable and tied to the roadmap.
+## Scope
 
-## Branching
+Keep WorkTime a small calendar-first personal timesheet. Do not add notes, quick-duration presets, currency, accounts, projects, timers or payroll complexity without an explicit product decision.
 
-- `main` is release-oriented and should remain buildable.
-- Use `feat/<scope>`, `fix/<scope>`, `chore/<scope>` branches.
-- Avoid unrelated refactors inside feature work.
+## Before opening or updating a pull request
 
-## Commit style
-
-- `feat:` product behavior;
-- `fix:` bug/correctness fix;
-- `test:` test-only changes;
-- `docs:` documentation;
-- `refactor:` behavior-preserving restructuring;
-- `chore:` build/tooling/maintenance.
-
-## Before review
-
-Without Android tooling:
-
-```bash
-python3 scripts/static_audit.py
-```
-
-With JDK 17 + SDK 37 + Gradle 9.5.0:
+1. Keep domain/data calculations in integer micros.
+2. Preserve Room data and historical hourly-rate snapshots.
+3. Update EN and RU resources together.
+4. Update documentation when a UI or product contract changes.
+5. Run:
 
 ```bash
 ./scripts/verify.sh
 ```
 
-or Windows PowerShell:
+6. Execute the relevant device checklist in `docs/ANDROID_QA.md` for UI changes.
 
-```powershell
-./scripts/verify.ps1
-```
+Do not report a build, test or device result as passed unless the command actually ran to completion. Infrastructure failures must be recorded separately from code failures.
 
-Until the complete Gradle Wrapper is bootstrapped, do not document `./gradlew` as if it worked.
+## UI expectations
 
-Also verify:
-
-- no hard-coded user-facing strings when a resource is appropriate;
-- business logic is outside composables;
-- domain/data money remains integer micros;
-- default-rate changes cannot mutate historical records;
-- currency changes do not imply silent FX conversion;
-- persistence failures do not discard an open draft;
-- no destructive Room fallback;
-- database-version changes include migration tests;
-- docs/ADR are updated when a contract changes.
-
-## Pull requests
-
-State:
-
-1. problem;
-2. solution;
-3. explicit non-scope;
-4. test/build evidence actually executed;
-5. screenshots/recordings for material UI changes;
-6. persistence/migration/privacy risks.
-
-Never call Android CI/device testing “green” without real evidence from that environment.
+- The calendar geometry is fixed and must not depend on monthly data.
+- Normal day entry should fit without scrolling when the keyboard is closed.
+- Required actions remain reachable with the keyboard open.
+- Labels and values must survive Russian text and increased font scale.
+- Color is never the only carrier of meaning.

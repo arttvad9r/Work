@@ -1,47 +1,24 @@
 # Prioritized backlog
 
-`P0` = release-blocking for the MVP.
+## P0 - before merge/release
 
-| Priority | ID | Item | Status |
-| --- | --- | --- | --- |
-| P0 | FND-01 | Android/Compose source foundation | Implemented |
-| P0 | FND-02 | CI definition: static/JVM/lint/APK compilation | Implemented; actual run evidence pending |
-| P0 | FND-03 | Complete Gradle Wrapper bootstrap | Done 2026-08-21 |
-| P0 | FND-04 | Room v1 schema JSON committed | Done 2026-08-21 |
-| P0 | AUD-01 | Full non-device static audit | Done 2026-08-20 |
-| P0 | CAL-01 | Fixed 6×7 calendar | Implemented |
-| P0 | CAL-02 | Today/selected/filled states | Implemented; device visual QA pending |
-| P0 | CAL-03 | Previous/next month navigation | Implemented |
-| P0 | CAL-04 | Atomic month/data switching | Implemented |
-| P0 | DAY-01 | Persistent create/edit | Implemented |
-| P0 | DAY-02 | Duration input + quick chips | Implemented |
-| P0 | DAY-03 | Historical rate snapshot | Implemented |
-| P0 | DAY-04 | Bonus/penalty | Implemented |
-| P0 | DAY-05 | Delete + confirmation | Implemented |
-| P0 | DAY-06 | Inline validation/error handling | Implemented |
-| P0 | SUM-01 | Salary/hours/shifts summary | Implemented |
-| P0 | DATA-01 | Room database/repository | Implemented |
-| P0 | DATA-02 | DataStore preferences | Implemented |
-| P0 | DATA-03 | Android Room instrumentation execution | Blocked by emulator runtime services |
-| P0 | SET-01 | Rate/currency/theme settings | Implemented |
-| P0 | SET-02 | Explicit no-FX currency semantics | Implemented |
-| P0 | TEST-01 | Golden salary/domain/calendar tests | Expanded |
-| P0 | TEST-02 | Compose critical-flow tests | Startup smoke source added; execution pending |
-| P0 | A11Y-01 | TalkBack + 200% font + small screen | Source hardening done; device pass pending |
-| P0 | QA-01 | Android build/lint/device matrix | Build/lint done; device matrix pending |
-| P1 | UX-01 | Undo delete | Later; confirmation exists |
-| P1 | CAL-05 | Swipe/month picker | Beta feedback |
-| P2 | EXP-01 | CSV/PDF export | Post-MVP |
-| P2 | BACK-01 | Manual backup/restore | Post-MVP |
-| P2 | JOB-01 | Multiple jobs | Post-MVP |
-| P2 | CUR-01 | Per-entry/multi-currency | Post-MVP only if validated |
+1. Run `./scripts/verify.sh` on the current branch head.
+2. Build and install the APK on the target phone.
+3. Verify the monthly report opens by tap and upward drag.
+4. Complete the calendar/editor/settings checklist in `ANDROID_QA.md`.
+5. Confirm no clipping at Russian locale and increased font scale.
 
-## Next execution order
+## P1 - release hardening
 
-1. Run a real Android build and fix compile/lint findings.
-2. Generate/commit Room v1 schema + complete Gradle Wrapper from the trusted toolchain.
-3. Execute Room instrumentation and add Compose UI tests.
-4. Complete `ANDROID_QA.md`.
-5. Final visual/store/release hardening.
+- Add Compose tests for fixed summary/report semantics and adjacent-month inactivity.
+- Add a day-editor test for bonus/penalty expansion order.
+- Capture final screenshots after device QA.
+- Review launcher icon, signing and Play pre-launch report.
 
-There is no value in adding new feature scope before these release gates are cleared.
+## P2 - future decisions
+
+- export/backup;
+- multiple work profiles;
+- overtime/pay-period configuration.
+
+Do not reintroduce currency, notes or quick-duration presets without a new product decision.

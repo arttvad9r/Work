@@ -1,161 +1,81 @@
 # WorkTime
 
-Modern Android app for tracking worked hours and expected salary with a calendar-first workflow.
+WorkTime is a compact offline Android timesheet for recording worked time and calculating an expected monthly amount.
 
-> **Core loop:** open month → tap a day → enter worked time → save → immediately see updated monthly earnings.
+The core flow is intentionally short:
 
-WorkTime is intentionally small. It is a personal work-hours and salary calculator, not a project tracker, HR system, payroll suite, or shift-planning platform.
+```text
+open month -> tap a day -> enter duration and hourly rate -> save
+```
 
-## Status
+## Current interface
 
-The repository contains a **functionally complete MVP implementation**. Android build, lint, JVM tests and APK assembly passed in this environment; connected emulator QA remains blocked by the available emulator runtime.
+- fixed Monday-first 6 x 7 calendar that does not scroll or jump;
+- faint adjacent-month dates for calendar continuity;
+- centered worked duration and daily amount inside filled cells;
+- compact fixed monthly card with work days, hours worked and monthly income;
+- a separate draggable bottom report with days, hours, optional bonus/penalty and total;
+- one day-editor sheet with duration and hourly rate on one row;
+- optional bonus above optional penalty;
+- compact settings sheet with hourly rate and system/light/dark theme;
+- controlled light/dark color palettes and consistent Material 3 shapes.
 
-Implemented:
-
-- fixed 6×7 month calendar and month navigation;
-- persistent create/edit/delete day entries;
-- hours/minutes + 4/6/8/10/12-hour quick entry;
-- rate snapshots, bonuses, penalties and notes;
-- salary/hours/shift monthly summary;
-- Room work-entry source of truth;
-- DataStore default rate/currency/theme;
-- system/light/dark theme;
-- EN/RU resources;
-- inline validation and recoverable persistence errors;
-- deterministic integer-micros money calculation;
-- launcher icon placeholder;
-- privacy-oriented backup/transfer exclusion rules;
-- JVM tests plus instrumented Room test source;
-- CI definition for static audit, tests, lint and APK target compilation.
-
-Remaining release gates: connected instrumentation/Compose execution, device QA and [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
+Currency selection, currency symbols, notes and quick-duration presets are intentionally not part of the product. Numeric amounts are shown as neutral values. A fractional part is shown only when it is non-zero. Durations are displayed as `0`, `15` or `15:30`.
 
 ## Product rules
 
-- One aggregate work entry per calendar date in MVP.
-- `shiftCount` increments only when `workedMinutes > 0`.
-- Bonus/penalty-only entries are valid and do not count as shifts.
-- Worked time requires a positive hourly rate in the editor.
+- One aggregate entry per date.
+- Worked time is limited to `0..24:00`.
+- Worked time requires a positive hourly rate.
+- Bonus/penalty-only entries are valid but do not count as work days.
 - A saved entry keeps its hourly-rate snapshot; changing the default rate does not rewrite history.
-- Currency is a global display/accounting unit. Changing the ISO code **does not perform FX conversion**; existing numeric amounts are relabelled.
-- Core functionality is offline and does not require an account.
-
-## Technical stack
-
-- **Language:** Kotlin 2.4.x
-- **UI:** Jetpack Compose + Material 3
-- **Build:** AGP 9.3.1, Gradle 9.5.0, compile/target SDK 37
-- **Persistence:** Room 2.8.4 + DataStore 1.2.1
-- **State:** ViewModel + immutable `StateFlow`
-- **Concurrency:** coroutines + Flow
-- **Money:** `Long` micros; no `Float`/`Double` in domain/data
-- **Testing:** JUnit 5 JVM tests, AndroidX Test/Room instrumentation source
-
-The version matrix was rechecked against official upstream documentation during the 20 August 2026 static audit. See [`docs/STATIC_AUDIT.md`](docs/STATIC_AUDIT.md).
-
-## Architecture
+- Core functionality is local and requires neither an account nor network access.
 
 ```text
-Compose UI
-    ↓ user intent / immutable state
-CalendarViewModel
-    ↓
-domain repository interfaces + business rules
-    ↓
-Room / DataStore implementations
+ratePayMicros = roundHalfUp(workedMinutes x hourlyRateMicros / 60)
+entryTotalMicros = ratePayMicros + bonusMicros - penaltyMicros
+monthTotalMicros = sum(entryTotalMicros)
+workDays = count(entries where workedMinutes > 0)
 ```
 
-```text
-app/src/main/java/com/worktime/app/
-├── data/
-│   ├── db/
-│   ├── preferences/
-│   └── repository/
-├── domain/
-│   ├── calculation/
-│   ├── calendar/
-│   ├── model/
-│   ├── preferences/
-│   └── repository/
-└── ui/
-    ├── calendar/
-    ├── dayeditor/
-    ├── format/
-    ├── settings/
-    └── theme/
-```
+Amounts use integer micros in domain/data code. `Float` and `Double` are not used for persisted calculations.
 
-## Salary model
+## Stack
 
-```text
-basePayMicros = roundHalfUp(workedMinutes × hourlyRateMicros / 60)
-entryPayMicros = basePayMicros + bonusMicros - penaltyMicros
-monthPayMicros = Σ entryPayMicros
-shiftCount = count(entries where workedMinutes > 0)
-```
+- Kotlin 2.4.x
+- Jetpack Compose + Material 3
+- AGP 9.3.1 / Gradle 9.5.0 / Java 17
+- Room 2.8.4
+- DataStore 1.2.1
+- coroutines and `StateFlow`
+- JUnit 5 and AndroidX Test
 
-Inputs are bounded defensively so checked `Long` arithmetic cannot be driven into overflow by normal UI input.
+## Verification
 
-## Verification without Android tooling
-
-```bash
-python3 scripts/static_audit.py
-```
-
-The audit checks XML/resource consistency, EN/RU string parity, privacy-sensitive manifest/backup rules, binary floating-point regressions in domain/data and destructive Room fallback usage.
-
-## Android build
-
-See [`docs/BUILD.md`](docs/BUILD.md).
-
-The committed Gradle Wrapper is the preferred command-line entry point:
+Preferred command:
 
 ```bash
 ./scripts/verify.sh
 ```
 
-Windows PowerShell:
+It runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. Device execution remains a separate release gate.
 
-```powershell
-./scripts/verify.ps1
-```
-
-These run the static audit and then:
-
-```text
-:app:testDebugUnitTest
-:app:lintDebug
-:app:assembleDebug
-:app:assembleDebugAndroidTest
-```
-
-### Gradle Wrapper note
-
-The wrapper pins Gradle 9.5.0 and is committed. On this NixOS host Android resource processing additionally requires the host SDK `aapt2` override and an FHS-compatible runner.
+The current feature branch has passed targeted source/resource checks, but the latest GitHub Actions job ended before executing any step. Therefore this repository does not claim a successful CI build or physical-device verification for the newest interface commit. See [the current audit](docs/STATIC_AUDIT.md) and [Android QA checklist](docs/ANDROID_QA.md).
 
 ## Documentation
 
-- [Documentation index](docs/README.md)
 - [Product](docs/PRODUCT.md)
-- [Research](docs/RESEARCH.md)
 - [UX](docs/UX.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Decisions](docs/DECISIONS.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Backlog](docs/BACKLOG.md)
 - [Testing](docs/TESTING.md)
-- [Build & CI](docs/BUILD.md)
-- [Static audit](docs/STATIC_AUDIT.md)
+- [Build and CI](docs/BUILD.md)
+- [Current audit](docs/STATIC_AUDIT.md)
 - [Android QA](docs/ANDROID_QA.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
 - [Privacy](docs/PRIVACY.md)
-- [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
-
-## Quality bar
-
-A feature is not release-ready until business invariants are tested where possible, docs match implementation, money remains exact, persistence is migration-safe, Android build/lint passes, and critical flows pass device/emulator/accessibility QA.
 
 ## License
 
-No open-source license has been selected. Until a license is added, the repository is proprietary / all rights reserved.
+No open-source license has been selected. The repository is all rights reserved until a license is added.

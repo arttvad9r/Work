@@ -1,114 +1,50 @@
 # Testing strategy
 
-## Risk order
+## Verification layers
 
-1. money correctness;
-2. data persistence/history correctness;
-3. month/date state correctness;
-4. editor validation/error recovery;
-5. accessibility/layout;
-6. visual motion/polish.
-
-## Non-Android automated coverage
-
-### Salary/domain
-
-Current JVM cases cover:
-
-- whole hours;
-- minutes;
-- bonus;
-- penalty;
-- combined adjustments;
-- adjustment-only record;
-- very small rates;
-- one-minute conversion;
-- half-micro rounding;
-- month aggregation and shift-count rule;
-- invalid >24h;
-- negative/unsupported money;
-- empty records;
-- note length;
-- preference money bounds.
-
-### Calendar
-
-Current tests cover:
-
-- all seven possible month-start weekdays with Monday-first layout;
-- fixed 42-cell geometry;
-- leap February;
-- custom Sunday-first calculation path.
-
-### Formatting
-
-Current tests cover:
-
-- six fractional digits;
-- half-up decimal-to-micros rounding;
-- exponent-notation rejection;
-- sanitizer normalization;
-- exact `BigDecimal` currency formatting;
-- invalid currency rejection.
-
-### Repository/entity
-
-- domain/entity round-trip;
-- save/observe/delete using a fake DAO;
-- month-range boundary behavior.
-
-## Static audit script
+### Static audit
 
 ```bash
 python3 scripts/static_audit.py
 ```
 
-Checks:
+Checks XML/resources, EN/RU key parity, privacy controls, forbidden binary floating point in domain/data and destructive Room fallback.
 
-- XML parseability for checked resources/manifest;
-- base/Russian string-key parity;
-- `allowBackup=false`;
-- absence of Internet/location/contact/microphone/camera permissions;
-- no `Float`/`Double` use in domain/data Kotlin files;
-- no destructive Room fallback.
+### JVM tests
 
-## Android instrumentation source
-
-`WorkTimeDatabaseTest` creates an in-memory Room database and exercises upsert/observe/delete. `WorkTimeSmokeTest` also covers the startup settings action. Both require a functioning emulator/device runtime.
-
-Before public beta expand Compose UI tests beyond the current startup smoke test for:
-
-1. empty date → 8h → save → cell/summary update;
-2. bonus/penalty → total update;
-3. edit existing day → stored rate retained;
-4. delete → cell/summary update;
-5. navigate month → correct month data;
-6. settings save/restore;
-7. validation blocks invalid duration/rate.
-
-## CI verification command
-
-```text
-:app:testDebugUnitTest
-:app:lintDebug
-:app:assembleDebug
-:app:assembleDebugAndroidTest
+```bash
+./gradlew :app:testDebugUnitTest
 ```
 
-The local build compiled the instrumentation APK. Connected execution was attempted on API 37.0 and API 35 emulators but could not start tests because the runtime did not expose package/activity services.
+Coverage includes work-entry invariants, salary rounding/aggregation, month grids, entity mapping, preferences, neutral amount formatting, compact duration formatting and digit-to-duration input formatting.
 
-## Release gates
+### Android build and lint
 
-Before public beta:
+```bash
+./gradlew :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+```
 
-- static audit green;
-- JVM test suite green;
-- Android build green;
-- lint reviewed;
-- Room v1 schema committed;
-- instrumentation executed;
-- critical Compose flows green;
-- golden salary sheet manually reconciled;
-- TalkBack and 200% font smoke tests;
-- process-death/relaunch data checks;
-- API/device matrix in `ANDROID_QA.md` completed.
+### Device tests
+
+```bash
+./gradlew connectedDebugAndroidTest
+```
+
+Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`.
+
+## Required regression cases
+
+- `0`, `15` and `15:30` duration formatting.
+- `530 -> 5:30` and `1530 -> 15:30` input behavior.
+- rate snapshot survives settings change.
+- bonus/penalty-only entry does not increment work days.
+- amount fractions display only when non-zero.
+- no currency string/symbol in current UI resources.
+- adjacent-month dates cannot open the current-month editor.
+- monthly report opens by tap and drag and contains no duplicate total.
+
+## Current evidence
+
+Targeted source checks after the compact-interface changes found matching EN/RU resources and no remaining current currency references. The associated GitHub Actions run ended before any job step began (`steps` was empty), so it supplies no compilation, test, lint or APK evidence.
+
+A clean wrapper verification and physical-device pass are required before release status can be upgraded.

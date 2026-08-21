@@ -1,96 +1,55 @@
-# Static audit — 20 August 2026
+# Static audit - compact interface follow-up
 
-## Scope
-
-A full non-device pass was performed across build configuration, domain/data logic, persistence, ViewModel state, Compose UI, resources/localization, privacy configuration, tests, CI and repository documentation.
-
-This audit deliberately does **not** claim an Android build, emulator run or physical-device result.
-
-## Dependency/toolchain verification
-
-The current version line was checked against official upstream documentation:
-
-- AGP 9.3.1 / Gradle 9.5.0;
-- AGP 9 built-in Kotlin model;
-- Compose Compiler Gradle plugin usage;
-- stable Compose BOM `2026.08.00` / Compose 1.12;
-- compileSdk 37 requirement;
-- Room 2.8.4;
-- DataStore 1.2.1;
-- AndroidX Test core/runner 1.7.0 and ext.junit 1.3.0;
-- kotlinx.coroutines 1.11.0.
-
-No dependency was changed merely for novelty after verification.
+Audit date: 21 August 2026  
+Scope: draft PR `feat/compact-modern-interface`  
+Current code fix commit reviewed: `7625a1af076b3aba800c0f61959de1f5cb4a04d1`
 
 ## Findings fixed
 
-### Money/domain integrity
+### Build correctness
 
-- Added a defensive upper bound for user-entered money components so checked `Long` calculations stay well below overflow even across a 31-day month.
-- Added domain note-length enforcement.
-- Empty records are rejected.
-- Worked-time records require a positive rate in the editor.
-- Decimal input rejects exponent notation/malformed syntax.
-- Invalid ISO currency no longer silently falls back to locale currency.
-- `UserPreferences` now validates a real uppercase ISO 4217 currency code.
-- Currency formatting uses the selected currency's fraction-digit convention.
-- Expanded rounding, aggregation, bounds and formatting tests.
+- Restored a missing `androidx.compose.foundation.clickable` import used by calendar day cells.
+- Updated formatter tests from removed `formatMoneyMicros` to `formatAmountMicros`.
+- Added pure tests for compact duration formatting and three/four-digit duration input.
 
-### State/persistence UX
+### Product consistency
 
-- Added readiness state so editor cannot snapshot placeholder preferences before DataStore emits.
-- Save/delete/settings write failures are caught without logging financial content.
-- Failed writes keep the sheet/draft open with a generic inline error.
-- Day editor/settings are mutually exclusive.
-- Month + entries remain one atomic snapshot during navigation.
+- Removed currency from preferences, repository contracts, UI state, settings, editor, calculations and localized copy.
+- Kept old DataStore currency data ignored rather than introducing a destructive migration.
+- Confirmed notes and quick-duration controls remain intentionally absent.
+- Updated calculation terminology from `Base` / `База` to `At hourly rate` / `По ставке`.
 
-### UI/accessibility
+### Layout and interaction
 
-- Settings scroll vertically on small screens/large font scales.
-- Invalid fields show localized supporting errors.
-- Adjustment fields no longer depend on a narrow two-column layout.
-- Calendar selected state and semantic descriptions were hardened.
-- Added a minimal launcher icon placeholder.
+- Calendar is no longer nested in a vertical scroll container.
+- The grid uses a fixed six-row geometry and the available stable viewport space.
+- Fixed summary has a constant 120 dp height.
+- Detailed report uses the standard Material 3 bottom-sheet scaffold with native drag/tap behavior and a single handle.
+- Settings rate input is constrained to 120 dp instead of filling the sheet.
+- Day-editor values are centered and zero-prefilled amount fields clear on focus.
 
-### Privacy
+### Formatting
 
-A second privacy pass found that `android:allowBackup="false"` alone can be insufficient for device-to-device transfer behavior on Android 12+ on some manufacturers. The manifest now points to explicit legacy and Android 12+ rules that exclude all supported app-data domains from cloud backup and Android D2D transfer.
+- Duration output omits redundant minutes.
+- Neutral amount output omits a zero fractional part and preserves non-zero precision.
+- Calendar cell values no longer include currency symbols or hour suffixes.
 
-### Build/test hygiene
+## Checks completed in this workspace
 
-- Added explicit `androidx.test:runner` dependency.
-- Release ProGuard includes the standard optimized Android rules.
-- Removed unused BuildConfig generation.
-- Expanded calendar/domain/formatting test coverage.
-- CI has timeout/concurrency controls and always uploads verification reports when present.
-- Added a non-Android static-audit script.
+- EN and RU XML parse successfully.
+- Both locales contain the same 46 string keys.
+- Every `R.string` reference in the changed UI files resolves to a localized key.
+- No current changed source/resource file contains currency, `RUB`, `formatMoneyMicros` or `База` references.
+- Review found and corrected the missing calendar import before handoff.
 
-## Product clarification
+## Verification limitation
 
-Currency is a **global accounting/display unit**, not an exchange-rate subsystem. Changing the code relabels saved numeric amounts and does not convert them. Multi-currency/FX support requires an explicit future schema/product decision.
+No Android SDK/Gradle runtime was available in this workspace. The observed GitHub Actions job ended before any configured step started and returned no logs. Consequently, this audit does not claim a successful compile, test, lint, APK build, installation or physical-device run.
 
-## Remaining Android-environment work
+## Remaining release risks
 
-- real AGP/KSP/Compose build and lint;
-- generate/commit Room v1 schema JSON;
-- execute Room instrumentation test;
-- Compose UI tests;
-- TalkBack/200% font/small-screen/theme pass;
-- rotation/process-death/relaunch checks;
-- startup/performance/ANR profiling;
-- launcher rendering and backup/D2D behavior verification on target devices.
-
-## Known tooling limitation
-
-A complete Gradle Wrapper cannot be committed from the current environment because its binary JAR cannot be safely generated/retrieved here. CI pins Gradle 9.5.0 directly; `BUILD.md` documents the trusted bootstrap procedure.
-
-## Conclusion
-
-After these fixes, no additional high-confidence non-Android correctness defect was identified in the reviewed code. The next useful evidence is a real Android build/device pass rather than speculative feature/refactor work.
-
-## Follow-up execution — 21 August 2026
-
-- `python3 scripts/static_audit.py`: passed.
-- Gradle 9.5.0 wrapper: bootstrapped and verified.
-- JVM tests, lint, debug APK and debug instrumentation APK: passed.
-- Connected tests: attempted, but emulator services were unavailable; no connected test result is claimed.
+1. Compile and test the exact current head.
+2. Verify report-sheet dragging on the target phone.
+3. Recheck small-screen/keyboard behavior with both adjustment fields expanded.
+4. Run light, dark, Russian, increased-font, rotation, relaunch and persistence QA.
+5. Do not merge the draft PR until those checks are recorded.

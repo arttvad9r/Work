@@ -1,85 +1,56 @@
 # Android QA checklist
 
-Run this only after the project builds successfully.
+Run this checklist against a clean build from the current feature-branch head. Record device model, Android version, app version/commit and result.
 
-## Execution record — 21 August 2026
+## Install and startup
 
-Build prerequisites were installed and API 37.0/API 35 emulator launches were attempted. Both ADB endpoints remained unusable for test execution (`package`/`activity` services unavailable; API 37.0 was also reported as unknown by the test runner). No emulator checklist item below is marked verified.
+- [ ] `assembleDebug` completes.
+- [ ] APK installs cleanly.
+- [ ] First launch does not crash or flash an editor before preferences load.
+- [ ] Relaunch preserves entries and theme.
 
-## Minimum device matrix
+## Calendar
 
-At minimum verify:
+- [ ] Calendar does not scroll vertically.
+- [ ] Grid position and size stay identical in empty, partially filled and full months.
+- [ ] Every month shows six rows and faint adjacent-month dates.
+- [ ] Adjacent-month dates are inactive.
+- [ ] Duration and daily amount fit and stay centered.
+- [ ] Bonus/penalty markers are centered and distinguishable.
+- [ ] Month navigation is fast and never mixes title/data.
 
-- API 26 emulator/device (minSdk boundary);
-- API 31+ device/emulator (dynamic color path);
-- API 37 emulator/device (target/compile baseline);
-- one narrow/small phone profile;
-- one current real device if available.
+## Fixed summary and monthly report
 
-## Installation/startup
+- [ ] Fixed card always shows work days, `Отработано часов`, monthly income.
+- [ ] Card height/position does not change with data.
+- [ ] Exactly one handle is visible below the fixed card.
+- [ ] Handle opens the report by tap.
+- [ ] Handle/sheet opens by upward drag and collapses by downward drag.
+- [ ] Report has one title and one total; no duplicated income row/handle.
+- [ ] Bonus and penalty rows appear only when non-zero.
 
-- [ ] Clean install launches without crash.
-- [ ] App shows loading state briefly rather than placeholder financial settings.
-- [ ] No network/account permission is requested.
-- [ ] Launcher icon renders correctly.
-- [ ] Relaunch preserves entries/preferences.
+## Day editor
 
-## Core flow
+- [ ] Closed-keyboard form fits without a required scroll in the normal state.
+- [ ] Duration and rate share one row and remain centered.
+- [ ] `0`, `15`, `530`, `1530`, `24:00` behave as specified.
+- [ ] `24:01`, invalid minutes and zero rate with worked time show useful errors.
+- [ ] Bonus always appears above penalty in every expansion sequence.
+- [ ] Calculation uses `По ставке`; zero adjustment rows are hidden.
+- [ ] Save, edit, delete and delete confirmation work.
+- [ ] Failed persistence keeps the draft open.
 
-- [ ] Configure hourly rate and currency.
-- [ ] Tap today → 8h quick chip → save.
-- [ ] Calendar cell shows 8h.
-- [ ] Monthly hours increase by 8h.
-- [ ] Shift count increases by one.
-- [ ] Salary matches exact manual calculation.
-- [ ] Edit the same day and verify historical stored rate is shown.
-- [ ] Add bonus and penalty and verify total/breakdown.
-- [ ] Delete and verify summary recalculates.
+## Settings
 
-## Edge cases
+- [ ] Rate field is compact and centered.
+- [ ] `Системная`, `Светлая`, `Тёмная` fit without clipping.
+- [ ] Save is reachable with keyboard closed and after keyboard dismissal.
+- [ ] Theme selection persists.
 
-- [ ] 0h + bonus saves and does not increase shift count.
-- [ ] Worked time + 0 rate cannot be saved and explains why.
-- [ ] 24h + 0m is accepted; 24h + 1m is rejected.
-- [ ] 60 minutes is rejected.
-- [ ] Invalid currency code is rejected.
-- [ ] Changing global currency shows no-FX warning and only relabels amounts.
-- [ ] Very large money input is rejected without crash.
-- [ ] 200-character note saves; input cannot exceed the defined limit.
+## Visual/accessibility
 
-## Month navigation
-
-- [ ] Previous/next month data never flashes under the wrong month title.
-- [ ] February leap year renders correctly.
-- [ ] Months starting on every weekday retain the fixed 6×7 geometry.
-- [ ] Current day state is visible but not confused with a filled day.
-
-## Persistence/error recovery
-
-- [ ] Force-stop/relaunch retains data.
-- [ ] Rotate/recreate while editing; draft survives configuration recreation.
-- [ ] Process-death scenario is tested separately; document actual behavior.
-- [ ] Simulate/force a database write failure if practical; draft remains visible.
-- [ ] Database reopen produces the same entries.
-
-## Accessibility
-
-- [ ] TalkBack reads each filled day as full date + duration + bonus/penalty markers.
-- [ ] Previous/next/settings buttons have useful labels.
-- [ ] Save/Delete remain reachable at 200% font scale.
-- [ ] Settings remain scrollable at 200% font scale.
-- [ ] Touch targets are comfortable and no essential state is communicated by color alone.
-
-## Theme/layout
-
-- [ ] System/light/dark themes render legibly.
-- [ ] Dynamic color on Android 12+ preserves contrast.
-- [ ] Narrow screen has no clipped text/fields.
-- [ ] Russian and English layouts fit.
-
-## Instrumentation
-
-- [ ] Run `WorkTimeDatabaseTest` on emulator/device.
-- [ ] Add/run Compose UI tests for create/edit/delete/settings before public beta.
-
-Record device/API, app commit SHA, result, screenshots for failures and any workaround. Do not silently waive failed checklist items.
+- [ ] Light and dark themes have readable contrast.
+- [ ] 200% font scale does not hide essential actions.
+- [ ] Narrow phone and landscape do not produce overlapping text.
+- [ ] TalkBack announces dates, selected/today state, duration and adjustments.
+- [ ] No currency label/symbol appears anywhere.

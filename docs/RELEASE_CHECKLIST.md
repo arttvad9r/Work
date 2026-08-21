@@ -1,49 +1,38 @@
 # Release checklist
 
-## Code/build
+## Build
 
-- [x] Complete Gradle Wrapper bootstrap is committed from a trusted environment.
-- [x] `scripts/static_audit.py` passes.
-- [x] JVM unit tests pass.
-- [x] Android lint passes with reviewed output.
-- [x] Debug APK builds.
-- [x] Instrumentation APK builds.
-- [x] Room v1 schema JSON is generated and committed.
-- [ ] No destructive Room migration fallback exists.
-- [ ] Release build/signing configuration is prepared outside source control.
+- [ ] Static audit passes on current head.
+- [ ] JVM tests pass on current head.
+- [ ] Android lint passes on current head.
+- [ ] Debug APK and instrumentation APK assemble.
+- [ ] Release signing/configuration is prepared outside source control.
 
 ## Functional QA
 
-- [ ] `ANDROID_QA.md` completed on required device/API matrix.
-- [ ] Golden salary cases manually reconciled.
-- [ ] Persistence/relaunch confirmed.
-- [ ] Currency no-FX semantics confirmed in UI/product copy.
-- [ ] Error paths do not discard drafts.
+- [ ] Create, edit, delete and relaunch are verified on a physical phone.
+- [ ] Monthly calculation is manually reconciled.
+- [ ] Historical rate snapshots are verified.
+- [ ] Empty, populated, bonus and penalty months are verified.
+- [ ] Report sheet opens by both tap and drag.
+- [ ] Persistence failure path retains the draft.
 
-## Accessibility/UI
+## UI/accessibility
 
-- [ ] TalkBack audit complete.
-- [ ] 200% font-scale pass complete.
-- [ ] Small-screen pass complete.
-- [ ] Light/dark/dynamic-color pass complete.
-- [ ] Final adaptive launcher icon and store graphics approved.
+- [ ] Calendar never scrolls or jumps.
+- [ ] Russian labels fit, including `Системная` and `Отработано часов`.
+- [ ] Keyboard does not hide Save after dismissal.
+- [ ] Narrow-screen and 200% font-scale passes complete.
+- [ ] Light/dark contrast and TalkBack checks complete.
+- [ ] No currency text/symbol appears.
+- [ ] Final launcher/store assets approved.
 
-## Privacy/security
+## Privacy/release
 
-- [ ] Manifest contains no unneeded permissions.
-- [ ] No analytics/ad SDK is present unless separately reviewed.
-- [ ] Financial entries/notes are not written to logs.
-- [ ] Backup behavior matches privacy documentation.
-- [ ] Privacy policy matches final dependency graph and behavior.
-- [ ] Google Play Data Safety form completed from the release build.
+- [ ] No unnecessary permission, analytics or ad SDK.
+- [ ] Backup/transfer behavior matches privacy docs.
+- [ ] Final privacy policy and Play Data Safety form reviewed.
+- [ ] Version code/name and release notes finalized.
+- [ ] Internal testing and pre-launch report completed.
 
-## Play release
-
-- [ ] Version code/name finalized.
-- [ ] Release notes written.
-- [ ] Screenshots captured from final UI.
-- [ ] Internal testing release completed.
-- [ ] Pre-launch report reviewed.
-- [ ] Closed beta feedback triaged before production rollout.
-
-A release is not considered ready while any P0/release-gate item remains unchecked without an explicitly documented decision.
+The current draft PR is not release-ready while build/device evidence remains missing.

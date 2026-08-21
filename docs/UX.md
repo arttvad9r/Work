@@ -1,128 +1,71 @@
 # UX specification
 
-## Navigation model
-
-WorkTime is calendar-first. MVP has no dashboard or bottom navigation.
+## Screen hierarchy
 
 ```text
-Calendar month
-├─ tap day → Day Editor bottom sheet
-└─ settings icon → Settings bottom sheet
+Calendar
+|- tap day -> Day editor sheet
+|- tap settings -> Settings sheet
+`- drag bottom handle -> Monthly report sheet
 ```
 
-Only one modal sheet may be open at a time.
+Only one modal editor/settings surface may be open at a time. The monthly report belongs to the calendar scaffold and does not replace the fixed summary card.
 
-## Cold start
+## Calendar screen
 
-Until Room/DataStore have emitted the first real state, the calendar content shows a compact loading indicator and settings/day editing remain unavailable. This prevents placeholder preferences from being snapshotted into a new record.
+- Header: previous month, localized month/year, next month, settings.
+- The calendar receives all remaining height above the fixed summary and report handle.
+- It never scrolls vertically and its position does not depend on entries or report content.
+- The grid always has six rows; adjacent-month dates are faint and inactive.
+- Current-month cells remain large enough for date, duration and amount.
+- Duration and amount are horizontally centered.
+- Bonus/penalty icons are centered in equal circular markers.
 
-## Calendar
+## Fixed monthly summary
 
-### Header
+- Constant height and position.
+- Three aligned rows with one typography hierarchy:
+  - Work days;
+  - Hours worked / `Отработано часов`;
+  - Monthly income.
+- Values use regular weight; the card must not compete visually with the calendar.
+- A single 48 x 5 dp handle is located below this card as the peek of the report sheet.
 
-- previous month;
-- localized month/year;
-- next month;
-- settings.
+## Monthly report sheet
 
-### Monthly summary
-
-One compact card contains:
-
-- expected salary;
-- worked duration;
-- shift count;
-- base/bonus/penalty breakdown when relevant;
-- shortcut to configure rate when the default rate is zero.
-
-### Grid
-
-- seven columns;
-- Monday-first MVP;
-- fixed six rows;
-- localized weekday names;
-- visually quiet out-of-month cells.
-
-### Day states
-
-- **Empty:** day number.
-- **Today:** subtle tonal state.
-- **Filled:** duration + compact adjustment markers.
-- **Selected:** stronger selected container while editor is open.
-
-TalkBack description combines full localized date, today/selected state, worked duration and adjustment markers.
+- Opens by tapping the handle or dragging from it upward.
+- Collapses by downward drag or the standard sheet action.
+- Contains one heading, work days, hours worked, optional bonus, optional penalty, divider and total.
+- Does not duplicate the heading as a second total and does not contain report/export buttons.
 
 ## Day editor
 
-Material 3 modal bottom sheet preserves the month as context.
+Normal closed-keyboard state should fit as one compact sheet.
 
-Order:
+1. Localized date.
+2. One row: duration and hourly rate.
+3. Bonus/penalty controls.
+4. Calculation card.
+5. Save.
+6. Delete for an existing entry.
 
-1. date;
-2. worked duration;
-3. quick durations;
-4. hourly rate;
-5. bonus;
-6. penalty;
-7. note;
-8. live total;
-9. persistence error if any;
-10. Save;
-11. Delete for an existing entry.
+Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. Digits `530` resolve to `5:30`; `1530` resolves to `15:30`.
 
-### Validation
+Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order.
 
-- hours: 0..24;
-- minutes: 0..59;
-- 24h requires 0 additional minutes;
-- rate/bonus/penalty: non-negative decimal input, at most six fractional digits;
-- worked time requires rate > 0;
-- user-entered money is capped by the defensive calculation limit;
-- note: <=200 characters;
-- at least worked time or an adjustment is required.
-
-Invalid fields display localized supporting text. Save is disabled until the draft is valid. Persistence failure does not close the sheet or discard input.
-
-### Rate snapshot
-
-New entry uses current default rate. Existing entry always displays its stored rate snapshot. Settings changes do not rewrite it.
+The calculation card uses `At hourly rate` / `По ставке`, then optional bonus/penalty rows, then total. Zero adjustment rows are omitted.
 
 ## Settings
 
-- default hourly rate;
-- global ISO currency code;
-- system/light/dark theme.
+- Compact one-screen sheet.
+- Hourly-rate label and a centered 120 dp input share a row.
+- Theme choices fit in one row, including `Системная`.
+- Save remains reachable without scrolling when the keyboard is closed.
 
-The settings sheet scrolls vertically for small screens / large font scale. Theme chips scroll horizontally rather than wrapping unpredictably.
+## Visual system
 
-A valid currency displays an explicit warning:
-
-> Changing currency relabels existing values; no exchange-rate conversion is performed.
-
-Saving settings may use a zero default rate, but worked-time entries themselves require a positive effective rate.
-
-## Error handling
-
-Database/DataStore write errors are represented as generic localized UI messages. Financial values, notes and salary totals are never inserted into the error text/logging path. Failed operations keep the relevant modal open when possible.
-
-## Responsive/accessibility requirements
-
-Before beta, verify on device/emulator:
-
-- TalkBack day semantics;
-- localized icon descriptions;
-- 200% font scale;
-- small phone width;
-- Save/Delete remain reachable;
-- light/dark/dynamic-color contrast;
-- no essential information depends on color alone.
-
-## Core usability benchmark
-
-After a default rate is configured:
-
-```text
-open app → tap today → tap 8h → save
-```
-
-Target: under 10 seconds without help text.
+- Controlled calm blue-neutral palettes in light and dark modes.
+- 24 dp major-card radius, 16-20 dp compact-card radius, 8-12 dp cell/input radius.
+- Regular body weight for comparable labels/values; medium/semi-bold only for titles, selected dates and totals.
+- Error red is reserved for errors, delete and penalty semantics.
+- No information relies on color alone; labels and accessibility descriptions remain present.

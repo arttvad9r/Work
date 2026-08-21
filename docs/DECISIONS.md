@@ -1,85 +1,39 @@
-# Architecture & product decisions
+# Architecture and product decisions
 
-Material reversals should be recorded rather than silently changed.
+## Active decisions
 
-## ADR-001 — Calendar-first home
+### Calendar-first navigation
 
-**Status:** accepted
+The month calendar is the primary screen. A date opens the editor directly; there is no dashboard or bottom navigation.
 
-The month calendar is the home screen; a separate dashboard would duplicate the monthly context.
+### Fixed calendar geometry
 
-## ADR-002 — One aggregate entry per date in MVP
+The calendar uses six rows and consumes a stable portion of the viewport. Summary/report content adapts below it and never moves the grid.
 
-**Status:** accepted with migration path
+### Standard draggable report sheet
 
-The first release uses `dateEpochDay` as the Room primary key. Multiple jobs/entries later require a broader key/model and explicit migration.
+The compact summary is permanent. A separate `BottomSheetScaffold` sheet exposes the detailed month report through one native drag/tap handle.
 
-## ADR-003 — Rate snapshot per entry
+### Minimal day entry
 
-**Status:** accepted
+The form contains duration, hourly rate, optional bonus and optional penalty. Notes and quick presets were intentionally removed.
 
-The effective hourly rate is stored on save. Default-rate changes do not rewrite history.
+### No currency concept
 
-## ADR-004 — Integer micros for money
+Amounts are neutral numeric values. Currency preference, symbols and exchange-rate copy were removed. This supersedes the former global ISO-currency/no-FX decision.
 
-**Status:** accepted
+### Historical rate snapshots
 
-Domain/persistence uses `Long` micros, not binary floating point. Decimal parsing/formatting belongs at the presentation boundary.
+The default rate only initializes a new entry. Each saved entry stores its own rate so settings changes do not rewrite history.
 
-## ADR-005 — Offline/local sources of truth
+### Integer micros
 
-**Status:** implemented
+Domain/data amounts use `Long` micros and checked arithmetic. Optional fractional digits are a presentation concern.
 
-Room is the work-entry source of truth and DataStore is the preference source of truth. MVP has no backend/account dependency.
+### Local-first privacy
 
-## ADR-006 — Compose + Material 3
+No account, analytics, advertising or network permission is needed for the core product. Backup/transfer exclusion remains explicit.
 
-**Status:** accepted
+### Schema compatibility over cleanup
 
-Compose provides state-driven modern Android UI and Material 3 visual/accessibility primitives.
-
-## ADR-007 — Single app module initially
-
-**Status:** accepted
-
-Current codebase/team size does not justify multi-module build overhead. Package boundaries preserve a future split path.
-
-## ADR-008 — No interstitial ads in critical flow
-
-**Status:** accepted
-
-Shift entry/edit/save must not be interrupted by monetization UI.
-
-## ADR-009 — No timer in MVP
-
-**Status:** accepted
-
-The initial job is factual personal time/accounting entry, not background live tracking.
-
-## ADR-010 — Global currency is not FX conversion
-
-**Status:** accepted
-
-MVP stores one global ISO currency code in preferences and does not store currency per work entry. Changing it relabels numeric historical values; no exchange-rate conversion occurs. The UI must communicate this explicitly.
-
-Adding real multi-currency/FX behavior requires a new ADR and data-model change.
-
-## ADR-011 — Defensive money component limit
-
-**Status:** accepted
-
-User-entered rate/bonus/penalty components are bounded before calculation. The limit exists to keep checked `Long` arithmetic safely below overflow for maximum daily/monthly aggregation; it is not intended as a normal business restriction.
-
-## ADR-012 — Backup/transfer excluded for v1
-
-**Status:** accepted
-
-`android:allowBackup="false"` is combined with explicit legacy backup rules and Android 12+ `dataExtractionRules` excluding every supported app-data domain from cloud backup and Android device-to-device transfer. This better matches the local-data promise than relying on the manifest flag alone.
-
-Backup/D2D behavior remains a release-device verification item because platform/OEM behavior can evolve. Manual export/backup is a later user-controlled feature.
-
-## ADR-013 — No destructive Room fallback
-
-**Status:** accepted
-
-Work-history data must not be silently deleted because a migration is missing. Every future Room schema-version change requires a migration and migration test.
+The unused Room `note` column remains in schema v1 until a deliberate migration is designed. UI scope and storage layout are allowed to differ temporarily.

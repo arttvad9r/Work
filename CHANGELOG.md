@@ -1,57 +1,40 @@
 # Changelog
 
-All notable product changes will be documented here.
+All notable changes are documented here.
 
-## [Unreleased]
+## [Unreleased] - 2026-08-21
 
-### Verification — 2026-08-21
+### Interface
 
-- Bootstrapped and verified the Gradle 9.5.0 wrapper.
-- Passed static audit, JVM tests, lint, debug APK and instrumentation APK assembly.
-- Added a Compose startup smoke test source; connected execution remains pending because the available emulator runtime did not expose package/activity services.
+- Rebuilt the main screen around a fixed, non-scrolling 6 x 7 calendar.
+- Added faint previous/next-month dates without allowing them to open the current-month editor.
+- Centered duration and amount inside filled calendar cells.
+- Replaced text markers with centered bonus/penalty markers.
+- Added a fixed three-row monthly summary and a separate draggable report sheet.
+- Made the day editor a compact one-screen form: duration and hourly rate share one row.
+- Kept bonus above penalty in every expanded/collapsed state.
+- Reduced the settings rate input to a compact field and made all theme labels fit.
+- Added controlled light and dark palettes; dynamic device colors are disabled by default.
 
-### Added
+### Product simplification
 
-- Calendar-first Compose MVP.
-- Room persistence and repository boundary.
-- DataStore rate/currency/theme settings.
-- Historical hourly-rate snapshots.
-- Bonus, penalty and note persistence.
-- Monthly salary/hours/shift summary.
-- Deterministic integer-micros salary calculator.
-- English and Russian resources.
-- Light/dark/system themes and dynamic color path.
-- Instrumented Room test source plus expanded JVM test coverage.
-- Minimal launcher icon placeholder.
-- Repository static-audit script and build verification scripts.
-- Build, static-audit, Android-QA and release-checklist documentation.
-
-### Changed
-
-- Editor now exposes explicit inline validation rather than silently disabling Save.
-- Worked-time entries require a positive effective hourly rate in the editor.
-- User-entered money components are bounded defensively against checked-arithmetic overflow.
-- Settings are vertically scrollable for small screens/large fonts.
-- Currency settings explicitly state that no exchange-rate conversion occurs.
-- Calendar cold start waits for persistence/preferences readiness before entry editing.
-- Save/delete/settings persistence failures keep their draft/sheet open with generic inline error text.
-- Calendar selected state and TalkBack descriptions were hardened.
-- CI now includes static audit, timeout/concurrency controls and verification-report artifacts.
+- Removed currency from preferences, UI contracts, formatting, settings and reports.
+- Removed redundant decimal zeroes from displayed amounts.
+- Standardized duration output to `0`, whole hours, or `hours:minutes`.
+- Kept notes and quick-duration presets intentionally absent.
+- Removed the requirement message demanding hours, bonus or penalty; Save simply remains unavailable for an empty draft.
 
 ### Fixed
 
-- Prevented month-title/data mismatch during rapid month switching.
-- Prevented placeholder default preferences from being snapshotted into a new entry during cold start.
-- Corrupted Preferences DataStore files now recover to safe defaults through `ReplaceFileCorruptionHandler`.
-- Removed silent fallback to locale currency for invalid stored/display currency codes.
-- Added explicit AndroidX test runner dependency for `AndroidJUnitRunner`.
-- Release ProGuard configuration now includes the standard optimized Android rule set.
+- Updated tests after `formatMoneyMicros` was replaced by neutral `formatAmountMicros`.
+- Restored the missing Compose `clickable` import in the calendar.
+- Fixed three-digit duration entry so `530` becomes `5:30`.
+- Initial zero values now clear on focus in duration and amount fields, preventing values such as `0150`.
+- Replaced the calculation label `Base` / `База` with `At hourly rate` / `По ставке`.
 
-### Still required before release
+### Verification status
 
-- Real Android build/lint evidence.
-- Trusted Gradle Wrapper bootstrap.
-- Generated/committed Room v1 schema JSON.
-- Emulator/device instrumentation and Compose UI testing.
-- Accessibility/small-screen/process-death QA.
-- Final adaptive launcher/store assets and release signing.
+- EN/RU resources parse and contain matching keys.
+- Targeted source checks found no remaining currency UI/model references.
+- GitHub Actions for the current iteration terminated before any workflow step started; it is not evidence of a compile or test result.
+- A fresh APK build, installation and device QA pass are still required.

@@ -1,68 +1,25 @@
 # Privacy and data handling
 
-## MVP posture
+WorkTime is local-first. It does not require an account or internet connection for its core functions.
 
-WorkTime is designed as a local-first personal financial/work utility.
+## Stored data
 
-The MVP requires:
+Room stores per-date worked minutes, hourly-rate snapshot, bonus and penalty. The schema also contains a legacy note column; the current UI does not expose notes.
 
-- no account;
-- no contacts permission;
-- no location permission;
-- no microphone/camera permission;
-- no advertising identifier;
-- no Internet/background network access for core functionality.
+DataStore stores the default hourly rate and selected theme. Currency is not collected or stored by the current model; an unused legacy preference key may remain on an upgraded installation.
 
-The current manifest declares no Internet or dangerous permissions. `scripts/static_audit.py` guards these assumptions.
+## Network and permissions
 
-## Stored local data
+- No analytics or advertising SDK is part of the current dependency graph.
+- No internet, location, contacts, microphone or camera permission is required.
+- Financial/work values must not be written to logs or error messages.
 
-Room may contain:
+## Backup
 
-- work date;
-- worked duration;
-- hourly-rate snapshot;
-- bonus;
-- penalty;
-- optional note.
+The manifest and backup rules disable/exclude cloud backup and device-to-device transfer for app data. This behavior must be rechecked on release devices because manufacturer behavior can differ.
 
-DataStore contains:
+## Deletion
 
-- default hourly rate;
-- global ISO currency code;
-- theme.
+Users can delete individual entries in the app. Uninstalling the app removes local data subject to Android platform behavior.
 
-These values can be financially sensitive even though they are not payment credentials.
-
-## Logging/error handling
-
-Production code must not log work entries, notes, rates or salary totals. Current write-error handling exposes only generic operation state to UI, not exception content or user financial values.
-
-Crash/analytics tooling, if ever added, requires a separate privacy review before inclusion.
-
-## Backup and device transfer
-
-`android:allowBackup="false"` remains set, but that flag alone is not sufficient to describe Android 12+ device-to-device behavior on every manufacturer.
-
-The app therefore also defines explicit backup rules:
-
-- `@xml/backup_rules` excludes all supported app-data domains for Android 11 and lower backup rules;
-- `@xml/data_extraction_rules` excludes all supported app-data domains from cloud backup and Android device-to-device transfer on Android 12+.
-
-This is the strongest configuration-level local-data posture available without introducing a custom transfer/backup subsystem. It must still be verified on the release target/device matrix because Android/OEM transfer behavior can evolve.
-
-Cross-platform transfer to iOS is not configured because WorkTime has no corresponding iOS bundle/team mapping. If cross-platform support is ever introduced, it requires a separate privacy/data-model review.
-
-Consequence of the intended v1 behavior: uninstalling the app removes the user's accessible local data. Manual export/backup is a later explicit-user-action candidate.
-
-## Network/dependencies
-
-No application Internet permission is required. Development-time Gradle dependency downloads and GitHub CI are not runtime app data transfers.
-
-## Before Play release
-
-- verify final manifest and backup rules on target Android versions;
-- verify final dependency graph contains no analytics/ad/transitive data-collection SDK;
-- publish a privacy policy matching actual behavior;
-- complete Google Play Data Safety from the release artifact;
-- document local storage/uninstall/backup behavior accurately.
+The Play Data Safety declaration and public privacy policy must be reviewed again from the final signed dependency graph before release.

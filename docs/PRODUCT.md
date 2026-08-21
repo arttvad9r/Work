@@ -2,102 +2,82 @@
 
 ## Product statement
 
-WorkTime is a personal Android calendar for recording actual worked time and immediately understanding expected monthly salary.
+WorkTime is a personal Android timesheet that records actual worked time by date and immediately shows an expected monthly total.
 
-The mental model is **date → worked time → money**. It is not a project tracker, employer payroll system or live timer.
+It is a modern salary calendar, not a project tracker, shift planner, timer, HR system or payroll suite.
 
-## Primary user
+## Primary flow
 
-A worker with hourly pay and a non-fixed or shift-based schedule who wants to independently track hours and reconcile expected salary.
-
-## Jobs to be done
-
-1. After a shift, record worked hours before they are forgotten.
-2. Mid-month, see accumulated earnings and hours immediately.
-3. Attach a bonus or penalty to a specific date and see the effect on the total.
-4. Change the default rate without rewriting historical salary.
-5. Correct/delete a previous entry in a few seconds.
-
-## Product principles
-
-- **Calendar first.** Date selection is the entry point.
-- **Fast entry.** A normal shift should be recordable in under 10 seconds.
-- **Monthly clarity.** Earnings, hours and shift count stay visible.
-- **Progressive disclosure.** Rare concepts do not dominate the core flow.
-- **Local first.** Core use does not depend on internet or an account.
-- **Historical correctness.** Every entry stores the effective hourly rate.
-- **Explicit semantics.** Settings such as currency must not imply behavior the app does not implement.
-- **No dark patterns.** No interstitial ads/paywalls inside core entry/edit/save.
+1. Open the required month.
+2. Tap a current-month date.
+3. Enter duration and hourly rate.
+4. Optionally add a bonus and/or penalty.
+5. Review the calculation and save.
+6. Read the compact month summary or drag up the detailed report.
 
 ## MVP requirements
 
 ### Calendar
 
-- Fixed six-week / seven-day month geometry.
-- Monday-first week for MVP.
+- Monday-first 6 x 7 layout with fixed geometry.
 - Previous/next month navigation.
-- Empty, today, selected and filled states.
-- Filled cells show duration plus compact bonus/penalty markers.
+- Adjacent-month dates remain visible but faint and inactive.
+- Filled cells show a centered compact duration and neutral daily amount.
+- Bonus and penalty have distinct centered markers.
 
 ### Day editor
 
-- Hours and minutes, bounded to 0..24h.
-- Quick chips: 4h, 6h, 8h, 10h, 12h.
-- Hourly rate; positive rate required for worked time.
-- Bonus and penalty adjustments.
-- Optional note up to 200 characters.
-- Live calculated total.
-- Inline validation with an explanation when Save is unavailable.
-- Save/edit/delete with delete confirmation.
-- Failed persistence must keep the draft open.
+- One duration field accepting `H`, `HH`, `H:MM` or `HH:MM`.
+- Hourly rate beside duration on the same row.
+- Bonus is always above penalty when expanded.
+- Live calculation with `At hourly rate`, optional adjustments and total.
+- Save/edit/delete with delete confirmation and recoverable write errors.
+- No notes, quick presets or currency controls.
 
-A record with no worked time and no adjustment is invalid. A zero-work record with bonus and/or penalty remains valid and does not count as a shift.
+### Monthly information
 
-### Month summary
+The fixed card always shows:
 
-- Total expected salary.
-- Total worked duration.
-- Shift count (`workedMinutes > 0`).
-- Base pay / bonus / penalty breakdown when adjustments exist.
+- work days;
+- hours worked;
+- monthly income.
+
+The draggable report shows:
+
+- work days;
+- hours worked;
+- bonus only when non-zero;
+- penalty only when non-zero;
+- total.
 
 ### Settings
 
-- Default hourly rate.
-- Global ISO currency code.
-- Theme: system/light/dark.
-
-Changing currency does **not** query exchange rates or convert saved numeric amounts; it changes the global accounting/display unit. This warning is shown in settings.
+- default hourly rate;
+- system, light or dark theme.
 
 ## Business rules
 
-```text
-basePayMicros = roundHalfUp(workedMinutes × hourlyRateMicros / 60)
-entryPayMicros = basePayMicros + bonusMicros - penaltyMicros
-monthPayMicros = Σ entryPayMicros
-shiftCount = count(entries where workedMinutes > 0)
-```
+- One aggregate record per date.
+- Duration range is `0..1440` minutes; `24:00` is valid, `24:01` is not.
+- Worked time requires a positive hourly rate.
+- Bonus/penalty-only records are valid and do not increase work-day count.
+- Historical records retain their saved hourly rate.
+- Numeric amounts are neutral values; there is no currency setting or exchange-rate behavior.
+- Optional fractions are preserved up to six decimal places and omitted when zero.
 
-Money uses integer micros. Binary floating point is not used for persisted/domain money.
+## Non-goals
 
-User-entered money components have a defensive upper bound to protect checked `Long` arithmetic. The bound is an implementation safety guard, not a normal user-facing payroll constraint.
+- registration or cloud sync;
+- time clock and background timer;
+- projects, clients or invoices;
+- scheduled shifts or overtime rules;
+- taxes, exchange rates or multi-currency accounting;
+- notes or quick-duration templates;
+- report export in the current release.
 
-## Non-goals for v1.0
+## Release criteria
 
-- clock-in timer;
-- GPS/geofencing;
-- projects/clients/tasks;
-- invoices/tax calculation;
-- teams/employer control;
-- planned shift generation;
-- advanced overtime engine;
-- cloud account/sync;
-- FX conversion or per-entry multi-currency accounting.
-
-## Success/release criteria
-
-- Normal shift can be saved in under 10 seconds in usability testing.
-- No known data-loss bug reaches beta.
-- Golden salary cases are deterministic and automated.
-- Historical hourly rates do not change after settings updates.
-- Static audit passes.
-- Android build/lint and required device QA pass before release.
+- All verification commands pass.
+- Core create/edit/delete/relaunch flows pass on supported devices.
+- Calendar, fixed summary and report sheet do not clip at supported font scales.
+- No known data-loss or calculation defect remains.
