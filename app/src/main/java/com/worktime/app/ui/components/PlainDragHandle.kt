@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 
 /**
@@ -22,6 +23,7 @@ fun PlainDragHandle(
 ) {
     Box(
         modifier = modifier
+            .clearAndSetSemantics { }
             .width(72.dp)
             .height(24.dp),
         contentAlignment = Alignment.Center,
