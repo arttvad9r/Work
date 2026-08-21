@@ -1,11 +1,9 @@
 package com.worktime.app.ui.dayeditor
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -178,6 +176,7 @@ fun DayEditorSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
     ) {
         Column(
             modifier = Modifier
@@ -238,12 +237,6 @@ fun DayEditorSheet(
                 }
             } else {
                 Column(
-                    modifier = Modifier.animateContentSize(
-                        animationSpec = tween(
-                            durationMillis = 180,
-                            easing = FastOutSlowInEasing,
-                        ),
-                    ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (bonusVisible) {
