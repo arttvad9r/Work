@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -143,66 +145,60 @@ fun DayEditorSheet(
         else -> null
     }
     val totalMicros = draft?.let { runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull() }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .imePadding()
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
                 text = date.format(
                     DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale),
                 ),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
 
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.worked),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        NumberField(
-                            value = hours,
-                            onValueChange = { hours = it.filter(Char::isDigit).take(2) },
-                            label = stringResource(R.string.hours),
-                            isError = hoursError != null,
-                            supportingText = hoursError,
-                            modifier = Modifier.weight(1f),
-                        )
-                        NumberField(
-                            value = minutes,
-                            onValueChange = { minutes = it.filter(Char::isDigit).take(2) },
-                            label = stringResource(R.string.minutes),
-                            isError = minutesError != null,
-                            supportingText = minutesError,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    MoneyField(
-                        value = rate,
-                        onValueChange = { rate = sanitizeMoneyInput(it) },
-                        label = stringResource(R.string.hourly_rate),
-                        currencyCode = currencyCode,
-                        isError = rateError != null,
-                        supportingText = rateError,
-                    )
-                }
+            Text(
+                text = stringResource(R.string.worked),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NumberField(
+                    value = hours,
+                    onValueChange = { hours = it.filter(Char::isDigit).take(2) },
+                    label = stringResource(R.string.hours),
+                    isError = hoursError != null,
+                    supportingText = hoursError,
+                    modifier = Modifier.weight(1f),
+                )
+                NumberField(
+                    value = minutes,
+                    onValueChange = { minutes = it.filter(Char::isDigit).take(2) },
+                    label = stringResource(R.string.minutes),
+                    isError = minutesError != null,
+                    supportingText = minutesError,
+                    modifier = Modifier.weight(1f),
+                )
             }
+            MoneyField(
+                value = rate,
+                onValueChange = { rate = sanitizeMoneyInput(it) },
+                label = stringResource(R.string.hourly_rate),
+                currencyCode = currencyCode,
+                isError = rateError != null,
+                supportingText = rateError,
+            )
 
             if (!bonusVisible || !penaltyVisible) {
                 Row(
@@ -212,52 +208,47 @@ fun DayEditorSheet(
                     if (!bonusVisible) {
                         OutlinedButton(
                             onClick = { bonusVisible = true },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 42.dp),
                         ) {
-                            Text(stringResource(R.string.add_bonus))
+                            Text(stringResource(R.string.add_bonus), maxLines = 1)
                         }
                     }
                     if (!penaltyVisible) {
                         OutlinedButton(
                             onClick = { penaltyVisible = true },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 42.dp),
                         ) {
-                            Text(stringResource(R.string.add_penalty))
+                            Text(stringResource(R.string.add_penalty), maxLines = 1)
                         }
                     }
                 }
             }
 
             if (bonusVisible || penaltyVisible) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        if (bonusVisible) {
-                            MoneyField(
-                                value = bonus,
-                                onValueChange = { bonus = sanitizeMoneyInput(it) },
-                                label = stringResource(R.string.bonus),
-                                currencyCode = currencyCode,
-                                isError = bonusError != null,
-                                supportingText = bonusError,
-                            )
-                        }
-                        if (penaltyVisible) {
-                            MoneyField(
-                                value = penalty,
-                                onValueChange = { penalty = sanitizeMoneyInput(it) },
-                                label = stringResource(R.string.penalty),
-                                currencyCode = currencyCode,
-                                isError = penaltyError != null,
-                                supportingText = penaltyError,
-                            )
-                        }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (bonusVisible) {
+                        MoneyField(
+                            value = bonus,
+                            onValueChange = { bonus = sanitizeMoneyInput(it) },
+                            label = stringResource(R.string.bonus),
+                            currencyCode = currencyCode,
+                            isError = bonusError != null,
+                            supportingText = bonusError,
+                        )
+                    }
+                    if (penaltyVisible) {
+                        MoneyField(
+                            value = penalty,
+                            onValueChange = { penalty = sanitizeMoneyInput(it) },
+                            label = stringResource(R.string.penalty),
+                            currencyCode = currencyCode,
+                            isError = penaltyError != null,
+                            supportingText = penaltyError,
+                        )
                     }
                 }
             }
@@ -288,17 +279,15 @@ fun DayEditorSheet(
                 enabled = draft != null && totalMicros != null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 52.dp),
+                    .heightIn(min = 50.dp),
             ) {
                 Text(stringResource(R.string.save))
             }
             if (existing != null) {
-                OutlinedButton(
+                TextButton(
                     onClick = { confirmDelete = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
                 ) {
@@ -338,12 +327,12 @@ private fun CalculationSummary(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.secondaryContainer,
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = stringResource(R.string.calculation),
@@ -352,19 +341,27 @@ private fun CalculationSummary(
             )
             if (draft != null && totalMicros != null) {
                 val entryPay = SalaryCalculator.entryPay(draft)
-                CalculationRow(
-                    label = stringResource(R.string.calculation_base),
-                    value = formatMoneyMicros(entryPay.basePayMicros, currencyCode),
-                )
-                CalculationRow(
-                    label = "+ ${stringResource(R.string.calculation_bonus)}",
-                    value = formatMoneyMicros(draft.bonusMicros, currencyCode),
-                )
-                CalculationRow(
-                    label = "− ${stringResource(R.string.calculation_penalty)}",
-                    value = formatMoneyMicros(draft.penaltyMicros, currencyCode),
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.14f))
+                if (draft.bonusMicros > 0L || draft.penaltyMicros > 0L) {
+                    CalculationRow(
+                        label = stringResource(R.string.calculation_base),
+                        value = formatMoneyMicros(entryPay.basePayMicros, currencyCode),
+                    )
+                    if (draft.bonusMicros > 0L) {
+                        CalculationRow(
+                            label = "+ ${stringResource(R.string.calculation_bonus)}",
+                            value = formatMoneyMicros(draft.bonusMicros, currencyCode),
+                        )
+                    }
+                    if (draft.penaltyMicros > 0L) {
+                        CalculationRow(
+                            label = "− ${stringResource(R.string.calculation_penalty)}",
+                            value = formatMoneyMicros(draft.penaltyMicros, currencyCode),
+                        )
+                    }
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.14f),
+                    )
+                }
                 CalculationRow(
                     label = stringResource(R.string.calculation_total),
                     value = formatMoneyMicros(totalMicros, currencyCode),
