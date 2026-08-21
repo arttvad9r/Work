@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -152,8 +152,8 @@ private fun CalendarCard(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
         }
@@ -324,8 +324,8 @@ private fun CalendarGrid(
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
             )
         }
@@ -351,7 +351,11 @@ private fun CalendarGrid(
                                 locale = locale,
                             )
                         } else {
-                            Spacer(Modifier.aspectRatio(0.84f))
+                            Spacer(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(72.dp),
+                            )
                         }
                     }
                 }
@@ -370,11 +374,11 @@ private fun DayCell(
     onClick: () -> Unit,
     locale: Locale,
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(9.dp)
     val background = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         entry != null -> MaterialTheme.colorScheme.secondaryContainer
-        else -> MaterialTheme.colorScheme.surfaceContainerLow
+        else -> MaterialTheme.colorScheme.surfaceContainerLowest
     }
     val foreground = when {
         isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
@@ -404,9 +408,15 @@ private fun DayCell(
     Column(
         modifier = Modifier
             .padding(1.dp)
-            .aspectRatio(0.84f)
+            .fillMaxWidth()
+            .height(72.dp)
             .clip(shape)
             .background(background)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+                shape = shape,
+            )
             .then(
                 if (isToday) {
                     Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, shape)
@@ -416,38 +426,47 @@ private fun DayCell(
             )
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .clickable(onClick = onClick)
-            .padding(horizontal = 5.dp, vertical = 4.dp),
+            .padding(horizontal = 5.dp, vertical = 5.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(
-            text = date.dayOfMonth.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            color = foreground,
-            fontWeight = if (isToday || entry != null) FontWeight.SemiBold else FontWeight.Normal,
-            maxLines = 1,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = date.dayOfMonth.toString(),
+                style = MaterialTheme.typography.titleSmall,
+                color = foreground,
+                fontWeight = if (isToday || entry != null) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+            )
+            if (entry != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (entry.bonusMicros > 0L) Marker("+")
+                    if (entry.penaltyMicros > 0L) Marker("−")
+                }
+            }
+        }
         if (entry != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 if (entry.workedMinutes > 0) {
                     Text(
                         text = formatDuration(entry.workedMinutes),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                     )
                 }
                 if (totalMicros != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = formatCellMoney(totalMicros, locale),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = foreground.copy(alpha = 0.82f),
-                            maxLines = 1,
-                        )
-                        if (entry.bonusMicros > 0L) Marker("+")
-                        if (entry.penaltyMicros > 0L) Marker("−")
-                    }
+                    Text(
+                        text = formatCellMoney(totalMicros, locale),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = foreground.copy(alpha = 0.82f),
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                    )
                 }
             }
         }
@@ -458,8 +477,8 @@ private fun DayCell(
 private fun Marker(text: String) {
     Box(
         modifier = Modifier
-            .padding(start = 2.dp)
-            .size(12.dp)
+            .padding(start = 1.dp)
+            .size(11.dp)
             .clip(RoundedCornerShape(50))
             .background(MaterialTheme.colorScheme.tertiaryContainer),
         contentAlignment = Alignment.Center,
