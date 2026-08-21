@@ -285,7 +285,6 @@ private fun CollapsedSummaryCard(
 }
 
 @Composable
-@Composable
 private fun FullSummaryPanel(
     state: CalendarUiState,
     modifier: Modifier = Modifier,
