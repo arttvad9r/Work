@@ -14,7 +14,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 ## Calendar screen
 
 - Header: previous month, localized month/year, next month, settings.
-- The calendar receives all remaining height above the fixed summary and report handle.
+- The calendar uses a fixed compact height above the fixed summary and report handle; no additional bottom padding may compete with the scaffold peek area.
 - It never scrolls vertically and its position does not depend on entries or report content.
 - The grid always has six rows; adjacent-month dates are faint and inactive.
 - Current-month cells remain large enough for date, duration and amount.
@@ -35,7 +35,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 
 - Opens by tapping the handle or dragging from it upward.
 - Collapses by downward drag or the standard sheet action.
-- Contains one heading, work days, hours worked, optional bonus, optional penalty, divider and total.
+- Contains one heading with a trailing colon, work days, hours worked, optional bonus, optional penalty, divider and total.
 - Does not duplicate the heading as a second total and does not contain report/export buttons.
 
 ## Day editor
@@ -49,7 +49,7 @@ Normal closed-keyboard state should fit as one compact sheet.
 5. Save.
 6. Delete for an existing entry.
 
-The duration field is labeled `Время` and shows the unambiguous `12:30` time format when empty. Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. Digits `530` resolve to `5:30`; `1530` resolves to `15:30`.
+The duration field is labeled `Время` and shows the unambiguous `12:30` time format when empty. Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. The empty `12:30` hint and the entered value share the same centered alignment. Digits `530` resolve to `5:30`; `1530` resolves to `15:30`. Switching between duration and amount fields keeps the same numeric keyboard mode so the sheet does not jump.
 
 Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The newly expanded amount field receives focus immediately.
 
