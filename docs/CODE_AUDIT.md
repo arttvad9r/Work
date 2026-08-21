@@ -55,3 +55,7 @@ Generic downloaded adb/emulator binaries require an FHS runner on NixOS. The rep
 ## Audit conclusion
 
 The code is suitable for continued MVP work and beta hardening, but not for public release until the remaining device/accessibility checks and the API 37 test-stack decision are documented and resolved. The release checklist remains the final authority.
+
+## Current PR CI status
+
+GitHub Actions run #15 for this audit branch failed before exposing any job steps or logs. A rerun produced the same result. The failure does not identify a source-level defect; the modified branch still requires a successful compile/lint/test run in a functioning Actions runner.
