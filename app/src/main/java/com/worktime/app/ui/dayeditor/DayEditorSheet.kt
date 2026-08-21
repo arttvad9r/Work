@@ -30,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,13 +60,7 @@ fun DayEditorSheet(
     onDelete: (LocalDate) -> Unit,
 ) {
     var duration by rememberSaveable(date.toEpochDay(), existing) {
-        mutableStateOf(
-            existing
-                ?.workedMinutes
-                ?.takeIf { it > 0 }
-                ?.let(::formatDurationInput)
-                .orEmpty(),
-        )
+        mutableStateOf(formatDurationInput(existing?.workedMinutes ?: 0))
     }
     var rate by rememberSaveable(date.toEpochDay(), existing) {
         mutableStateOf(formatDecimalMicros(existing?.hourlyRateMicros ?: defaultHourlyRateMicros))
@@ -429,7 +424,13 @@ private fun DurationField(
         placeholder = { Text("00:00") },
         supportingText = supportingContent,
         isError = isError,
-        modifier = modifier,
+        modifier = modifier.onFocusChanged { focusState ->
+            if (focusState.isFocused && value == "0:00") {
+                onValueChange("")
+            } else if (!focusState.isFocused && value.isBlank()) {
+                onValueChange("0:00")
+            }
+        },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     )
