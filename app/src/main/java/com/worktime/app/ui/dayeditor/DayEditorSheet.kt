@@ -1,5 +1,8 @@
 package com.worktime.app.ui.dayeditor
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -234,7 +237,15 @@ fun DayEditorSheet(
                     }
                 }
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.animateContentSize(
+                        animationSpec = tween(
+                            durationMillis = 180,
+                            easing = FastOutSlowInEasing,
+                        ),
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     if (bonusVisible) {
                         MoneyField(
                             value = bonus,
@@ -481,7 +492,10 @@ private fun DurationField(
             )
         },
         supportingText = supportingContent,
-        textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
+        textStyle = MaterialTheme.typography.titleMedium.copy(
+            textAlign = TextAlign.Center,
+            lineHeight = MaterialTheme.typography.titleMedium.fontSize,
+        ),
         isError = isError,
         modifier = modifier.onFocusChanged { focusState ->
             if (focusState.isFocused && value == "0") {
@@ -512,7 +526,10 @@ private fun MoneyField(
         onValueChange = onValueChange,
         label = { Text(label) },
         supportingText = supportingContent,
-        textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
+        textStyle = MaterialTheme.typography.titleMedium.copy(
+            textAlign = TextAlign.Center,
+            lineHeight = MaterialTheme.typography.titleMedium.fontSize,
+        ),
         isError = isError,
         modifier = modifier
             .fillMaxWidth()
