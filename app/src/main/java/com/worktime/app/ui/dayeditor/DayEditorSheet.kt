@@ -86,6 +86,14 @@ fun DayEditorSheet(
     var focusPenaltyOnExpand by remember { mutableStateOf(false) }
     val bonusFocusRequester = remember { FocusRequester() }
     val penaltyFocusRequester = remember { FocusRequester() }
+    val showBonus = {
+        bonusVisible = true
+        focusBonusOnExpand = true
+    }
+    val showPenalty = {
+        penaltyVisible = true
+        focusPenaltyOnExpand = true
+    }
 
     LaunchedEffect(focusBonusOnExpand) {
         if (focusBonusOnExpand) {
@@ -456,8 +464,8 @@ private fun DurationField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
-        placeholder = { Text(stringResource(R.string.duration_placeholder)) },
+        label = { Text(label, maxLines = 1) },
+        placeholder = { Text(stringResource(R.string.duration_placeholder), maxLines = 1) },
         supportingText = supportingContent,
         textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
         isError = isError,
