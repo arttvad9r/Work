@@ -259,6 +259,7 @@ private fun CollapsedSummaryCard(
     modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
+    val locale = LocalLocale.current.platformLocale
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -277,7 +278,7 @@ private fun CollapsedSummaryCard(
             )
             SummaryRow(
                 stringResource(R.string.monthly_income),
-                formatAmountMicros(summary.totalPayMicros),
+                formatAmountMicros(summary.totalPayMicros, locale),
             )
         }
     }
@@ -290,6 +291,7 @@ private fun FullSummaryPanel(
     modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
+    val locale = LocalLocale.current.platformLocale
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -312,19 +314,19 @@ private fun FullSummaryPanel(
             if (summary.bonusMicros > 0L) {
                 SummaryRow(
                     stringResource(R.string.calculation_bonus),
-                    "+${formatAmountMicros(summary.bonusMicros)}",
+                    "+${formatAmountMicros(summary.bonusMicros, locale)}",
                 )
             }
             if (summary.penaltyMicros > 0L) {
                 SummaryRow(
                     stringResource(R.string.calculation_penalty),
-                    "−${formatAmountMicros(summary.penaltyMicros)}",
+                    "−${formatAmountMicros(summary.penaltyMicros, locale)}",
                 )
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             SummaryRow(
                 stringResource(R.string.calculation_total),
-                formatAmountMicros(summary.totalPayMicros),
+                formatAmountMicros(summary.totalPayMicros, locale),
                 emphasized = true,
             )
         }
