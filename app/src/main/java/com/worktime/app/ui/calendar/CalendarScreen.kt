@@ -191,7 +191,7 @@ private fun MonthSummaryCard(
                 )
                 Text(
                     text = formatMoneyMicros(summary.totalPayMicros, state.currencyCode),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -509,10 +509,12 @@ private fun Marker(text: String) {
 }
 
 private fun formatCellMoney(micros: Long, locale: Locale): String {
-    val roundedMajorUnits = BigDecimal.valueOf(micros, 6).setScale(0, RoundingMode.HALF_UP)
-    return NumberFormat.getIntegerInstance(locale).apply {
+    return NumberFormat.getNumberInstance(locale).apply {
         isGroupingUsed = false
-    }.format(roundedMajorUnits)
+        minimumFractionDigits = 0
+        maximumFractionDigits = 2
+        roundingMode = RoundingMode.HALF_UP
+    }.format(BigDecimal.valueOf(micros, 6))
 }
 
 @Composable
