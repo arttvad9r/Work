@@ -457,6 +457,7 @@ private fun DurationField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
+        placeholder = { Text(stringResource(R.string.duration_placeholder)) },
         supportingText = supportingContent,
         textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.Center),
         isError = isError,
