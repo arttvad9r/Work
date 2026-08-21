@@ -70,7 +70,10 @@ fun CalendarScreen(
             TopAppBar(
                 title = { Text(monthTitle, fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
-                    IconButton(onClick = onPreviousMonth) {
+                    IconButton(
+                        onClick = onPreviousMonth,
+                        enabled = state.isReady && state.selectedDate == null && !state.isSettingsOpen,
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = stringResource(R.string.previous_month),
@@ -78,7 +81,10 @@ fun CalendarScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNextMonth) {
+                    IconButton(
+                        onClick = onNextMonth,
+                        enabled = state.isReady && state.selectedDate == null && !state.isSettingsOpen,
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowForward,
                             contentDescription = stringResource(R.string.next_month),
