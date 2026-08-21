@@ -9,16 +9,16 @@
 - [x] Debug APK builds.
 - [x] Instrumentation APK builds.
 - [x] Room v1 schema JSON is generated and committed.
-- [ ] No destructive Room migration fallback exists.
+- [x] No destructive Room migration fallback exists.
 - [ ] Release build/signing configuration is prepared outside source control.
 
 ## Functional QA
 
-- [ ] `ANDROID_QA.md` completed on required device/API matrix.
+- [ ] `ANDROID_QA.md` completed on required device/API matrix (API 26/API 35 automated/core flow pass; API 37 Compose blocker remains).
 - [ ] Golden salary cases manually reconciled.
 - [ ] Persistence/relaunch confirmed.
 - [ ] Currency no-FX semantics confirmed in UI/product copy.
-- [ ] Error paths do not discard drafts.
+- [x] Error paths do not discard drafts (source review and recorded behavior).
 
 ## Accessibility/UI
 
@@ -45,5 +45,11 @@
 - [ ] Internal testing release completed.
 - [ ] Pre-launch report reviewed.
 - [ ] Closed beta feedback triaged before production rollout.
+
+## Current blockers
+
+- API 37 Compose instrumentation is blocked by AndroidX Test/Espresso reflection incompatibility; see `docs/CODE_AUDIT.md`.
+- Manual edge-case, TalkBack and complete 200% font-scale coverage is incomplete.
+- Production signing and final store assets are not configured.
 
 A release is not considered ready while any P0/release-gate item remains unchecked without an explicitly documented decision.
