@@ -23,7 +23,7 @@
     <string name="add_penalty">+ Штраф</string>
     <string name="total_unavailable">Итого</string>
     <string name="calculation">Расчёт</string>
-    <string name="duration_placeholder">12:30</string>
+    <string name="duration_placeholder">00:00</string>
     <string name="calculation_base">По ставке</string>
     <string name="calculation_bonus">Премия</string>
     <string name="calculation_penalty">Штраф</string>
