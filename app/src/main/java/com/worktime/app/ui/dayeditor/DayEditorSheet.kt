@@ -219,7 +219,7 @@ fun DayEditorSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     OutlinedButton(
-                        onClick = { bonusVisible = true; focusBonusOnExpand = true },
+                        onClick = showBonus,
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = 42.dp),
@@ -227,7 +227,7 @@ fun DayEditorSheet(
                         Text(stringResource(R.string.add_bonus), maxLines = 1)
                     }
                     OutlinedButton(
-                        onClick = { penaltyVisible = true; focusPenaltyOnExpand = true },
+                        onClick = showPenalty,
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = 42.dp),
@@ -248,7 +248,7 @@ fun DayEditorSheet(
                         )
                     } else {
                         OutlinedButton(
-                            onClick = { bonusVisible = true },
+                            onClick = showBonus,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 42.dp),
@@ -268,7 +268,7 @@ fun DayEditorSheet(
                         )
                     } else {
                         OutlinedButton(
-                            onClick = { penaltyVisible = true },
+                            onClick = showPenalty,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 42.dp),
