@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
@@ -95,7 +96,9 @@ fun CalendarScreen(
         bottomSheetState = summarySheetState,
     )
     val scope = rememberCoroutineScope()
-    val summaryTargetExpanded = summarySheetState.targetValue == SheetValue.Expanded
+    val summaryContentVisible =
+        summarySheetState.currentValue == SheetValue.Expanded &&
+            summarySheetState.targetValue == SheetValue.Expanded
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
         val shouldCollapse =
             summarySheetState.currentValue == SheetValue.Expanded ||
@@ -120,11 +123,7 @@ fun CalendarScreen(
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
-        sheetContainerColor = if (summaryTargetExpanded) {
-            MaterialTheme.colorScheme.surfaceContainerHigh
-        } else {
-            Color.Transparent
-        },
+        sheetContainerColor = Color.Transparent,
         sheetContent = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Box(
@@ -135,9 +134,15 @@ fun CalendarScreen(
                 ) {
                     PlainDragHandle()
                 }
-                // Do not compose summary text while collapsed: it prevents delayed
-                // text flashes behind the closed sheet.
-                if (summaryTargetExpanded) {
+                // Keep the full content measured at every state. Removing it from
+                // composition changes the sheet anchor and breaks drag expansion.
+                // Alpha hides the collapsed panel immediately without affecting size.
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(if (summaryContentVisible) 1f else 0f),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
                     FullSummaryPanel(state = state)
                 }
             }
