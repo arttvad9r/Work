@@ -94,6 +94,8 @@ fun CalendarScreen(
         sheetDragHandle = { SummarySheetHandle() },
         sheetSwipeEnabled = true,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        sheetTonalElevation = 0.dp,
+        sheetShadowElevation = 0.dp,
         sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(
             alpha = if (isSummaryVisible) 1f else 0f,
         ),
@@ -164,7 +166,7 @@ fun CalendarScreen(
                 )
                 CollapsedSummaryCard(
                     state = state,
-                    modifier = Modifier.padding(top = 6.dp),
+                    modifier = Modifier.padding(top = 14.dp),
                 )
             }
         }
