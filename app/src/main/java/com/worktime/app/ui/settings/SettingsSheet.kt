@@ -74,7 +74,7 @@ fun SettingsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        dragHandle = { PlainDragHandle() },
+        dragHandle = null,
     ) {
         Column(
             modifier = Modifier
@@ -84,6 +84,8 @@ fun SettingsSheet(
                 .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            PlainDragHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
+
             Text(
                 text = stringResource(R.string.settings),
                 style = MaterialTheme.typography.titleLarge,
