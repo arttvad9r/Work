@@ -183,35 +183,29 @@ fun DayEditorSheet(
                 )
             }
 
-            if (!bonusVisible || !penaltyVisible) {
+            if (!bonusVisible && !penaltyVisible) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (!bonusVisible) {
-                        OutlinedButton(
-                            onClick = { bonusVisible = true },
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 42.dp),
-                        ) {
-                            Text(stringResource(R.string.add_bonus), maxLines = 1)
-                        }
+                    OutlinedButton(
+                        onClick = { bonusVisible = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 42.dp),
+                    ) {
+                        Text(stringResource(R.string.add_bonus), maxLines = 1)
                     }
-                    if (!penaltyVisible) {
-                        OutlinedButton(
-                            onClick = { penaltyVisible = true },
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 42.dp),
-                        ) {
-                            Text(stringResource(R.string.add_penalty), maxLines = 1)
-                        }
+                    OutlinedButton(
+                        onClick = { penaltyVisible = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 42.dp),
+                    ) {
+                        Text(stringResource(R.string.add_penalty), maxLines = 1)
                     }
                 }
-            }
-
-            if (bonusVisible || penaltyVisible) {
+            } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (bonusVisible) {
                         MoneyField(
@@ -222,7 +216,17 @@ fun DayEditorSheet(
                             isError = bonusError != null,
                             supportingText = bonusError,
                         )
+                    } else {
+                        OutlinedButton(
+                            onClick = { bonusVisible = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 42.dp),
+                        ) {
+                            Text(stringResource(R.string.add_bonus), maxLines = 1)
+                        }
                     }
+
                     if (penaltyVisible) {
                         MoneyField(
                             value = penalty,
@@ -232,6 +236,15 @@ fun DayEditorSheet(
                             isError = penaltyError != null,
                             supportingText = penaltyError,
                         )
+                    } else {
+                        OutlinedButton(
+                            onClick = { penaltyVisible = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 42.dp),
+                        ) {
+                            Text(stringResource(R.string.add_penalty), maxLines = 1)
+                        }
                     }
                 }
             }
