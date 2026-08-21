@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +32,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -44,7 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
@@ -152,29 +150,15 @@ fun DayEditorSheet(
         null
     }
 
-    val maxMoneyLabel = formatDecimalMicros(MoneyLimits.MAX_COMPONENT_MICROS)
-    val durationError = when {
-        !hoursValid -> stringResource(R.string.hours_range_error)
-        !minutesValid -> stringResource(R.string.minutes_range_error)
-        !durationValid -> stringResource(R.string.duration_24h_error)
-        else -> null
-    }
-    val rateError = when {
-        parsedRate == null -> stringResource(R.string.invalid_money_value)
-        parsedRate > MoneyLimits.MAX_COMPONENT_MICROS -> stringResource(R.string.money_value_too_large, maxMoneyLabel)
-        positiveRateRequired && parsedRate == 0L -> stringResource(R.string.hourly_rate_required)
-        else -> null
-    }
-    val bonusError = when {
-        parsedBonus == null -> stringResource(R.string.invalid_money_value)
-        parsedBonus > MoneyLimits.MAX_COMPONENT_MICROS -> stringResource(R.string.money_value_too_large, maxMoneyLabel)
-        else -> null
-    }
-    val penaltyError = when {
-        parsedPenalty == null -> stringResource(R.string.invalid_money_value)
-        parsedPenalty > MoneyLimits.MAX_COMPONENT_MICROS -> stringResource(R.string.money_value_too_large, maxMoneyLabel)
-        else -> null
-    }
+    val durationHasError = !hoursValid || !minutesValid || !durationValid
+    val rateHasError =
+        parsedRate == null ||
+            parsedRate > MoneyLimits.MAX_COMPONENT_MICROS ||
+            (positiveRateRequired && parsedRate == 0L)
+    val bonusHasError =
+        parsedBonus == null || parsedBonus > MoneyLimits.MAX_COMPONENT_MICROS
+    val penaltyHasError =
+        parsedPenalty == null || parsedPenalty > MoneyLimits.MAX_COMPONENT_MICROS
     val totalMicros = draft?.let { runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -187,6 +171,7 @@ fun DayEditorSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -204,14 +189,14 @@ fun DayEditorSheet(
                     value = duration,
                     onValueChange = { duration = sanitizeDurationInput(it) },
                     label = stringResource(R.string.worked),
-                    isError = durationError != null,
+                    isError = durationHasError,
                     modifier = Modifier.weight(1f),
                 )
                 MoneyField(
                     value = rate,
                     onValueChange = { rate = sanitizeMoneyInput(it) },
                     label = stringResource(R.string.hourly_rate),
-                    isError = rateError != null,
+                    isError = rateHasError,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -247,7 +232,7 @@ fun DayEditorSheet(
                             value = bonus,
                             onValueChange = { bonus = sanitizeMoneyInput(it) },
                             label = stringResource(R.string.bonus),
-                            isError = bonusError != null,
+                            isError = bonusHasError,
                             modifier = Modifier.focusRequester(bonusFocusRequester),
                         )
                     } else {
@@ -266,7 +251,7 @@ fun DayEditorSheet(
                             value = penalty,
                             onValueChange = { penalty = sanitizeMoneyInput(it) },
                             label = stringResource(R.string.penalty),
-                            isError = penaltyError != null,
+                            isError = penaltyHasError,
                             modifier = Modifier.focusRequester(penaltyFocusRequester),
                         )
                     } else {
@@ -281,13 +266,6 @@ fun DayEditorSheet(
                     }
                 }
             }
-
-            ValidationMessage(
-                message = durationError
-                    ?: rateError
-                    ?: (if (bonusVisible) bonusError else null)
-                    ?: (if (penaltyVisible) penaltyError else null),
-            )
 
             CalculationSummary(
                 draft = draft,
@@ -508,10 +486,9 @@ private fun DurationField(
         isError = isError,
         modifier = modifier.onFocusChanged { focusState ->
             if (focusState.isFocused && fieldValue.text == "0") {
-                fieldValue = TextFieldValue("", TextRange(0))
-                onValueChange("")
-            } else if (!focusState.isFocused && fieldValue.text.isBlank()) {
-                fieldValue = TextFieldValue("0", TextRange(1))
+                fieldValue = fieldValue.copy(
+                    selection = TextRange(0, fieldValue.text.length),
+                )
             }
         },
         singleLine = true,
@@ -558,24 +535,4 @@ private fun MoneyField(
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     )
-}
-
-@Composable
-private fun ValidationMessage(message: String?) {
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(36.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        if (message != null) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
 }
