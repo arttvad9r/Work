@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
@@ -84,6 +85,8 @@ fun CalendarScreen(
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = summarySheetState,
     )
+    val isSummaryVisible = summarySheetState.currentValue == SheetValue.Expanded ||
+        summarySheetState.targetValue == SheetValue.Expanded
     BottomSheetScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
@@ -91,9 +94,14 @@ fun CalendarScreen(
         sheetDragHandle = { SummarySheetHandle() },
         sheetSwipeEnabled = true,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(
+            alpha = if (isSummaryVisible) 1f else 0f,
+        ),
         sheetContent = {
-            FullSummaryPanel(state = state)
+            FullSummaryPanel(
+                state = state,
+                modifier = Modifier.alpha(if (isSummaryVisible) 1f else 0f),
+            )
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
@@ -156,6 +164,7 @@ fun CalendarScreen(
                 )
                 CollapsedSummaryCard(
                     state = state,
+                    modifier = Modifier.padding(top = 6.dp),
                 )
             }
         }
@@ -188,10 +197,11 @@ private fun CalendarCard(
 @Composable
 private fun CollapsedSummaryCard(
     state: CalendarUiState,
+    modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(112.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -237,10 +247,11 @@ private fun SummarySheetHandle() {
 @Composable
 private fun FullSummaryPanel(
     state: CalendarUiState,
+    modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding(),
     ) {
