@@ -18,7 +18,8 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 - It never scrolls vertically and its position does not depend on entries or report content.
 - The grid always has six rows; adjacent-month dates are faint and inactive.
 - Current-month cells remain large enough for date, duration and amount.
-- Duration and amount are horizontally centered.
+- Every current-month date uses the same semi-bold weight, regardless of whether the day has an entry.
+- Date, duration and amount use fixed anchors: date at top, duration at the geometric center and amount at the bottom with matching outer padding.
 - Bonus/penalty icons are centered in equal circular markers.
 
 ## Fixed monthly summary
@@ -36,7 +37,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 - In the collapsed state only the handle is visible; the report surface, text and shadow remain hidden.
 - Report content disappears immediately when collapse starts, without lingering behind the closing animation.
 - Opens by tapping the handle or dragging from it upward.
-- Collapses by downward drag, a second handle tap, or automatically before month navigation, day editing or settings opens.
+- Collapses by downward drag or a second handle tap. When month navigation, day editing or settings is opened, the destination appears immediately while the report collapses behind it without delaying the next surface.
 - Handle press feedback is confined to a small area around the handle and never triggers a tooltip or full-width flash.
 - Contains one heading with a trailing colon, work days, hours worked, optional bonus, optional penalty, divider and total.
 - Does not duplicate the heading as a second total and does not contain report/export buttons.
@@ -52,7 +53,7 @@ Normal closed-keyboard state should fit as one compact sheet.
 5. Save.
 6. Delete for an existing entry.
 
-The duration field is labeled `Время` and shows a faint `00:00` format hint only while focused and empty. Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. The hint and the entered value use the same typography and centered alignment. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`. Switching between duration and amount fields keeps the same numeric keyboard mode and does not apply a second IME inset, so the sheet remains stationary while the keyboard stays open.
+The duration field is labeled `Время` and shows a faint `00:00` format hint only while focused and empty. Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. The hint and the entered value use the same typography and centered alignment. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`. Switching between duration and amount fields keeps the same numeric keyboard mode, uses zero content insets for the modal sheet and does not animate the editor's height, so the sheet remains stationary while the keyboard stays open.
 
 Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The newly expanded amount field receives focus immediately.
 
@@ -75,10 +76,10 @@ The calculation card uses `At hourly rate` / `По ставке`, then optional 
 
 ## Visual system
 
-- Controlled calm blue-neutral palettes in light and dark modes.
+- Controlled calm blue-neutral palettes in light and dark modes. The expanded monthly report uses a distinct elevated surface color so its edge remains visible over the calendar.
 - 24 dp major-card radius, 16-20 dp compact-card radius, 8-12 dp cell/input radius.
 - Regular body weight for comparable labels/values; medium/semi-bold only for titles, selected dates and totals.
 - Error red is reserved for errors, delete and penalty semantics.
-- Month changes, day-cell state changes, report expansion and dynamic editor controls use short 120-180 ms Material easing; motion must not move the fixed calendar.
+- Month changes, day-cell state changes and report expansion use short 120-180 ms Material easing; editor controls never animate the sheet height or move it while focus changes.
 - Numeric input line height matches its text size so the caret does not visually exceed the entered value.
 - No information relies on color alone; labels and accessibility descriptions remain present.
