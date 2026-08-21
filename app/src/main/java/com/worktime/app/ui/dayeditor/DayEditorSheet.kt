@@ -1,6 +1,5 @@
 package com.worktime.app.ui.dayeditor
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -70,7 +68,12 @@ fun DayEditorSheet(
     var penalty by rememberSaveable(date.toEpochDay(), existing) {
         mutableStateOf(formatDecimalMicros(existing?.penaltyMicros ?: 0L))
     }
-    var note by rememberSaveable(date.toEpochDay(), existing) { mutableStateOf(existing?.note.orEmpty()) }
+    var bonusVisible by rememberSaveable(date.toEpochDay(), existing) {
+        mutableStateOf((existing?.bonusMicros ?: 0L) > 0L)
+    }
+    var penaltyVisible by rememberSaveable(date.toEpochDay(), existing) {
+        mutableStateOf((existing?.penaltyMicros ?: 0L) > 0L)
+    }
     var confirmDelete by rememberSaveable(date.toEpochDay(), existing) { mutableStateOf(false) }
 
     val parsedHours = parseWholeNumberOrZero(hours)
@@ -102,7 +105,7 @@ fun DayEditorSheet(
                 hourlyRateMicros = parsedRate,
                 bonusMicros = parsedBonus,
                 penaltyMicros = parsedPenalty,
-                note = note.trim(),
+                note = existing?.note.orEmpty(),
             )
         }.getOrNull()
     } else {
@@ -153,20 +156,6 @@ fun DayEditorSheet(
             )
 
             Text(stringResource(R.string.worked), style = MaterialTheme.typography.labelLarge)
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                listOf(4, 6, 8, 10, 12).forEach { quickHours ->
-                    AssistChip(
-                        onClick = {
-                            hours = quickHours.toString()
-                            minutes = "0"
-                        },
-                        label = { Text(stringResource(R.string.quick_hours, quickHours)) },
-                    )
-                }
-            }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 NumberField(
                     value = hours,
@@ -194,33 +183,34 @@ fun DayEditorSheet(
                 isError = rateError != null,
                 supportingText = rateError,
             )
-            MoneyField(
-                value = bonus,
-                onValueChange = { bonus = sanitizeMoneyInput(it) },
-                label = stringResource(R.string.bonus),
-                currencyCode = currencyCode,
-                isError = bonusError != null,
-                supportingText = bonusError,
-            )
-            MoneyField(
-                value = penalty,
-                onValueChange = { penalty = sanitizeMoneyInput(it) },
-                label = stringResource(R.string.penalty),
-                currencyCode = currencyCode,
-                isError = penaltyError != null,
-                supportingText = penaltyError,
-            )
-            OutlinedTextField(
-                value = note,
-                onValueChange = { note = it.take(MoneyLimits.MAX_NOTE_LENGTH) },
-                label = { Text(stringResource(R.string.note)) },
-                supportingText = {
-                    Text(stringResource(R.string.note_length, note.length, MoneyLimits.MAX_NOTE_LENGTH))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-            )
+            if (bonusVisible) {
+                MoneyField(
+                    value = bonus,
+                    onValueChange = { bonus = sanitizeMoneyInput(it) },
+                    label = stringResource(R.string.bonus),
+                    currencyCode = currencyCode,
+                    isError = bonusError != null,
+                    supportingText = bonusError,
+                )
+            } else {
+                TextButton(onClick = { bonusVisible = true }) {
+                    Text(stringResource(R.string.add_bonus))
+                }
+            }
+            if (penaltyVisible) {
+                MoneyField(
+                    value = penalty,
+                    onValueChange = { penalty = sanitizeMoneyInput(it) },
+                    label = stringResource(R.string.penalty),
+                    currencyCode = currencyCode,
+                    isError = penaltyError != null,
+                    supportingText = penaltyError,
+                )
+            } else {
+                TextButton(onClick = { penaltyVisible = true }) {
+                    Text(stringResource(R.string.add_penalty))
+                }
+            }
 
             HorizontalDivider()
             CalculationSummary(

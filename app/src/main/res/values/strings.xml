@@ -22,14 +22,13 @@
     <string name="has_penalty">penalty added</string>
 
     <string name="worked">Worked</string>
-    <string name="quick_hours">%1$d h</string>
     <string name="hours">Hours</string>
     <string name="minutes">Minutes</string>
-    <string name="hourly_rate">Hourly rate</string>
+    <string name="hourly_rate">Rate per hour</string>
     <string name="bonus">Bonus</string>
     <string name="penalty">Penalty</string>
-    <string name="note">Note</string>
-    <string name="note_length">%1$d/%2$d</string>
+    <string name="add_bonus">+ Add bonus</string>
+    <string name="add_penalty">+ Add penalty</string>
     <string name="total_value">Total: %1$s</string>
     <string name="total_unavailable">Total: —</string>
     <string name="calculation">Calculation</string>

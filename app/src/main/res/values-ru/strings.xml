@@ -22,14 +22,13 @@
     <string name="has_penalty">есть штраф</string>
 
     <string name="worked">Отработано</string>
-    <string name="quick_hours">%1$d ч</string>
     <string name="hours">Часы</string>
     <string name="minutes">Минуты</string>
-    <string name="hourly_rate">Почасовая ставка</string>
+    <string name="hourly_rate">Ставка за час</string>
     <string name="bonus">Премия</string>
     <string name="penalty">Штраф</string>
-    <string name="note">Заметка</string>
-    <string name="note_length">%1$d/%2$d</string>
+    <string name="add_bonus">+ Добавить премию</string>
+    <string name="add_penalty">+ Добавить штраф</string>
     <string name="total_value">Итого: %1$s</string>
     <string name="total_unavailable">Итого: —</string>
     <string name="calculation">Расчёт</string>
