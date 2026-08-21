@@ -42,7 +42,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +79,7 @@ import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,7 +101,22 @@ fun CalendarScreen(
         bottomSheetState = summarySheetState,
     )
     val scope = rememberCoroutineScope()
-    val summaryExpandingOrExpanded = summarySheetState.targetValue == SheetValue.Expanded
+    var partialSummaryOffset by remember { mutableFloatStateOf(Float.NaN) }
+    var summaryIsBeingPulled by remember { mutableStateOf(false) }
+    LaunchedEffect(summarySheetState) {
+        snapshotFlow { summarySheetState.requireOffset() }.collect { offset ->
+            if (
+                summarySheetState.currentValue == SheetValue.PartiallyExpanded &&
+                summarySheetState.targetValue == SheetValue.PartiallyExpanded
+            ) {
+                partialSummaryOffset = offset
+            }
+            summaryIsBeingPulled =
+                !partialSummaryOffset.isNaN() && offset < partialSummaryOffset - 1f
+        }
+    }
+    val summaryVisible =
+        summaryIsBeingPulled || summarySheetState.targetValue == SheetValue.Expanded
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
         val shouldCollapse =
             summarySheetState.currentValue == SheetValue.Expanded ||
@@ -120,7 +141,7 @@ fun CalendarScreen(
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
-        sheetContainerColor = if (summaryExpandingOrExpanded) {
+        sheetContainerColor = if (summaryVisible) {
             MaterialTheme.colorScheme.surfaceContainerHigh
         } else {
             Color.Transparent
@@ -142,7 +163,7 @@ fun CalendarScreen(
                         .fillMaxWidth()
                         .height(300.dp),
                 ) {
-                    if (summaryExpandingOrExpanded) {
+                    if (summaryVisible) {
                         Surface(
                             modifier = Modifier.fillMaxSize(),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
