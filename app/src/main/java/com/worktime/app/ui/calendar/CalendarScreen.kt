@@ -354,7 +354,7 @@ private fun CalendarGrid(
                             Spacer(
                                 Modifier
                                     .fillMaxWidth()
-                                    .height(72.dp),
+                                    .height(76.dp),
                             )
                         }
                     }
@@ -409,7 +409,7 @@ private fun DayCell(
         modifier = Modifier
             .padding(1.dp)
             .fillMaxWidth()
-            .height(72.dp)
+            .height(76.dp)
             .clip(shape)
             .background(background)
             .border(
