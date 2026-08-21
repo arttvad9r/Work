@@ -42,8 +42,8 @@ fun formatMoneyMicros(
     val currency = Currency.getInstance(currencyCode)
     val formatter = NumberFormat.getCurrencyInstance(locale)
     formatter.currency = currency
-    val fractionDigits = currency.defaultFractionDigits.takeIf { it >= 0 } ?: 2
-    formatter.minimumFractionDigits = fractionDigits
-    formatter.maximumFractionDigits = fractionDigits
+    formatter.minimumFractionDigits = 0
+    formatter.maximumFractionDigits = currency.defaultFractionDigits.takeIf { it >= 0 } ?: 2
+    formatter.roundingMode = RoundingMode.HALF_UP
     return formatter.format(BigDecimal.valueOf(micros, 6))
 }
