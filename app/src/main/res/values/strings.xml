@@ -32,6 +32,11 @@
     <string name="note_length">%1$d/%2$d</string>
     <string name="total_value">Total: %1$s</string>
     <string name="total_unavailable">Total: —</string>
+    <string name="calculation">Calculation</string>
+    <string name="calculation_base">Base</string>
+    <string name="calculation_bonus">Bonus</string>
+    <string name="calculation_penalty">Penalty</string>
+    <string name="calculation_total">Total</string>
     <string name="save">Save</string>
     <string name="delete_entry">Delete entry</string>
     <string name="hours_range_error">Enter 0–24 hours</string>

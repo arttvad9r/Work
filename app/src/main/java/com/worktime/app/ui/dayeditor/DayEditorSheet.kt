@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
@@ -222,11 +223,10 @@ fun DayEditorSheet(
             )
 
             HorizontalDivider()
-            Text(
-                text = totalMicros?.let {
-                    stringResource(R.string.total_value, formatMoneyMicros(it, currencyCode))
-                } ?: stringResource(R.string.total_unavailable),
-                style = MaterialTheme.typography.titleMedium,
+            CalculationSummary(
+                draft = draft,
+                totalMicros = totalMicros,
+                currencyCode = currencyCode,
             )
             if (durationValid && rateValid && bonusWithinLimit && penaltyWithinLimit && !hasEffectiveData) {
                 Text(
@@ -280,6 +280,67 @@ fun DayEditorSheet(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun CalculationSummary(
+    draft: WorkEntry?,
+    totalMicros: Long?,
+    currencyCode: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = stringResource(R.string.calculation),
+            style = MaterialTheme.typography.labelLarge,
+        )
+        if (draft != null && totalMicros != null) {
+            val entryPay = SalaryCalculator.entryPay(draft)
+            CalculationRow(
+                label = stringResource(R.string.calculation_base),
+                value = formatMoneyMicros(entryPay.basePayMicros, currencyCode),
+            )
+            CalculationRow(
+                label = "+ ${stringResource(R.string.calculation_bonus)}",
+                value = formatMoneyMicros(draft.bonusMicros, currencyCode),
+            )
+            CalculationRow(
+                label = "− ${stringResource(R.string.calculation_penalty)}",
+                value = formatMoneyMicros(draft.penaltyMicros, currencyCode),
+            )
+            HorizontalDivider()
+            CalculationRow(
+                label = stringResource(R.string.calculation_total),
+                value = formatMoneyMicros(totalMicros, currencyCode),
+                emphasized = true,
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.total_unavailable),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CalculationRow(
+    label: String,
+    value: String,
+    emphasized: Boolean = false,
+) {
+    val textStyle = if (emphasized) {
+        MaterialTheme.typography.titleMedium
+    } else {
+        MaterialTheme.typography.bodyMedium
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(text = label, style = textStyle, fontWeight = if (emphasized) FontWeight.SemiBold else null)
+        Text(text = value, style = textStyle, fontWeight = if (emphasized) FontWeight.SemiBold else null)
     }
 }
 

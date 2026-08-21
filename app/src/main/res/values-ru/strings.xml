@@ -32,6 +32,11 @@
     <string name="note_length">%1$d/%2$d</string>
     <string name="total_value">Итого: %1$s</string>
     <string name="total_unavailable">Итого: —</string>
+    <string name="calculation">Расчёт</string>
+    <string name="calculation_base">База</string>
+    <string name="calculation_bonus">Премия</string>
+    <string name="calculation_penalty">Штраф</string>
+    <string name="calculation_total">Итого</string>
     <string name="save">Сохранить</string>
     <string name="delete_entry">Удалить запись</string>
     <string name="hours_range_error">Введите от 0 до 24 часов</string>
