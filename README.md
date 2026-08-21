@@ -108,7 +108,7 @@ The audit checks XML/resource consistency, EN/RU string parity, privacy-sensitiv
 
 See [`docs/BUILD.md`](docs/BUILD.md).
 
-The committed Gradle Wrapper is the preferred command-line entry point:
+The committed Gradle Wrapper is the authoritative command-line entry point; the verification scripts use it directly:
 
 ```bash
 ./scripts/verify.sh
@@ -146,6 +146,7 @@ The wrapper pins Gradle 9.5.0 and is committed. On this NixOS host Android resou
 - [Testing](docs/TESTING.md)
 - [Build & CI](docs/BUILD.md)
 - [Static audit](docs/STATIC_AUDIT.md)
+- [Code audit](docs/CODE_AUDIT.md)
 - [Android QA](docs/ANDROID_QA.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
 - [Privacy](docs/PRIVACY.md)
