@@ -9,7 +9,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,15 +44,11 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
@@ -80,7 +75,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -144,14 +138,11 @@ fun CalendarScreen(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 88.dp,
         sheetDragHandle = {
-            SummarySheetHandle(
-                expanded = summaryTargetExpanded,
-                onClick = toggleSummary,
-            )
+            SummarySheetHandle(expanded = summaryTargetExpanded)
         },
-        // In the collapsed state only the handle is interactive, so taps on the
-        // hidden report cannot make the sheet flash.
-        sheetSwipeEnabled = summaryTargetExpanded,
+        // Keep the sheet draggable from its handle in both states. The custom
+        // handle itself has no click action, so a tap cannot flash or toggle it.
+        sheetSwipeEnabled = true,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
@@ -296,48 +287,19 @@ private fun CollapsedSummaryCard(
 @Composable
 private fun SummarySheetHandle(
     expanded: Boolean,
-    onClick: () -> Unit,
 ) {
-    var pulse by remember { mutableStateOf(false) }
-    val feedbackColor by animateColorAsState(
-        targetValue = if (pulse) {
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f)
-        } else {
-            MaterialTheme.colorScheme.surface.copy(alpha = 0f)
-        },
-        animationSpec = tween(durationMillis = 110),
-        label = "summaryHandleFeedback",
-    )
-
-    LaunchedEffect(pulse) {
-        if (pulse) {
-            delay(110)
-            pulse = false
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(28.dp),
         contentAlignment = Alignment.Center,
     ) {
+        // Deliberately visual-only: dragging is provided by BottomSheetScaffold,
+        // while a tap has no action or accessibility tooltip.
         Box(
             modifier = Modifier
                 .width(72.dp)
-                .height(24.dp)
-                .clip(RoundedCornerShape(50))
-                .background(feedbackColor)
-                // Pointer handling deliberately has no accessibility role: Android must not
-                // surface its generic drag-handle tooltip.
-                .pointerInput(onClick) {
-                    detectTapGestures(
-                        onTap = {
-                            pulse = true
-                            onClick()
-                        },
-                    )
-                },
+                .height(24.dp),
             contentAlignment = Alignment.Center,
         ) {
             Box(
