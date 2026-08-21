@@ -76,12 +76,7 @@ private val WorkTimeShapes = Shapes(
     small = RoundedCornerShape(12.dp),
     medium = RoundedCornerShape(16.dp),
     large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(
-        topStart = 28.dp,
-        topEnd = 28.dp,
-        bottomEnd = 0.dp,
-        bottomStart = 0.dp,
-    ),
+    extraLarge = RoundedCornerShape(28.dp),
 )
 
 @Composable
