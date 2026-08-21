@@ -47,11 +47,19 @@ All notable product changes will be documented here.
 - Added explicit AndroidX test runner dependency for `AndroidJUnitRunner`.
 - Release ProGuard configuration now includes the standard optimized Android rule set.
 
-### Still required before release
+### Verification status after the QA baseline
 
-- Real Android build/lint evidence.
-- Trusted Gradle Wrapper bootstrap.
-- Generated/committed Room v1 schema JSON.
-- Emulator/device instrumentation and Compose UI testing.
-- Accessibility/small-screen/process-death QA.
-- Final adaptive launcher/store assets and release signing.
+- Gradle Wrapper 9.5.0 is committed and used by the verification scripts.
+- Room v1 schema JSON is committed.
+- Static audit, JVM tests, lint, debug APK and instrumentation APK assembly pass.
+- API 26 and API 35 Room/Compose instrumentation pass.
+- API 35 manual core flow passes, including persistence and delete/recalculation.
+- API 37 Compose smoke remains blocked inside AndroidX Test/Espresso before the assertion; this is tracked as QA infrastructure issue BUG-001.
+- Manual edge-case, full accessibility and production signing gates remain open.
+
+### Fixed in audit follow-up — 2026-08-21
+
+- Restored quick-hour entry chips and note editing removed from the QA branch.
+- Disabled month navigation while a day/settings modal is open.
+- Made shell and PowerShell verification scripts invoke the committed Gradle Wrapper.
+- Added consolidated [docs/CODE_AUDIT.md](docs/CODE_AUDIT.md).
