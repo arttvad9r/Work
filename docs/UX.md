@@ -23,7 +23,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 
 ## Fixed monthly summary
 
-- Constant height and position.
+- Constant height and bottom-anchored position immediately above the report handle.
 - Three aligned rows with one typography hierarchy:
   - Work days;
   - Hours worked / `Отработано часов`;
@@ -33,9 +33,11 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 
 ## Monthly report sheet
 
-- In the collapsed state only the handle is visible; the report surface, text and shadow remain hidden until expansion starts.
+- In the collapsed state only the handle is visible; the report surface, text and shadow remain hidden.
+- Report content disappears immediately when collapse starts, without lingering behind the closing animation.
 - Opens by tapping the handle or dragging from it upward.
-- Collapses by downward drag or the standard sheet action.
+- Collapses by downward drag, a second handle tap, or automatically before month navigation, day editing or settings opens.
+- Handle press feedback is confined to a small area around the handle and never triggers a tooltip or full-width flash.
 - Contains one heading with a trailing colon, work days, hours worked, optional bonus, optional penalty, divider and total.
 - Does not duplicate the heading as a second total and does not contain report/export buttons.
 
@@ -77,4 +79,6 @@ The calculation card uses `At hourly rate` / `По ставке`, then optional 
 - 24 dp major-card radius, 16-20 dp compact-card radius, 8-12 dp cell/input radius.
 - Regular body weight for comparable labels/values; medium/semi-bold only for titles, selected dates and totals.
 - Error red is reserved for errors, delete and penalty semantics.
+- Month changes, day-cell state changes, report expansion and dynamic editor controls use short 120-180 ms Material easing; motion must not move the fixed calendar.
+- Numeric input line height matches its text size so the caret does not visually exceed the entered value.
 - No information relies on color alone; labels and accessibility descriptions remain present.
