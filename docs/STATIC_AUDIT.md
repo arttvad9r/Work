@@ -23,7 +23,7 @@ Current code fix commit reviewed: `7625a1af076b3aba800c0f61959de1f5cb4a04d1`
 
 - Calendar is no longer nested in a vertical scroll container.
 - The grid uses a fixed six-row geometry and the available stable viewport space.
-- Fixed summary has a constant 120 dp height.
+- Fixed summary has a constant 112 dp height.
 - Detailed report uses the standard Material 3 bottom-sheet scaffold with native drag/tap behavior and a single handle.
 - Settings rate input is constrained to 120 dp instead of filling the sheet.
 - Day-editor values are centered and zero-prefilled amount fields clear on focus.
