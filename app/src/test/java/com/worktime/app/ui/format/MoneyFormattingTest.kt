@@ -24,13 +24,13 @@ class MoneyFormattingTest {
     }
 
     @Test
-    fun `sanitizer keeps one decimal separator and six fractional digits`() {
-        assertEquals("12.345678", sanitizeMoneyInput("12,34.567890"))
+    fun `sanitizer keeps one decimal separator and two fractional digits`() {
+        assertEquals("12.34", sanitizeMoneyInput("12,34.567890"))
     }
 
     @Test
-    fun `amount formatter preserves explicitly entered fractional precision`() {
-        assertEquals("12.345678", formatAmountMicros(12_345_678L, Locale.US))
+    fun `amount formatter rounds display to two fractional digits`() {
+        assertEquals("12.35", formatAmountMicros(12_345_678L, Locale.US))
     }
 
     @Test
