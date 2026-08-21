@@ -182,6 +182,7 @@ private fun MonthSummaryCard(
             ) {
                 Text(
                     text = stringResource(R.string.monthly_income),
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -190,6 +191,7 @@ private fun MonthSummaryCard(
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 1,
                 )
             }
 
