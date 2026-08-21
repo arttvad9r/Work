@@ -5,13 +5,11 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,15 +46,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +79,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,7 +148,9 @@ fun CalendarScreen(
                 onClick = toggleSummary,
             )
         },
-        sheetSwipeEnabled = true,
+        // In the collapsed state only the handle is interactive, so taps on the
+        // hidden report cannot make the sheet flash.
+        sheetSwipeEnabled = summaryTargetExpanded,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
@@ -294,22 +297,23 @@ private fun SummarySheetHandle(
     expanded: Boolean,
     onClick: () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val handleWidth by animateDpAsState(
-        targetValue = if (pressed) 54.dp else 48.dp,
-        animationSpec = tween(durationMillis = 120),
-        label = "summaryHandleWidth",
-    )
+    var pulse by remember { mutableStateOf(false) }
     val feedbackColor by animateColorAsState(
-        targetValue = if (pressed) {
+        targetValue = if (pulse) {
             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f)
         } else {
             MaterialTheme.colorScheme.surface.copy(alpha = 0f)
         },
-        animationSpec = tween(durationMillis = 120),
+        animationSpec = tween(durationMillis = 110),
         label = "summaryHandleFeedback",
     )
+
+    LaunchedEffect(pulse) {
+        if (pulse) {
+            delay(110)
+            pulse = false
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -323,17 +327,21 @@ private fun SummarySheetHandle(
                 .height(24.dp)
                 .clip(RoundedCornerShape(50))
                 .background(feedbackColor)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                )
-                .clearAndSetSemantics { },
+                // Pointer handling deliberately has no accessibility role: Android must not
+                // surface its generic drag-handle tooltip.
+                .pointerInput(onClick) {
+                    detectTapGestures(
+                        onTap = {
+                            pulse = true
+                            onClick()
+                        },
+                    )
+                },
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .width(handleWidth)
+                    .width(48.dp)
                     .height(5.dp)
                     .clip(RoundedCornerShape(50))
                     .background(
@@ -562,7 +570,7 @@ private fun DayCell(
             modifier = Modifier.align(Alignment.TopStart),
             style = MaterialTheme.typography.titleSmall,
             color = foreground,
-            fontWeight = if (isInVisibleMonth) FontWeight.SemiBold else FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
         )
 
