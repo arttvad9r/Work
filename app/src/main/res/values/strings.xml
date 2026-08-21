@@ -5,12 +5,17 @@
     <string name="next_month">Next month</string>
     <string name="settings">Settings</string>
     <string name="shifts_count">Shifts: %1$d</string>
+    <string name="monthly_income">Monthly income</string>
+    <string name="worked_duration">Worked time</string>
+    <string name="shift_count_label">Work days</string>
     <string name="duration_hours">%1$d h</string>
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="base_pay_value">Base: %1$s</string>
     <string name="bonus_value">Bonus: +%1$s</string>
     <string name="penalty_value">Penalty: −%1$s</string>
     <string name="set_hourly_rate">Set hourly rate</string>
+    <string name="empty_month_title">No entries for this month</string>
+    <string name="empty_month_message">Choose a day to add work time.</string>
     <string name="today">Today</string>
     <string name="day_selected">selected</string>
     <string name="has_bonus">bonus added</string>

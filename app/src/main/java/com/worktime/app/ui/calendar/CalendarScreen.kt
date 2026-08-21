@@ -117,6 +117,9 @@ fun CalendarScreen(
                 }
             } else {
                 MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
+                if (state.entries.isEmpty()) {
+                    EmptyMonthState(onSetHourlyRate = onSettingsClick, showRateAction = state.defaultHourlyRateMicros == 0L)
+                }
                 CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
             }
         }
@@ -135,6 +138,11 @@ private fun MonthSummaryCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
+                text = stringResource(R.string.monthly_income),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
                 text = formatMoneyMicros(summary.totalPayMicros, state.currencyCode),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.SemiBold,
@@ -143,15 +151,15 @@ private fun MonthSummaryCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                Text(
-                    formatDuration(summary.workedMinutes),
+                KpiMetric(
+                    label = stringResource(R.string.worked_duration),
+                    value = formatDuration(summary.workedMinutes),
                     modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
                 )
-                Text(
-                    stringResource(R.string.shifts_count, summary.shiftCount),
+                KpiMetric(
+                    label = stringResource(R.string.shift_count_label),
+                    value = summary.shiftCount.toString(),
                     modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
 
@@ -189,6 +197,51 @@ private fun MonthSummaryCard(
             }
 
             if (state.defaultHourlyRateMicros == 0L) {
+                TextButton(onClick = onSetHourlyRate) {
+                    Text(stringResource(R.string.set_hourly_rate))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun KpiMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(text = value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun EmptyMonthState(
+    onSetHourlyRate: () -> Unit,
+    showRateAction: Boolean,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.empty_month_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(R.string.empty_month_message),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (showRateAction) {
                 TextButton(onClick = onSetHourlyRate) {
                     Text(stringResource(R.string.set_hourly_rate))
                 }
