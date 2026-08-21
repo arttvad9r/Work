@@ -31,6 +31,12 @@ All notable changes are documented here.
 - Fixed three-digit duration entry so `530` becomes `5:30`.
 - Initial zero values now clear on focus in duration and amount fields, preventing values such as `0150`.
 - Replaced the calculation label `Base` / `База` with `At hourly rate` / `По ставке`.
+- Made the monthly report content disappear immediately when collapse starts.
+- The monthly report now closes before month navigation, day editing or settings opens.
+- Confined report-handle press feedback to the handle and removed the full-width flash/tooltip behavior.
+- Bottom-anchored the compact summary above the report handle without changing calendar geometry.
+- Added short transitions for month titles, calendar-cell states and dynamic editor controls.
+- Matched numeric-field line height to the input typography so the caret no longer towers over text.
 
 ### Verification status
 
