@@ -95,7 +95,7 @@ Before public beta expand Compose UI tests beyond the current startup smoke test
 :app:assembleDebugAndroidTest
 ```
 
-The local build compiled the instrumentation APK. Connected execution was attempted on API 37.0 and API 35 emulators but could not start tests because the runtime did not expose package/activity services.
+Connected execution was recorded on API 26, API 35 and API 37. Room and Compose instrumentation passed on API 26/API 35. API 37 reached the device, but the Compose smoke test failed inside Espresso before the assertion with `InputManager.getInstance`; this is tracked as AndroidX Test/API compatibility issue BUG-001.
 
 ## Release gates
 
@@ -111,4 +111,6 @@ Before public beta:
 - golden salary sheet manually reconciled;
 - TalkBack and 200% font smoke tests;
 - process-death/relaunch data checks;
-- API/device matrix in `ANDROID_QA.md` completed.
+- API 26/API 35 device matrix in `ANDROID_QA.md` completed;
+- API 37 test-stack decision documented;
+- remaining manual edge cases and TalkBack coverage completed.
