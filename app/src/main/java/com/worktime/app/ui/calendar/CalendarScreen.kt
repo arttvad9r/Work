@@ -1,12 +1,22 @@
 package com.worktime.app.ui.calendar
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,13 +47,20 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,6 +82,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,24 +103,62 @@ fun CalendarScreen(
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = summarySheetState,
     )
-    val isSummaryVisible = summarySheetState.currentValue == SheetValue.Expanded ||
-        summarySheetState.targetValue == SheetValue.Expanded
+    val scope = rememberCoroutineScope()
+    val summaryTargetExpanded = summarySheetState.targetValue == SheetValue.Expanded
+    val summaryContentAlpha by animateFloatAsState(
+        targetValue = if (summaryTargetExpanded) 1f else 0f,
+        animationSpec = if (summaryTargetExpanded) {
+            tween(durationMillis = 160, easing = FastOutSlowInEasing)
+        } else {
+            snap()
+        },
+        label = "summaryContentAlpha",
+    )
+    val closeSummaryThen: (() -> Unit) -> Unit = { action ->
+        scope.launch {
+            if (
+                summarySheetState.currentValue == SheetValue.Expanded ||
+                summarySheetState.targetValue == SheetValue.Expanded
+            ) {
+                runCatching { summarySheetState.partialExpand() }
+            }
+            action()
+        }
+    }
+    val toggleSummary = {
+        scope.launch {
+            if (
+                summarySheetState.currentValue == SheetValue.Expanded ||
+                summarySheetState.targetValue == SheetValue.Expanded
+            ) {
+                summarySheetState.partialExpand()
+            } else {
+                summarySheetState.expand()
+            }
+        }
+    }
+
     BottomSheetScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
         sheetPeekHeight = 88.dp,
-        sheetDragHandle = { SummarySheetHandle() },
+        sheetDragHandle = {
+            SummarySheetHandle(
+                expanded = summaryTargetExpanded,
+                onClick = toggleSummary,
+            )
+        },
         sheetSwipeEnabled = true,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
         sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(
-            alpha = if (isSummaryVisible) 1f else 0f,
+            alpha = summaryContentAlpha,
         ),
         sheetContent = {
             FullSummaryPanel(
                 state = state,
-                modifier = Modifier.alpha(if (isSummaryVisible) 1f else 0f),
+                modifier = Modifier.alpha(summaryContentAlpha),
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -119,14 +175,20 @@ fun CalendarScreen(
                 modifier = Modifier.height(52.dp),
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 title = {
-                    Text(
-                        text = monthTitle,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    Crossfade(
+                        targetState = monthTitle,
+                        animationSpec = tween(durationMillis = 180),
+                        label = "monthTitle",
+                    ) { title ->
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onPreviousMonth) {
+                    IconButton(onClick = { closeSummaryThen(onPreviousMonth) }) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = stringResource(R.string.previous_month),
@@ -134,13 +196,16 @@ fun CalendarScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNextMonth) {
+                    IconButton(onClick = { closeSummaryThen(onNextMonth) }) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowForward,
                             contentDescription = stringResource(R.string.next_month),
                         )
                     }
-                    IconButton(onClick = onSettingsClick, enabled = state.isReady) {
+                    IconButton(
+                        onClick = { closeSummaryThen(onSettingsClick) },
+                        enabled = state.isReady,
+                    ) {
                         Icon(
                             Icons.Rounded.Settings,
                             contentDescription = stringResource(R.string.settings),
@@ -160,14 +225,13 @@ fun CalendarScreen(
             } else {
                 CalendarCard(
                     state = state,
-                    onDayClick = onDayClick,
+                    onDayClick = { date -> closeSummaryThen { onDayClick(date) } },
                     locale = locale,
                     modifier = Modifier.height(392.dp),
                 )
-                CollapsedSummaryCard(
-                    state = state,
-                    modifier = Modifier.padding(top = 14.dp),
-                )
+                Spacer(modifier = Modifier.weight(1f))
+                CollapsedSummaryCard(state = state)
+                Spacer(modifier = Modifier.height(4.dp))
             }
         }
     }
@@ -227,22 +291,67 @@ private fun CollapsedSummaryCard(
 }
 
 @Composable
-private fun SummarySheetHandle() {
+private fun SummarySheetHandle(
+    expanded: Boolean,
+    onClick: () -> Unit,
+) {
     val description = stringResource(R.string.monthly_summary)
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val handleWidth by animateDpAsState(
+        targetValue = if (pressed) 54.dp else 48.dp,
+        animationSpec = tween(durationMillis = 120),
+        label = "summaryHandleWidth",
+    )
+    val feedbackColor by animateColorAsState(
+        targetValue = if (pressed) {
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f)
+        } else {
+            MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+        },
+        animationSpec = tween(durationMillis = 120),
+        label = "summaryHandleFeedback",
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(28.dp)
-            .semantics { contentDescription = description },
+            .height(28.dp),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .width(48.dp)
-                .height(5.dp)
+                .width(72.dp)
+                .height(24.dp)
                 .clip(RoundedCornerShape(50))
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)),
-        )
+                .background(feedbackColor)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                )
+                .clearAndSetSemantics {
+                    contentDescription = description
+                    role = Role.Button
+                    onClick {
+                        onClick()
+                        true
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(handleWidth)
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            alpha = if (expanded) 0.68f else 0.55f,
+                        ),
+                    ),
+            )
+        }
     }
 }
 
@@ -396,12 +505,17 @@ private fun DayCell(
 ) {
     val visibleEntry = entry.takeIf { isInVisibleMonth }
     val shape = RoundedCornerShape(9.dp)
-    val background = when {
+    val targetBackground = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.surfaceContainerLowest
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         visibleEntry != null -> MaterialTheme.colorScheme.secondaryContainer
         else -> MaterialTheme.colorScheme.surfaceContainerLowest
     }
+    val background by animateColorAsState(
+        targetValue = targetBackground,
+        animationSpec = tween(durationMillis = 160),
+        label = "dayCellBackground",
+    )
     val foreground = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.32f)
         isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
