@@ -47,3 +47,16 @@ fun formatMoneyMicros(
     formatter.roundingMode = RoundingMode.HALF_UP
     return formatter.format(BigDecimal.valueOf(micros, 6))
 }
+
+fun formatAmountMicros(
+    micros: Long,
+    currencyCode: String,
+    locale: Locale = Locale.getDefault(),
+): String {
+    val currency = Currency.getInstance(currencyCode)
+    val formatter = NumberFormat.getNumberInstance(locale)
+    formatter.minimumFractionDigits = 0
+    formatter.maximumFractionDigits = currency.defaultFractionDigits.takeIf { it >= 0 } ?: 2
+    formatter.roundingMode = RoundingMode.HALF_UP
+    return formatter.format(BigDecimal.valueOf(micros, 6))
+}
