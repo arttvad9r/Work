@@ -32,11 +32,14 @@ All notable changes are documented here.
 - Initial zero values now clear on focus in duration and amount fields, preventing values such as `0150`.
 - Replaced the calculation label `Base` / `База` with `At hourly rate` / `По ставке`.
 - Made the monthly report content disappear immediately when collapse starts.
-- The monthly report now closes before month navigation, day editing or settings opens.
+- Day editing, settings and month navigation now open immediately while the monthly report collapses behind the new surface.
 - Confined report-handle press feedback to the handle and removed the full-width flash/tooltip behavior.
 - Bottom-anchored the compact summary above the report handle without changing calendar geometry.
-- Added short transitions for month titles, calendar-cell states and dynamic editor controls.
+- Added short transitions for month titles and calendar-cell states while removing height animation from editor controls.
 - Matched numeric-field line height to the input typography so the caret no longer towers over text.
+- Stabilized the day editor across numeric-field focus changes by removing duplicate modal IME insets.
+- Anchored calendar date, duration and amount independently for equal top/bottom spacing and true center alignment.
+- Standardized current-month date weight and separated the expanded monthly report with a distinct surface color.
 
 ### Verification status
 
