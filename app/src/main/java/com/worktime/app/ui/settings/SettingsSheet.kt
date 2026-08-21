@@ -49,6 +49,7 @@ fun SettingsSheet(
     operationErrorMessage: String?,
     onDismiss: () -> Unit,
     onSave: (Long, ThemeMode) -> Unit,
+    onPreviewTheme: (ThemeMode) -> Unit,
 ) {
     var rate by rememberSaveable(defaultHourlyRateMicros) {
         mutableStateOf(formatDecimalMicros(defaultHourlyRateMicros))
@@ -160,7 +161,10 @@ fun SettingsSheet(
                         ThemeMode.entries.forEach { mode ->
                             FilterChip(
                                 selected = selectedTheme == mode,
-                                onClick = { selectedTheme = mode },
+                                onClick = {
+                                    selectedTheme = mode
+                                    onPreviewTheme(mode)
+                                },
                                 label = {
                                     Text(
                                         text = themeLabel(mode),
