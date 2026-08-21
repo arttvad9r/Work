@@ -20,7 +20,18 @@ class DayEditorInputFormattingTest {
     }
 
     @Test
+    fun `two digits become hours and minutes when hours would be invalid`() {
+        assertEquals("3:5", sanitizeDurationInput("35"))
+    }
+
+    @Test
     fun `explicit separator is preserved while typing`() {
+        assertEquals("3:55", sanitizeDurationInput("3:55"))
         assertEquals("5:3", sanitizeDurationInput("5:3"))
+    }
+
+    @Test
+    fun `sequential four digit input keeps minute order`() {
+        assertEquals("12:34", sanitizeDurationInput("1234"))
     }
 }
