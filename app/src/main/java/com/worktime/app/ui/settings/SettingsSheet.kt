@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.width
 import com.worktime.app.R
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.preferences.ThemeMode
+import com.worktime.app.ui.components.PlainDragHandle
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
 import com.worktime.app.ui.format.sanitizeMoneyInput
@@ -73,6 +74,7 @@ fun SettingsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        dragHandle = { PlainDragHandle() },
     ) {
         Column(
             modifier = Modifier
