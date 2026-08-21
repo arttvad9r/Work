@@ -2,100 +2,69 @@
 
 Status legend: `DONE`, `IN PROGRESS`, `NEXT`, `LATER`.
 
-## Phase 0 — specification/research — DONE
+## Phase 0 — specification and research — DONE
 
-- [x] MVP boundaries.
-- [x] Competitor research.
+- [x] MVP scope and non-goals.
 - [x] Salary formula and historical-rate rule.
 - [x] Calendar-first UX.
-- [x] Technical/data direction.
+- [x] Technical and data direction.
 
-## Phase 1 — repository/foundation — IN PROGRESS
+## Phase 1 — foundation and toolchain — DONE
 
-Implementation is complete; connected/device QA remains.
+- [x] Android/Compose single-module foundation.
+- [x] Static audit and dependency/version review.
+- [x] CI for static audit, JVM tests, lint and APK compilation.
+- [x] Gradle Wrapper 9.5.0.
+- [x] Room v1 schema JSON.
+- [x] Reproducible Nix development environment and version catalog.
 
-- [x] Repository/docs structure.
-- [x] Compose/Material 3 project source.
-- [x] Static code audit and dependency/version recheck.
-- [x] CI definition for JVM tests/lint/APK target compilation.
-- [x] Build/static-audit scripts.
-- [x] Launcher icon placeholder.
-- [x] Complete trusted Gradle Wrapper bootstrap.
-- [x] Confirm real Android build/lint result.
-- [x] Generate/commit Room v1 schema JSON.
+## Phase 2 — data and settings — DONE IN SOURCE
 
-## Phase 2 — data/settings — DONE IN SOURCE
+- [x] Room database, DAO/entity/mappers and repository boundary.
+- [x] DataStore rate/currency/theme preferences.
+- [x] Historical hourly-rate snapshots.
+- [x] Defensive money bounds and no-FX currency semantics.
+- [x] Backup/transfer exclusion rules.
+- [x] JVM and Room instrumentation test sources.
+- [x] Room instrumentation executed on API 26/API 35.
+- [ ] API 37 Room/Compose compatibility decision.
 
-- [x] Room database, DAO/entity/mappers.
-- [x] Repository boundary and month Flow.
-- [x] DataStore rate/currency/theme.
-- [x] Rate snapshot semantics.
-- [x] Defensive money bounds.
-- [x] Backup disabled.
-- [x] Repository JVM test.
-- [x] Instrumented Room test source.
-- [ ] Execute instrumented test on Android emulator/device (runtime blocked in this host).
+## Phase 3 — calendar and editor MVP — DONE IN SOURCE
 
-## Phase 3 — calendar MVP — DONE IN SOURCE
+- [x] Fixed 6×7 calendar and month navigation.
+- [x] Atomic month/data switching and readiness state.
+- [x] Create/edit/delete entries with confirmation.
+- [x] Quick-hour chips, notes, bonus and penalty fields.
+- [x] Salary/hours/shift summary and calculation breakdown.
+- [x] English/Russian resources and system/light/dark themes.
+- [x] Loading, empty, validation and recoverable-error states.
+- [ ] Full device visual/accessibility verification.
 
-- [x] Fixed 6×7 grid.
-- [x] Previous/next month navigation.
-- [x] Month+entries atomic state.
-- [x] Loading/readiness state.
-- [x] Today/selected/filled states.
-- [x] Localized month/weekday labels.
-- [x] Summary with base/bonus/penalty breakdown.
-- [x] Day TalkBack semantics in source.
-- [ ] Device visual/accessibility verification.
-- [ ] Swipe/month motion only if usability evidence justifies it.
+## Phase 4 — QA hardening — IN PROGRESS
 
-## Phase 4 — day editor MVP — DONE IN SOURCE
+- [x] Static audit.
+- [x] JVM tests.
+- [x] Android lint.
+- [x] Debug and instrumentation APK assembly.
+- [x] API 26/API 35 instrumentation.
+- [x] API 35 manual core flow and persistence smoke.
+- [ ] API 37 Compose smoke compatibility.
+- [ ] Manual edge cases and full edit/save coverage.
+- [ ] TalkBack speech verification.
+- [ ] 200% font-scale/small-screen review.
+- [ ] Process-death/rotation matrix completion.
 
-- [x] Create/edit/delete persistent record.
-- [x] Quick durations.
-- [x] Inline duration/money validation.
-- [x] Positive rate requirement for worked time.
-- [x] Bonus/penalty/note.
-- [x] Exact live total.
-- [x] Delete confirmation.
-- [x] Draft saveable across configuration recreation.
-- [x] Generic persistence error state keeps draft open.
-- [ ] Process-death/device verification.
-- [ ] Compose UI instrumentation tests.
+## Phase 5 — beta and release — LATER
 
-## Phase 5 — settings/polish — DONE IN SOURCE / QA PENDING
-
-- [x] Default rate.
-- [x] ISO currency validation.
-- [x] Explicit no-FX currency warning.
-- [x] System/light/dark theme.
-- [x] Vertical/horizontal scroll hardening for large layouts.
-- [ ] Full TalkBack/200% font/small-screen pass.
-- [ ] Final adaptive launcher icon/store visual polish.
-
-## Phase 6 — Android QA/hardening — NEXT
-
-- [x] Full Android build green.
-- [ ] Lint report reviewed.
-- [ ] Instrumented Room test executed.
-- [ ] Compose critical-flow tests.
-- [ ] API 26 / 31+ / 37 device matrix.
-- [ ] Process-death/relaunch checks.
-- [ ] Performance/startup/ANR check.
-- [ ] `ANDROID_QA.md` completed (runtime/device verification pending).
-
-## Phase 7 — beta/Play release — LATER
-
-- [ ] Release signing/configuration.
+- [ ] Final adaptive launcher/store assets.
+- [ ] Release signing and signed artifact verification.
+- [ ] Privacy/Data Safety review from the release build.
 - [ ] Internal test release.
-- [ ] Closed beta.
-- [ ] Store listing/screenshots/final icon.
-- [ ] Privacy policy + Data Safety.
-- [ ] Play pre-launch report.
+- [ ] Closed beta and pre-launch report.
 
 ## Post-MVP candidates
 
-Only after beta evidence:
+Only after the release gates pass:
 
 - CSV/PDF export;
 - manual backup/restore;
@@ -103,8 +72,8 @@ Only after beta evidence:
 - planned monthly hours;
 - richer analytics;
 - cloud sync;
-- per-entry/multi-currency support if users actually need it.
+- per-entry/multi-currency support if validated.
 
 ## Scope guardrail
 
-Do not add timer/clock-in, schedule generation, teams, cloud sync or advanced payroll engines before current MVP passes Android build/device release gates.
+Do not add timer/clock-in, shift generation, teams, cloud sync or advanced payroll rules before the current MVP passes the remaining QA and release gates.
