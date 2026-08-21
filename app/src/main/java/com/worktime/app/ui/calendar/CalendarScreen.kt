@@ -25,19 +25,19 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,11 +48,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
-import com.worktime.app.ui.format.formatMoneyMicros
 import com.worktime.app.ui.format.formatAmountMicros
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -77,47 +75,18 @@ fun CalendarScreen(
 ) {
     val locale = LocalLocale.current.platformLocale
     val monthTitle = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
-    val scope = rememberCoroutineScope()
-    val bottomSheetState = rememberBottomSheetScaffoldState(
-        bottomSheetState = rememberStandardBottomSheetState(
-            initialValue = SheetValue.PartiallyExpanded,
-            skipHiddenState = true,
-        ),
-    )
+    var isSummaryOpen by rememberSaveable { mutableStateOf(false) }
 
-    BottomSheetScaffold(
-        scaffoldState = bottomSheetState,
+    Surface(
         modifier = modifier,
-        sheetPeekHeight = 56.dp,
-        sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        sheetContainerColor = MaterialTheme.colorScheme.surface,
-        sheetContent = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .clickable {
-                            scope.launch { bottomSheetState.bottomSheetState.expand() }
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(48.dp)
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(50))
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant),
-                    )
-                }
-                FullSummaryPanel(state = state)
-            }
-        },
-        topBar = {
+        color = MaterialTheme.colorScheme.background,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
@@ -149,16 +118,6 @@ fun CalendarScreen(
                     }
                 },
             )
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 12.dp)
-                .padding(bottom = 52.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
             if (!state.isReady) {
                 Box(
                     modifier = Modifier
@@ -177,11 +136,18 @@ fun CalendarScreen(
                 )
                 CollapsedSummaryCard(
                     state = state,
-                    onExpand = {
-                        scope.launch { bottomSheetState.bottomSheetState.expand() }
-                    },
                 )
+                SummarySheetHandle(onClick = { isSummaryOpen = true })
             }
+        }
+    }
+
+    if (isSummaryOpen) {
+        ModalBottomSheet(
+            onDismissRequest = { isSummaryOpen = false },
+            dragHandle = null,
+        ) {
+            FullSummaryPanel(state = state)
         }
     }
 }
@@ -212,43 +178,46 @@ private fun CalendarCard(
 @Composable
 private fun CollapsedSummaryCard(
     state: CalendarUiState,
-    onExpand: () -> Unit,
 ) {
     val summary = state.summary
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(132.dp),
+            .height(120.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(24.dp),
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(16.dp)
-                    .clickable(onClick = onExpand),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(48.dp)
-                        .height(5.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.55f)),
-                )
-            }
             SummaryRow(stringResource(R.string.shift_count_label), summary.shiftCount.toString())
             SummaryRow(stringResource(R.string.worked_duration), formatDurationClock(summary.workedMinutes))
             SummaryRow(
                 stringResource(R.string.monthly_income),
-                formatAmountMicros(summary.totalPayMicros, state.currencyCode),
+                formatAmountMicros(summary.totalPayMicros),
                 emphasized = true,
             )
         }
+    }
+}
+
+@Composable
+private fun SummarySheetHandle(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(28.dp)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(48.dp)
+                .height(5.dp)
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)),
+        )
     }
 }
 
@@ -259,11 +228,11 @@ private fun FullSummaryPanel(state: CalendarUiState) {
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(bottom = 16.dp),
+            .padding(horizontal = 24.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         Text(
-            text = stringResource(R.string.monthly_income),
+            text = "Сводка за месяц",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -272,19 +241,19 @@ private fun FullSummaryPanel(state: CalendarUiState) {
         if (summary.bonusMicros > 0L) {
             SummaryRow(
                 stringResource(R.string.calculation_bonus),
-                "+${formatAmountMicros(summary.bonusMicros, state.currencyCode)}",
+                "+${formatAmountMicros(summary.bonusMicros)}",
             )
         }
         if (summary.penaltyMicros > 0L) {
             SummaryRow(
                 stringResource(R.string.calculation_penalty),
-                "−${formatAmountMicros(summary.penaltyMicros, state.currencyCode)}",
+                "−${formatAmountMicros(summary.penaltyMicros)}",
             )
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SummaryRow(
-            stringResource(R.string.monthly_income),
-            formatAmountMicros(summary.totalPayMicros, state.currencyCode),
+            "Итого",
+            formatAmountMicros(summary.totalPayMicros),
             emphasized = true,
         )
     }
@@ -367,7 +336,6 @@ private fun CalendarGrid(
                             DayCell(
                                 date = date,
                                 entry = state.entries[date],
-                                currencyCode = state.currencyCode,
                                 isInVisibleMonth = isInVisibleMonth,
                                 isToday = date == today,
                                 isSelected = date == state.selectedDate,
@@ -386,7 +354,6 @@ private fun CalendarGrid(
 private fun DayCell(
     date: LocalDate,
     entry: WorkEntry?,
-    currencyCode: String,
     isInVisibleMonth: Boolean,
     isToday: Boolean,
     isSelected: Boolean,
@@ -419,7 +386,7 @@ private fun DayCell(
             append(", ").append(formatDuration(entry.workedMinutes))
         }
         if (totalMicros != null) {
-            append(", ").append(formatMoneyMicros(totalMicros, currencyCode, locale))
+            append(", ").append(formatAmountMicros(totalMicros, locale))
         }
         if (entry?.bonusMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_bonus))
         if (entry?.penaltyMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_penalty))
