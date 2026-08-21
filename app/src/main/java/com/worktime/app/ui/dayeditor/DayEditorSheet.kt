@@ -389,7 +389,7 @@ private fun formatDurationInput(workedMinutes: Int): String {
     return formatDurationCompact(workedMinutes)
 }
 
-private fun sanitizeDurationInput(value: String): String {
+internal fun sanitizeDurationInput(value: String): String {
     val filtered = value.filter { it.isDigit() || it == ':' }
     val firstColon = filtered.indexOf(':')
     if (firstColon >= 0) {
@@ -399,7 +399,11 @@ private fun sanitizeDurationInput(value: String): String {
     }
 
     val digits = filtered.filter(Char::isDigit).take(4)
-    return if (digits.length <= 2) digits else "${digits.take(2)}:${digits.drop(2)}"
+    return when (digits.length) {
+        0, 1, 2 -> digits
+        3 -> "${digits.take(1)}:${digits.drop(1)}"
+        else -> "${digits.take(2)}:${digits.drop(2)}"
+    }
 }
 
 private fun parseDurationInput(text: String): DurationInput? {
