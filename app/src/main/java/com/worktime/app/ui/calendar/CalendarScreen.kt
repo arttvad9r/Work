@@ -125,7 +125,7 @@ fun CalendarScreen(
             action()
         }
     }
-    val toggleSummary = {
+    val toggleSummary: () -> Unit = {
         scope.launch {
             if (
                 summarySheetState.currentValue == SheetValue.Expanded ||
