@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -98,12 +100,14 @@ fun CalendarScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(innerPadding)
-                .padding(horizontal = 12.dp)
-                .padding(bottom = 60.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             CenterAlignedTopAppBar(
+                modifier = Modifier.height(52.dp),
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 title = {
                     Text(
                         text = monthTitle,
@@ -148,7 +152,7 @@ fun CalendarScreen(
                     state = state,
                     onDayClick = onDayClick,
                     locale = locale,
-                    modifier = Modifier.height(456.dp),
+                    modifier = Modifier.height(392.dp),
                 )
                 CollapsedSummaryCard(
                     state = state,
@@ -245,7 +249,7 @@ private fun FullSummaryPanel(
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                text = stringResource(R.string.monthly_summary),
+                text = "${stringResource(R.string.monthly_summary)}:",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
