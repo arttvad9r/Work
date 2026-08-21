@@ -42,11 +42,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
@@ -96,9 +98,20 @@ fun CalendarScreen(
         bottomSheetState = summarySheetState,
     )
     val scope = rememberCoroutineScope()
-    val summaryContentVisible =
-        summarySheetState.currentValue == SheetValue.Expanded &&
+    var showSummaryContent by remember { mutableStateOf(false) }
+    LaunchedEffect(summarySheetState.targetValue) {
+        if (summarySheetState.targetValue != SheetValue.Expanded) {
+            showSummaryContent = false
+        }
+    }
+    LaunchedEffect(summarySheetState.currentValue, summarySheetState.targetValue) {
+        if (
+            summarySheetState.currentValue == SheetValue.Expanded &&
             summarySheetState.targetValue == SheetValue.Expanded
+        ) {
+            showSummaryContent = true
+        }
+    }
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
         val shouldCollapse =
             summarySheetState.currentValue == SheetValue.Expanded ||
@@ -134,16 +147,21 @@ fun CalendarScreen(
                 ) {
                     PlainDragHandle()
                 }
-                // Keep the full content measured at every state. Removing it from
-                // composition changes the sheet anchor and breaks drag expansion.
-                // Alpha hides the collapsed panel immediately without affecting size.
-                Surface(
+                // Reserve a stable full-panel height so the scaffold can calculate
+                // the expanded anchor, while rendering the summary only when expanded.
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .alpha(if (summaryContentVisible) 1f else 0f),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        .height(300.dp),
                 ) {
-                    FullSummaryPanel(state = state)
+                    if (showSummaryContent) {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            FullSummaryPanel(state = state)
+                        }
+                    }
                 }
             }
         },
