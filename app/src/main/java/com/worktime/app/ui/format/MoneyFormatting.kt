@@ -3,7 +3,6 @@ package com.worktime.app.ui.format
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
-import java.util.Currency
 import java.util.Locale
 
 private val DECIMAL_INPUT_PATTERN = Regex("^(?:\\d+(?:\\.\\d*)?|\\.\\d+)$")
@@ -34,29 +33,13 @@ fun formatDecimalMicros(micros: Long): String = BigDecimal.valueOf(micros, 6)
     .stripTrailingZeros()
     .toPlainString()
 
-fun formatMoneyMicros(
-    micros: Long,
-    currencyCode: String,
-    locale: Locale = Locale.getDefault(),
-): String {
-    val currency = Currency.getInstance(currencyCode)
-    val formatter = NumberFormat.getCurrencyInstance(locale)
-    formatter.currency = currency
-    formatter.minimumFractionDigits = 0
-    formatter.maximumFractionDigits = currency.defaultFractionDigits.takeIf { it >= 0 } ?: 2
-    formatter.roundingMode = RoundingMode.HALF_UP
-    return formatter.format(BigDecimal.valueOf(micros, 6))
-}
-
 fun formatAmountMicros(
     micros: Long,
-    currencyCode: String,
     locale: Locale = Locale.getDefault(),
 ): String {
-    val currency = Currency.getInstance(currencyCode)
     val formatter = NumberFormat.getNumberInstance(locale)
     formatter.minimumFractionDigits = 0
-    formatter.maximumFractionDigits = currency.defaultFractionDigits.takeIf { it >= 0 } ?: 2
+    formatter.maximumFractionDigits = 6
     formatter.roundingMode = RoundingMode.HALF_UP
     return formatter.format(BigDecimal.valueOf(micros, 6))
 }
