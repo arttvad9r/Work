@@ -205,7 +205,6 @@ fun DayEditorSheet(
                     onValueChange = { duration = sanitizeDurationInput(it) },
                     label = stringResource(R.string.worked),
                     isError = durationError != null,
-                    supportingText = durationError,
                     modifier = Modifier.weight(1f),
                 )
                 MoneyField(
@@ -213,7 +212,6 @@ fun DayEditorSheet(
                     onValueChange = { rate = sanitizeMoneyInput(it) },
                     label = stringResource(R.string.hourly_rate),
                     isError = rateError != null,
-                    supportingText = rateError,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -250,7 +248,6 @@ fun DayEditorSheet(
                             onValueChange = { bonus = sanitizeMoneyInput(it) },
                             label = stringResource(R.string.bonus),
                             isError = bonusError != null,
-                            supportingText = bonusError,
                             modifier = Modifier.focusRequester(bonusFocusRequester),
                         )
                     } else {
@@ -270,7 +267,6 @@ fun DayEditorSheet(
                             onValueChange = { penalty = sanitizeMoneyInput(it) },
                             label = stringResource(R.string.penalty),
                             isError = penaltyError != null,
-                            supportingText = penaltyError,
                             modifier = Modifier.focusRequester(penaltyFocusRequester),
                         )
                     } else {
@@ -479,7 +475,6 @@ private fun DurationField(
     onValueChange: (String) -> Unit,
     label: String,
     isError: Boolean,
-    supportingText: String?,
     modifier: Modifier = Modifier,
 ) {
     var fieldValue by remember(value) {
@@ -530,7 +525,6 @@ private fun MoneyField(
     onValueChange: (String) -> Unit,
     label: String,
     isError: Boolean,
-    supportingText: String?,
     modifier: Modifier = Modifier,
 ) {
     var fieldValue by remember(value) {
