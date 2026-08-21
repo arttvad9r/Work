@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -24,7 +25,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -53,6 +53,7 @@ import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.format.formatMoneyMicros
+import com.worktime.app.ui.format.formatAmountMicros
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
@@ -87,25 +88,31 @@ fun CalendarScreen(
     BottomSheetScaffold(
         scaffoldState = bottomSheetState,
         modifier = modifier,
-        sheetPeekHeight = 44.dp,
+        sheetPeekHeight = 56.dp,
         sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         sheetContainerColor = MaterialTheme.colorScheme.surface,
         sheetContent = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
                     .padding(horizontal = 16.dp),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(56.dp)
                         .clickable {
                             scope.launch { bottomSheetState.bottomSheetState.expand() }
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    BottomSheetDefaults.DragHandle()
+                    Box(
+                        modifier = Modifier
+                            .width(48.dp)
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant),
+                    )
                 }
                 FullSummaryPanel(state = state)
             }
@@ -168,7 +175,12 @@ fun CalendarScreen(
                     locale = locale,
                     modifier = Modifier.height(428.dp),
                 )
-                CollapsedSummaryCard(state = state)
+                CollapsedSummaryCard(
+                    state = state,
+                    onExpand = {
+                        scope.launch { bottomSheetState.bottomSheetState.expand() }
+                    },
+                )
             }
         }
     }
@@ -200,6 +212,7 @@ private fun CalendarCard(
 @Composable
 private fun CollapsedSummaryCard(
     state: CalendarUiState,
+    onExpand: () -> Unit,
 ) {
     val summary = state.summary
     Card(
@@ -213,11 +226,26 @@ private fun CollapsedSummaryCard(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(16.dp)
+                    .clickable(onClick = onExpand),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(48.dp)
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.55f)),
+                )
+            }
             SummaryRow(stringResource(R.string.shift_count_label), summary.shiftCount.toString())
             SummaryRow(stringResource(R.string.worked_duration), formatDurationClock(summary.workedMinutes))
             SummaryRow(
                 stringResource(R.string.monthly_income),
-                formatMoneyMicros(summary.totalPayMicros, state.currencyCode),
+                formatAmountMicros(summary.totalPayMicros, state.currencyCode),
                 emphasized = true,
             )
         }
@@ -230,6 +258,7 @@ private fun FullSummaryPanel(state: CalendarUiState) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .navigationBarsPadding()
             .padding(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp),
     ) {
@@ -243,19 +272,19 @@ private fun FullSummaryPanel(state: CalendarUiState) {
         if (summary.bonusMicros > 0L) {
             SummaryRow(
                 stringResource(R.string.calculation_bonus),
-                "+${formatMoneyMicros(summary.bonusMicros, state.currencyCode)}",
+                "+${formatAmountMicros(summary.bonusMicros, state.currencyCode)}",
             )
         }
         if (summary.penaltyMicros > 0L) {
             SummaryRow(
                 stringResource(R.string.calculation_penalty),
-                "−${formatMoneyMicros(summary.penaltyMicros, state.currencyCode)}",
+                "−${formatAmountMicros(summary.penaltyMicros, state.currencyCode)}",
             )
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         SummaryRow(
             stringResource(R.string.monthly_income),
-            formatMoneyMicros(summary.totalPayMicros, state.currencyCode),
+            formatAmountMicros(summary.totalPayMicros, state.currencyCode),
             emphasized = true,
         )
     }
@@ -274,16 +303,16 @@ private fun SummaryRow(
     ) {
         Text(
             text = label,
-            style = if (emphasized) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Normal,
+            fontWeight = FontWeight.Normal,
             maxLines = 1,
         )
         Text(
             text = value,
-            style = if (emphasized) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
+            fontWeight = FontWeight.Normal,
             maxLines = 1,
         )
     }
@@ -496,10 +525,11 @@ private fun formatCellDuration(minutes: Int): String {
     return if (remainder == 0) hours.toString() else "%d:%02d".format(hours, remainder)
 }
 
-private fun formatDurationClock(minutes: Int): String = "%d:%02d".format(
-    minutes / 60,
-    minutes % 60,
-)
+private fun formatDurationClock(minutes: Int): String {
+    val hours = minutes / 60
+    val remainder = minutes % 60
+    return if (remainder == 0) hours.toString() else "%d:%02d".format(hours, remainder)
+}
 
 private fun formatCellMoney(micros: Long, locale: Locale): String {
     return NumberFormat.getNumberInstance(locale).apply {
