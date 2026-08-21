@@ -9,12 +9,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
@@ -111,10 +108,9 @@ fun CalendarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 12.dp)
-                .padding(bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (!state.isReady) {
                 Box(
@@ -126,7 +122,12 @@ fun CalendarScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                CalendarCard(state = state, onDayClick = onDayClick, locale = locale)
+                CalendarCard(
+                    state = state,
+                    onDayClick = onDayClick,
+                    locale = locale,
+                    modifier = Modifier.weight(1f),
+                )
                 MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
                 if (state.entries.isEmpty()) {
                     EmptyMonthState(
@@ -144,14 +145,17 @@ private fun CalendarCard(
     state: CalendarUiState,
     onDayClick: (LocalDate) -> Unit,
     locale: Locale,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
@@ -171,8 +175,8 @@ private fun MonthSummaryCard(
         shape = RoundedCornerShape(24.dp),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -187,7 +191,7 @@ private fun MonthSummaryCard(
                 )
                 Text(
                     text = formatMoneyMicros(summary.totalPayMicros, state.currencyCode),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -201,13 +205,13 @@ private fun MonthSummaryCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 KpiMetric(
-                    label = stringResource(R.string.worked_duration),
-                    value = formatDuration(summary.workedMinutes),
+                    label = stringResource(R.string.shift_count_label),
+                    value = summary.shiftCount.toString(),
                     modifier = Modifier.weight(1f),
                 )
                 KpiMetric(
-                    label = stringResource(R.string.shift_count_label),
-                    value = summary.shiftCount.toString(),
+                    label = stringResource(R.string.worked_duration),
+                    value = formatDuration(summary.workedMinutes),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -316,42 +320,56 @@ private fun CalendarGrid(
     locale: Locale,
 ) {
     val weekdays = (0 until 7).map { DayOfWeek.MONDAY.plus(it.toLong()) }
-    Row(modifier = Modifier.fillMaxWidth()) {
-        weekdays.forEach { day ->
-            Text(
-                text = day.getDisplayName(TextStyle.SHORT, locale),
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-            )
-        }
-    }
-
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
-
     val firstDay = state.visibleMonth.atDay(1)
     val gridStart = firstDay.minusDays((firstDay.dayOfWeek.value - 1).toLong())
     val cells = (0L until 42L).map { offset -> gridStart.plusDays(offset) }
     val today = LocalDate.now()
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        cells.chunked(7).forEach { week ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                week.forEach { date ->
-                    val isInVisibleMonth = YearMonth.from(date) == state.visibleMonth
-                    Box(modifier = Modifier.weight(1f)) {
-                        DayCell(
-                            date = date,
-                            entry = state.entries[date],
-                            currencyCode = state.currencyCode,
-                            isInVisibleMonth = isInVisibleMonth,
-                            isToday = date == today,
-                            isSelected = date == state.selectedDate,
-                            onClick = { onDayClick(date) },
-                            locale = locale,
-                        )
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            weekdays.forEach { day ->
+                Text(
+                    text = day.getDisplayName(TextStyle.SHORT, locale),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            cells.chunked(7).forEach { week ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                ) {
+                    week.forEach { date ->
+                        val isInVisibleMonth = YearMonth.from(date) == state.visibleMonth
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxSize(),
+                        ) {
+                            DayCell(
+                                date = date,
+                                entry = state.entries[date],
+                                currencyCode = state.currencyCode,
+                                isInVisibleMonth = isInVisibleMonth,
+                                isToday = date == today,
+                                isSelected = date == state.selectedDate,
+                                onClick = { onDayClick(date) },
+                                locale = locale,
+                            )
+                        }
                     }
                 }
             }
@@ -405,8 +423,7 @@ private fun DayCell(
     Column(
         modifier = Modifier
             .padding(1.dp)
-            .fillMaxWidth()
-            .height(60.dp)
+            .fillMaxSize()
             .clip(shape)
             .background(background)
             .border(
