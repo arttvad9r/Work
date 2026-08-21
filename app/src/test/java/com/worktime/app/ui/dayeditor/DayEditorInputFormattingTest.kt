@@ -10,6 +10,11 @@ class DayEditorInputFormattingTest {
     }
 
     @Test
+    fun `three digits preserve valid two digit hours while typing`() {
+        assertEquals("12:0", sanitizeDurationInput("120"))
+    }
+
+    @Test
     fun `four digits are interpreted as two hour digits and two minute digits`() {
         assertEquals("15:30", sanitizeDurationInput("1530"))
     }
