@@ -1,10 +1,10 @@
-# Static audit — 20 August 2026
+# Static audit — 21 August 2026
 
 ## Scope
 
 A full non-device pass was performed across build configuration, domain/data logic, persistence, ViewModel state, Compose UI, resources/localization, privacy configuration, tests, CI and repository documentation.
 
-This audit deliberately does **not** claim an Android build, emulator run or physical-device result.
+The static pass is supplemented by the build and device evidence recorded in `docs/CODE_AUDIT.md`, `docs/DEVICE_QA_REPORT.md` and `docs/PRODUCTION_BASELINE_REPORT.md`.
 
 ## Dependency/toolchain verification
 
@@ -71,22 +71,15 @@ Currency is a **global accounting/display unit**, not an exchange-rate subsystem
 
 ## Remaining Android-environment work
 
-- real AGP/KSP/Compose build and lint;
-- generate/commit Room v1 schema JSON;
-- execute Room instrumentation test;
-- Compose UI tests;
-- TalkBack/200% font/small-screen/theme pass;
-- rotation/process-death/relaunch checks;
-- startup/performance/ANR profiling;
-- launcher rendering and backup/D2D behavior verification on target devices.
-
-## Known tooling limitation
-
-A complete Gradle Wrapper cannot be committed from the current environment because its binary JAR cannot be safely generated/retrieved here. CI pins Gradle 9.5.0 directly; `BUILD.md` documents the trusted bootstrap procedure.
+- API 37 Compose smoke compatibility decision;
+- manual edge-case flows and full edit/save coverage;
+- TalkBack speech verification;
+- comprehensive 200% font-scale/small-screen review;
+- final adaptive launcher/store assets and release signing.
 
 ## Conclusion
 
-After these fixes, no additional high-confidence non-Android correctness defect was identified in the reviewed code. The next useful evidence is a real Android build/device pass rather than speculative feature/refactor work.
+After these fixes, no additional high-confidence product correctness defect was identified in the reviewed code. The remaining blocker is AndroidX Test/Espresso compatibility on API 37 plus incomplete manual/accessibility coverage.
 
 ## Follow-up execution — 21 August 2026
 
