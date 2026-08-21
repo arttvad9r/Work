@@ -272,14 +272,6 @@ fun DayEditorSheet(
                 totalMicros = totalMicros,
             )
 
-            if (operationErrorMessage != null) {
-                Text(
-                    text = operationErrorMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
             Button(
                 onClick = { draft?.let(onSave) },
                 enabled = draft != null && totalMicros != null,
