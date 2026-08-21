@@ -2,54 +2,61 @@
 
 Audit date: 21 August 2026  
 Scope: draft PR `feat/compact-modern-interface`  
-Current code fix commit reviewed: `7625a1af076b3aba800c0f61959de1f5cb4a04d1`
+Current reviewed head: `105ab08d7461e04a556a6f9e87a2aa2c0a8a2ef3`
 
 ## Findings fixed
 
-### Build correctness
-
-- Restored a missing `androidx.compose.foundation.clickable` import used by calendar day cells.
-- Updated formatter tests from removed `formatMoneyMicros` to `formatAmountMicros`.
-- Added pure tests for compact duration formatting and three/four-digit duration input.
-
 ### Product consistency
 
-- Removed currency from preferences, repository contracts, UI state, settings, editor, calculations and localized copy.
-- Kept old DataStore currency data ignored rather than introducing a destructive migration.
-- Confirmed notes and quick-duration controls remain intentionally absent.
-- Updated calculation terminology from `Base` / `База` to `At hourly rate` / `По ставке`.
+- Currency is removed from preferences, repository contracts, UI state, settings, editor, calculations and localized copy.
+- Old persisted currency data is ignored without a destructive migration.
+- Notes and quick-duration controls remain intentionally absent.
+- Calculation terminology uses `At hourly rate` / `По ставке`.
+- Empty calculation no longer shows a dash.
+- Monthly summary uses `Отработано часов`.
 
 ### Layout and interaction
 
-- Calendar is no longer nested in a vertical scroll container.
-- The grid uses a fixed six-row geometry and the available stable viewport space.
-- Fixed summary has a constant 112 dp height.
-- Detailed report uses the standard Material 3 bottom-sheet scaffold with native drag/tap behavior and a single handle.
-- Settings rate input is constrained to 120 dp instead of filling the sheet.
-- Day-editor values are centered and zero-prefilled amount fields clear on focus.
+- Calendar uses fixed six-row geometry and does not scroll vertically.
+- Calendar position is independent of entries, keyboard state and report content.
+- Adjacent-month dates are faint and inactive.
+- Filled-cell duration and amount are centered; adjustment markers use centered equal markers.
+- Fixed summary contains only work days, worked hours and monthly income.
+- Monthly report is a separate draggable bottom sheet with one handle, one concise breakdown and no report/export actions.
+- The report handle has a reserved bottom peek above system navigation.
+- Day-editor duration and rate share one row and remain centered in focused/unfocused states.
+- Duration input is labeled with the hours/minutes format and shows an example placeholder.
+- Expanding bonus or penalty focuses the newly shown input immediately and preserves bonus-before-penalty order.
+- Settings rate input remains compact and theme chips fit on one row.
+- Light/dark/system theme selection previews immediately; persistence occurs only through Save and dismissal restores the saved theme.
 
 ### Formatting
 
-- Duration output omits redundant minutes.
-- Neutral amount output omits a zero fractional part and preserves non-zero precision.
-- Calendar cell values no longer include currency symbols or hour suffixes.
+- Duration output is `0`, whole hours, or `hours:minutes`; redundant `:00` is omitted.
+- Neutral amounts omit a zero fractional part and preserve explicitly entered non-zero precision.
+- Calendar and editor values contain no currency symbols.
 
-## Checks completed in this workspace
+## Checks completed
 
 - EN and RU XML parse successfully.
-- Both locales contain the same 46 string keys.
-- Every `R.string` reference in the changed UI files resolves to a localized key.
-- No current changed source/resource file contains currency, `RUB`, `formatMoneyMicros` or `База` references.
-- Review found and corrected the missing calendar import before handoff.
+- EN/RU resources contain matching keys.
+- Changed UI `R.string` references resolve to localized keys.
+- Current source/resources contain no currency, `RUB`, `formatMoneyMicros` or `База` references.
+- Remote source inspection confirms the SettingsSheet callback and WorkTimeApp call site match.
+- Remote source inspection confirms fixed calendar dimensions, report peek reservation, duration placeholder and adjustment focus requesters.
 
-## Verification limitation
+## CI status
 
-No Android SDK/Gradle runtime was available in this workspace. The observed GitHub Actions job ended before any configured step started and returned no logs. Consequently, this audit does not claim a successful compile, test, lint, APK build, installation or physical-device run.
+GitHub Actions run `32503347603` for the reviewed head completed with failure, but its only job returned `steps: null` and no logs. It ended before any workflow step executed. This is not evidence of a compile, test, lint or APK failure, and it is not a successful build.
 
-## Remaining release risks
+## Release limitations
 
-1. Compile and test the exact current head.
-2. Verify report-sheet dragging on the target phone.
-3. Recheck small-screen/keyboard behavior with both adjustment fields expanded.
-4. Run light, dark, Russian, increased-font, rotation, relaunch and persistence QA.
-5. Do not merge the draft PR until those checks are recorded.
+No Android SDK/Gradle runtime or physical device was available for this audit. The following still require a real Android environment:
+
+1. clean compile, unit tests, lint and APK assembly;
+2. report-sheet tap/drag behavior above Android navigation;
+3. keyboard and increased-font-size layout;
+4. light/dark preview, cancel and persistence behavior on device;
+5. rotation, relaunch and process-death persistence checks.
+
+The draft PR must remain unmerged until those checks produce actual logs/results.
