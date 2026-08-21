@@ -7,6 +7,7 @@ plugins {
 android {
     namespace = "com.worktime.app"
     compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     defaultConfig {
         applicationId = "com.worktime.app"
@@ -49,39 +50,38 @@ ksp {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
-    val roomVersion = "2.8.4"
+    val composeBom = platform(libs.compose.bom)
 
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.activity.compose)
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.viewmodel.ktx)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons.extended)
 
-    implementation("androidx.room:room-runtime:$roomVersion")
-    implementation("androidx.room:room-ktx:$roomVersion")
-    ksp("androidx.room:room-compiler:$roomVersion")
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 
-    implementation("androidx.datastore:datastore-preferences:1.2.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation(libs.datastore.preferences)
+    implementation(libs.coroutines.android)
 
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.4")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.coroutines.test)
 
-    androidTestImplementation("androidx.test:core:1.7.0")
-    androidTestImplementation("androidx.test:runner:1.7.0")
-    androidTestImplementation("androidx.test.ext:junit:1.3.0")
-    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    androidTestImplementation("androidx.room:room-testing:$roomVersion")
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.coroutines.test)
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.room.testing)
 }

@@ -120,9 +120,10 @@ for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
         fail(f"Destructive Room fallback found: {kotlin_file.relative_to(ROOT)}")
 
 build_file = (APP / "build.gradle.kts").read_text(encoding="utf-8")
+catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
 if 'testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"' not in build_file:
     fail("AndroidJUnitRunner is not configured")
-if 'androidx.test:runner:1.7.0' not in build_file:
+if 'androidx.test:runner' not in build_file and 'androidx.test:runner' not in catalog_file:
     fail("Explicit androidx.test:runner dependency is missing")
 
 if failures:
