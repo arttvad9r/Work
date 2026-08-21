@@ -447,8 +447,15 @@ private fun DurationField(
     isError: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    var fieldValue by remember(value) {
+    var fieldValue by remember {
         mutableStateOf(TextFieldValue(value, TextRange(value.length)))
+    }
+    // Parent state changes after each keystroke. Only sync external changes so the
+    // platform editing session retains its cursor and does not restart the IME.
+    LaunchedEffect(value) {
+        if (value != fieldValue.text) {
+            fieldValue = TextFieldValue(value, TextRange(value.length))
+        }
     }
     OutlinedTextField(
         value = fieldValue,
@@ -496,8 +503,13 @@ private fun MoneyField(
     isError: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    var fieldValue by remember(value) {
+    var fieldValue by remember {
         mutableStateOf(TextFieldValue(value, TextRange(value.length)))
+    }
+    LaunchedEffect(value) {
+        if (value != fieldValue.text) {
+            fieldValue = TextFieldValue(value, TextRange(value.length))
+        }
     }
     OutlinedTextField(
         value = fieldValue,
