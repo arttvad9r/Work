@@ -116,11 +116,11 @@ fun CalendarScreen(
                     CircularProgressIndicator()
                 }
             } else {
+                CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
                 MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
                 if (state.entries.isEmpty()) {
                     EmptyMonthState(onSetHourlyRate = onSettingsClick, showRateAction = state.defaultHourlyRateMicros == 0L)
                 }
-                CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
             }
         }
     }
@@ -287,7 +287,7 @@ private fun CalendarGrid(
                                 locale = locale,
                             )
                         } else {
-                            Spacer(Modifier.aspectRatio(0.9f))
+                            Spacer(Modifier.aspectRatio(0.82f))
                         }
                     }
                 }
@@ -312,6 +312,12 @@ private fun DayCell(
         isToday -> MaterialTheme.colorScheme.surfaceContainerHigh
         else -> MaterialTheme.colorScheme.surface
     }
+    val dateColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+        entry != null -> MaterialTheme.colorScheme.onSecondaryContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val durationColor = MaterialTheme.colorScheme.primary
     val dateLabel = date.format(
         DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale),
     )
@@ -329,7 +335,7 @@ private fun DayCell(
     Column(
         modifier = Modifier
             .padding(2.dp)
-            .aspectRatio(0.9f)
+            .aspectRatio(0.82f)
             .clip(shape)
             .background(background)
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
@@ -340,6 +346,7 @@ private fun DayCell(
         Text(
             text = date.dayOfMonth.toString(),
             style = MaterialTheme.typography.labelLarge,
+            color = dateColor,
             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
             maxLines = 1,
         )
@@ -349,6 +356,7 @@ private fun DayCell(
                     Text(
                         text = formatDuration(entry.workedMinutes),
                         style = MaterialTheme.typography.labelMedium,
+                        color = durationColor,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                     )
