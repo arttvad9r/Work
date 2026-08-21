@@ -25,11 +25,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
@@ -78,6 +82,24 @@ fun DayEditorSheet(
     var penaltyVisible by rememberSaveable(date.toEpochDay(), existing) {
         mutableStateOf((existing?.penaltyMicros ?: 0L) > 0L)
     }
+    var focusBonusOnExpand by remember { mutableStateOf(false) }
+    var focusPenaltyOnExpand by remember { mutableStateOf(false) }
+    val bonusFocusRequester = remember { FocusRequester() }
+    val penaltyFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(focusBonusOnExpand) {
+        if (focusBonusOnExpand) {
+            bonusFocusRequester.requestFocus()
+            focusBonusOnExpand = false
+        }
+    }
+    LaunchedEffect(focusPenaltyOnExpand) {
+        if (focusPenaltyOnExpand) {
+            penaltyFocusRequester.requestFocus()
+            focusPenaltyOnExpand = false
+        }
+    }
+
     var confirmDelete by rememberSaveable(date.toEpochDay(), existing) { mutableStateOf(false) }
 
     val parsedDuration = parseDurationInput(duration)
@@ -189,7 +211,7 @@ fun DayEditorSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     OutlinedButton(
-                        onClick = { bonusVisible = true },
+                        onClick = { bonusVisible = true; focusBonusOnExpand = true },
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = 42.dp),
@@ -197,7 +219,7 @@ fun DayEditorSheet(
                         Text(stringResource(R.string.add_bonus), maxLines = 1)
                     }
                     OutlinedButton(
-                        onClick = { penaltyVisible = true },
+                        onClick = { penaltyVisible = true; focusPenaltyOnExpand = true },
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = 42.dp),
@@ -214,6 +236,7 @@ fun DayEditorSheet(
                             label = stringResource(R.string.bonus),
                             isError = bonusError != null,
                             supportingText = bonusError,
+                            modifier = Modifier.focusRequester(bonusFocusRequester),
                         )
                     } else {
                         OutlinedButton(
@@ -233,6 +256,7 @@ fun DayEditorSheet(
                             label = stringResource(R.string.penalty),
                             isError = penaltyError != null,
                             supportingText = penaltyError,
+                            modifier = Modifier.focusRequester(penaltyFocusRequester),
                         )
                     } else {
                         OutlinedButton(
