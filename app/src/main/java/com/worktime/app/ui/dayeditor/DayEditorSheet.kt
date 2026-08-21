@@ -431,7 +431,14 @@ internal fun sanitizeDurationInput(value: String): String {
     val digits = filtered.filter(Char::isDigit).take(4)
     return when (digits.length) {
         0, 1, 2 -> digits
-        3 -> "${digits.take(1)}:${digits.drop(1)}"
+        3 -> {
+            val twoDigitHours = digits.take(2).toInt()
+            if (twoDigitHours <= 24) {
+                "${digits.take(2)}:${digits.drop(2)}"
+            } else {
+                "${digits.take(1)}:${digits.drop(1)}"
+            }
+        }
         else -> "${digits.take(2)}:${digits.drop(2)}"
     }
 }
