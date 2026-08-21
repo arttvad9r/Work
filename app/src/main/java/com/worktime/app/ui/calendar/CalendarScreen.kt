@@ -1,6 +1,7 @@
 package com.worktime.app.ui.calendar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,30 +21,37 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
+import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.calendar.MonthGrid
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.format.formatMoneyMicros
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.text.NumberFormat
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -67,8 +75,14 @@ fun CalendarScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(monthTitle, fontWeight = FontWeight.SemiBold) },
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = monthTitle,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onPreviousMonth) {
                         Icon(
@@ -84,10 +98,7 @@ fun CalendarScreen(
                             contentDescription = stringResource(R.string.next_month),
                         )
                     }
-                    IconButton(
-                        onClick = onSettingsClick,
-                        enabled = state.isReady,
-                    ) {
+                    IconButton(onClick = onSettingsClick, enabled = state.isReady) {
                         Icon(
                             Icons.Rounded.Settings,
                             contentDescription = stringResource(R.string.settings),
@@ -102,9 +113,9 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (!state.isReady) {
                 Box(
@@ -116,12 +127,35 @@ fun CalendarScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
+                CalendarCard(state = state, onDayClick = onDayClick, locale = locale)
                 MonthSummaryCard(state = state, onSetHourlyRate = onSettingsClick)
                 if (state.entries.isEmpty()) {
-                    EmptyMonthState(onSetHourlyRate = onSettingsClick, showRateAction = state.defaultHourlyRateMicros == 0L)
+                    EmptyMonthState(
+                        onSetHourlyRate = onSettingsClick,
+                        showRateAction = state.defaultHourlyRateMicros == 0L,
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CalendarCard(
+    state: CalendarUiState,
+    onDayClick: (LocalDate) -> Unit,
+    locale: Locale,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
         }
     }
 }
@@ -132,24 +166,38 @@ private fun MonthSummaryCard(
     onSetHourlyRate: () -> Unit,
 ) {
     val summary = state.summary
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = RoundedCornerShape(24.dp),
+    ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                text = stringResource(R.string.monthly_income),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = formatMoneyMicros(summary.totalPayMicros, state.currencyCode),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text(
+                    text = stringResource(R.string.monthly_income),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Text(
+                    text = formatMoneyMicros(summary.totalPayMicros, state.currencyCode),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.14f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 KpiMetric(
                     label = stringResource(R.string.worked_duration),
@@ -165,32 +213,26 @@ private fun MonthSummaryCard(
 
             if (summary.bonusMicros > 0L || summary.penaltyMicros > 0L) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
+                    SummaryLine(
                         stringResource(
                             R.string.base_pay_value,
                             formatMoneyMicros(summary.basePayMicros, state.currencyCode),
                         ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (summary.bonusMicros > 0L) {
-                        Text(
+                        SummaryLine(
                             stringResource(
                                 R.string.bonus_value,
                                 formatMoneyMicros(summary.bonusMicros, state.currencyCode),
                             ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     if (summary.penaltyMicros > 0L) {
-                        Text(
+                        SummaryLine(
                             stringResource(
                                 R.string.penalty_value,
                                 formatMoneyMicros(summary.penaltyMicros, state.currencyCode),
                             ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -206,18 +248,32 @@ private fun MonthSummaryCard(
 }
 
 @Composable
+private fun SummaryLine(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
+    )
+}
+
+@Composable
 private fun KpiMetric(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
         )
-        Text(text = value, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -226,25 +282,27 @@ private fun EmptyMonthState(
     onSetHourlyRate: () -> Unit,
     showRateAction: Boolean,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.empty_month_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = stringResource(R.string.empty_month_message),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (showRateAction) {
-                TextButton(onClick = onSetHourlyRate) {
-                    Text(stringResource(R.string.set_hourly_rate))
-                }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.empty_month_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = stringResource(R.string.empty_month_message),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        if (showRateAction) {
+            TextButton(onClick = onSetHourlyRate) {
+                Text(stringResource(R.string.set_hourly_rate))
             }
         }
     }
@@ -265,14 +323,17 @@ private fun CalendarGrid(
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
                 maxLines = 1,
             )
         }
     }
 
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+
     val cells = MonthGrid.build(state.visibleMonth)
     val today = LocalDate.now()
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         cells.chunked(7).forEach { week ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 week.forEach { date ->
@@ -281,13 +342,14 @@ private fun CalendarGrid(
                             DayCell(
                                 date = date,
                                 entry = state.entries[date],
+                                currencyCode = state.currencyCode,
                                 isToday = date == today,
                                 isSelected = date == state.selectedDate,
                                 onClick = { onDayClick(date) },
                                 locale = locale,
                             )
                         } else {
-                            Spacer(Modifier.aspectRatio(0.82f))
+                            Spacer(Modifier.aspectRatio(0.84f))
                         }
                     }
                 }
@@ -300,24 +362,26 @@ private fun CalendarGrid(
 private fun DayCell(
     date: LocalDate,
     entry: WorkEntry?,
+    currencyCode: String,
     isToday: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
     locale: Locale,
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(12.dp)
     val background = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         entry != null -> MaterialTheme.colorScheme.secondaryContainer
-        isToday -> MaterialTheme.colorScheme.surfaceContainerHigh
-        else -> MaterialTheme.colorScheme.surface
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
-    val dateColor = when {
+    val foreground = when {
         isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
         entry != null -> MaterialTheme.colorScheme.onSecondaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val durationColor = MaterialTheme.colorScheme.primary
+    val totalMicros = entry?.let {
+        runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull()
+    }
     val dateLabel = date.format(
         DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale),
     )
@@ -328,42 +392,60 @@ private fun DayCell(
         if (entry != null && entry.workedMinutes > 0) {
             append(", ").append(formatDuration(entry.workedMinutes))
         }
+        if (totalMicros != null) {
+            append(", ").append(formatMoneyMicros(totalMicros, currencyCode, locale))
+        }
         if (entry?.bonusMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_bonus))
         if (entry?.penaltyMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_penalty))
     }
 
     Column(
         modifier = Modifier
-            .padding(2.dp)
-            .aspectRatio(0.82f)
+            .padding(1.dp)
+            .aspectRatio(0.84f)
             .clip(shape)
             .background(background)
+            .then(
+                if (isToday) {
+                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, shape)
+                } else {
+                    Modifier
+                },
+            )
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .clickable(onClick = onClick)
-            .padding(6.dp),
+            .padding(horizontal = 5.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = date.dayOfMonth.toString(),
-            style = MaterialTheme.typography.labelLarge,
-            color = dateColor,
-            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+            style = MaterialTheme.typography.labelMedium,
+            color = foreground,
+            fontWeight = if (isToday || entry != null) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
         )
         if (entry != null) {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
                 if (entry.workedMinutes > 0) {
                     Text(
                         text = formatDuration(entry.workedMinutes),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = durationColor,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (entry.bonusMicros > 0) Marker("+")
-                    if (entry.penaltyMicros > 0) Marker("−")
+                if (totalMicros != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = formatCellMoney(totalMicros, locale),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = foreground.copy(alpha = 0.82f),
+                            maxLines = 1,
+                        )
+                        if (entry.bonusMicros > 0L) Marker("+")
+                        if (entry.penaltyMicros > 0L) Marker("−")
+                    }
                 }
             }
         }
@@ -374,14 +456,24 @@ private fun DayCell(
 private fun Marker(text: String) {
     Box(
         modifier = Modifier
-            .padding(end = 4.dp)
-            .size(14.dp)
+            .padding(start = 2.dp)
+            .size(12.dp)
             .clip(RoundedCornerShape(50))
             .background(MaterialTheme.colorScheme.tertiaryContainer),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            maxLines = 1,
+        )
     }
+}
+
+private fun formatCellMoney(micros: Long, locale: Locale): String {
+    val roundedMajorUnits = BigDecimal.valueOf(micros, 6).setScale(0, RoundingMode.HALF_UP)
+    return NumberFormat.getIntegerInstance(locale).format(roundedMajorUnits)
 }
 
 @Composable
