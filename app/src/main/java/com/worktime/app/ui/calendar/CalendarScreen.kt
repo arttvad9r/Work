@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,7 +45,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
-import com.worktime.app.domain.calendar.MonthGrid
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.format.formatMoneyMicros
 import java.math.BigDecimal
@@ -54,6 +52,7 @@ import java.math.RoundingMode
 import java.text.NumberFormat
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
@@ -333,30 +332,26 @@ private fun CalendarGrid(
 
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
 
-    val cells = MonthGrid.build(state.visibleMonth)
+    val firstDay = state.visibleMonth.atDay(1)
+    val gridStart = firstDay.minusDays((firstDay.dayOfWeek.value - 1).toLong())
+    val cells = (0L until 42L).map { offset -> gridStart.plusDays(offset) }
     val today = LocalDate.now()
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         cells.chunked(7).forEach { week ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 week.forEach { date ->
+                    val isInVisibleMonth = YearMonth.from(date) == state.visibleMonth
                     Box(modifier = Modifier.weight(1f)) {
-                        if (date != null) {
-                            DayCell(
-                                date = date,
-                                entry = state.entries[date],
-                                currencyCode = state.currencyCode,
-                                isToday = date == today,
-                                isSelected = date == state.selectedDate,
-                                onClick = { onDayClick(date) },
-                                locale = locale,
-                            )
-                        } else {
-                            Spacer(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(76.dp),
-                            )
-                        }
+                        DayCell(
+                            date = date,
+                            entry = state.entries[date],
+                            currencyCode = state.currencyCode,
+                            isInVisibleMonth = isInVisibleMonth,
+                            isToday = date == today,
+                            isSelected = date == state.selectedDate,
+                            onClick = { onDayClick(date) },
+                            locale = locale,
+                        )
                     }
                 }
             }
@@ -369,6 +364,7 @@ private fun DayCell(
     date: LocalDate,
     entry: WorkEntry?,
     currencyCode: String,
+    isInVisibleMonth: Boolean,
     isToday: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -383,6 +379,7 @@ private fun DayCell(
     val foreground = when {
         isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
         entry != null -> MaterialTheme.colorScheme.onSecondaryContainer
+        !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.32f)
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val totalMicros = entry?.let {
@@ -409,12 +406,14 @@ private fun DayCell(
         modifier = Modifier
             .padding(1.dp)
             .fillMaxWidth()
-            .height(76.dp)
+            .height(60.dp)
             .clip(shape)
             .background(background)
             .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+                width = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(
+                    alpha = if (isInVisibleMonth) 0.42f else 0.18f,
+                ),
                 shape = shape,
             )
             .then(
@@ -425,8 +424,8 @@ private fun DayCell(
                 },
             )
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
-            .clickable(onClick = onClick)
-            .padding(horizontal = 5.dp, vertical = 5.dp),
+            .clickable(enabled = isInVisibleMonth, onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 3.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
@@ -453,7 +452,7 @@ private fun DayCell(
                 if (entry.workedMinutes > 0) {
                     Text(
                         text = formatDuration(entry.workedMinutes),
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -462,7 +461,7 @@ private fun DayCell(
                 if (totalMicros != null) {
                     Text(
                         text = formatCellMoney(totalMicros, locale),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.labelSmall,
                         color = foreground.copy(alpha = 0.82f),
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
@@ -494,7 +493,9 @@ private fun Marker(text: String) {
 
 private fun formatCellMoney(micros: Long, locale: Locale): String {
     val roundedMajorUnits = BigDecimal.valueOf(micros, 6).setScale(0, RoundingMode.HALF_UP)
-    return NumberFormat.getIntegerInstance(locale).format(roundedMajorUnits)
+    return NumberFormat.getIntegerInstance(locale).apply {
+        isGroupingUsed = false
+    }.format(roundedMajorUnits)
 }
 
 @Composable
