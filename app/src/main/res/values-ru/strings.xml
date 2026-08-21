@@ -27,8 +27,8 @@
     <string name="hourly_rate">Ставка за час</string>
     <string name="bonus">Премия</string>
     <string name="penalty">Штраф</string>
-    <string name="add_bonus">+ Добавить премию</string>
-    <string name="add_penalty">+ Добавить штраф</string>
+    <string name="add_bonus">+ Премия</string>
+    <string name="add_penalty">+ Штраф</string>
     <string name="total_value">Итого: %1$s</string>
     <string name="total_unavailable">Итого: —</string>
     <string name="calculation">Расчёт</string>
@@ -50,7 +50,7 @@
     <string name="default_rate_help">Для сохранения отработанного времени нужна ставка больше 0</string>
     <string name="currency_code">Валюта</string>
     <string name="currency_code_hint">Введите ISO-код: EUR, USD, RUB</string>
-    <string name="currency_no_conversion">Смена валюты меняет обозначение всех сумм без пересчёта по курсу</string>
+    <string name="currency_no_conversion">Курс валют не пересчитывается.</string>
     <string name="theme">Тема</string>
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
