@@ -16,12 +16,13 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 
 - [ ] Calendar does not scroll vertically.
 - [ ] Grid position and size stay identical in empty, partially filled and full months.
-- [ ] Calendar uses the intended minimal horizontal safety margin and is visibly wider than the previous 12 dp outer-padding version.
+- [ ] Calendar card reaches the screen edges horizontally; only the top bar and fixed summary keep their small safety margins.
 - [ ] Every month shows six rows and faint adjacent-month dates.
 - [ ] Adjacent-month dates are inactive.
-- [ ] Duration and daily amount fit and stay centered.
-- [ ] Daily amount is displayed as a whole rounded number only; no decimal separator or fractional digits appear inside a day cell.
-- [ ] Bonus/penalty markers are centered and distinguishable.
+- [ ] Day number is bold and anchored close to the top-right corner of each cell.
+- [ ] Worked duration is geometrically centered and visibly larger than the previous `labelMedium` presentation.
+- [ ] Daily income is anchored close to the bottom-left corner and is displayed as a whole rounded number only.
+- [ ] Bonus/penalty markers occupy the free top-left corner and do not overlap the date.
 - [ ] Previous/next arrows switch the month title and date grid immediately; there is no crossfade, delayed old month, or old/new date flash.
 - [ ] Rows from the previous Room month are never shown under the newly requested month.
 
@@ -47,11 +48,11 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] Defensive leading-zero normalization also makes pasted/typed `012` resolve to `12`.
 - [ ] `0`, `15`, `530`, `1530`, `24:00` behave as specified.
 - [ ] `24:01`, invalid minutes and zero rate with worked time mark the affected field with a red outline only; no validation helper text appears.
-- [ ] Moving focus between duration and rate keeps the numeric IME continuously visible; it must not close for a frame and reopen.
-- [ ] Expanding bonus/penalty while another numeric field is focused transfers focus directly without closing/reopening the IME.
-- [ ] Moving through duration -> rate -> bonus -> penalty using the IME Next action does not move the sheet vertically.
-- [ ] Repeatedly switching focus between already visible numeric fields does not make the sheet jump up/down.
-- [ ] Opening the IME does not reposition the whole modal sheet because transient IME insets are not applied to sheet geometry.
+- [ ] Opening the numeric keyboard lifts the modal editor above the keyboard; the fields/actions are not left underneath the IME.
+- [ ] Duration, rate, bonus and penalty expose the same numeric keyboard layout/action key.
+- [ ] Repeatedly tapping between already visible numeric fields does not visibly hide/reopen or resize the keyboard.
+- [ ] Repeated focus switches do not make the editor sheet jump up/down.
+- [ ] Expanding bonus/penalty while another numeric field is focused transfers focus without an intermediate keyboard hide/reopen.
 - [ ] Bonus always appears above penalty in every expansion sequence.
 - [ ] Calculation uses `По ставке`; zero adjustment rows are hidden.
 - [ ] Save, edit, delete and delete confirmation work.
