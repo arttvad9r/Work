@@ -91,6 +91,16 @@ obsolete_validation_keys = {
 if obsolete_validation_keys & base_keys:
     fail("Obsolete helper-text validation strings are present; numeric validation is outline-only")
 
+string_ref_pattern = re.compile(r"\bR\.string\.([A-Za-z0-9_]+)")
+for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
+    referenced_keys = set(string_ref_pattern.findall(kotlin_file.read_text(encoding="utf-8")))
+    missing_keys = sorted(referenced_keys - base_keys)
+    if missing_keys:
+        fail(
+            f"Missing string resource(s) referenced by {kotlin_file.relative_to(ROOT)}: "
+            + ", ".join(missing_keys)
+        )
+
 expected_domains = {
     "root",
     "file",
