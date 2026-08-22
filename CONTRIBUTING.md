@@ -2,7 +2,7 @@
 
 ## Scope
 
-Keep WorkTime a small calendar-first personal timesheet. Do not add notes, quick-duration presets, currency, accounts, projects, timers or payroll complexity without an explicit product decision.
+Keep WorkTime a small calendar-first personal timesheet. Do not add notes, quick-duration presets, currency, accounts, projects, timers, landscape support or payroll complexity without an explicit product decision.
 
 ## Before opening or updating a pull request
 
@@ -16,14 +16,18 @@ Keep WorkTime a small calendar-first personal timesheet. Do not add notes, quick
 ./scripts/verify.sh
 ```
 
-6. Execute the relevant device checklist in `docs/ANDROID_QA.md` for UI changes.
+6. Execute the relevant physical-device checklist in `docs/ANDROID_QA.md` for UI changes.
 
-Do not report a build, test or device result as passed unless the command actually ran to completion. Infrastructure failures must be recorded separately from code failures.
+Do not report a build, test or device result as passed unless the command/test actually ran to completion. Infrastructure/account failures must be recorded separately from code failures.
 
 ## UI expectations
 
+- The application is portrait-only.
 - The calendar geometry is fixed and must not depend on monthly data.
 - Normal day entry should fit without scrolling when the keyboard is closed.
-- Required actions remain reachable with the keyboard open.
+- Numeric focus changes must not intentionally clear/reopen the IME or animate the sheet height.
+- Required actions remain reachable after keyboard dismissal.
+- Numeric validation is intentionally outline-only; do not add helper-text rows without a product decision.
+- Persistence errors must remain visible without changing modal geometry.
 - Labels and values must survive Russian text and increased font scale.
-- Color is never the only carrier of meaning.
+- Calendar/status meaning should not rely solely on color; numeric field error state follows the explicit outline-only product rule and should retain Material error semantics.
