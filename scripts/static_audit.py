@@ -153,6 +153,8 @@ if "Crossfade(" in calendar_screen or "animateColorAsState" in calendar_screen:
     fail("Calendar month navigation must not crossfade/reuse animated day-cell state")
 if "formatWholeAmountMicros(totalMicros, locale)" not in calendar_screen:
     fail("Calendar day cells must display whole amounts without fractional digits")
+if ".padding(horizontal = 4.dp)" not in calendar_screen:
+    fail("Calendar outer horizontal padding must stay compact")
 
 day_editor = (
     APP / "src/main/java/com/worktime/app/ui/dayeditor/DayEditorSheet.kt"
@@ -163,8 +165,14 @@ if "rememberTextFieldState" not in day_editor or "InputTransformation.byValue" n
     fail("Day editor must use state-based text input and synchronous input transformations")
 if "TextFieldValue" in day_editor or "KeyboardActions" in day_editor:
     fail("Day editor regressed to value-based text input / custom IME action plumbing")
-if 'state.clearText()' not in day_editor:
-    fail("Numeric zero must clear on focus before new input is entered")
+if "onFocusChanged" in day_editor or "state.clearText()" in day_editor:
+    fail("Day editor must not mutate text from focus callbacks")
+if 'if (workedMinutes == 0) ""' not in day_editor:
+    fail("Empty/zero worked duration must start as an empty editor value")
+if 'if (micros == 0L) ""' not in day_editor:
+    fail("Zero numeric adjustments/defaults must start empty instead of mutating on focus")
+if "contentWindowInsets = { WindowInsets(0, 0, 0, 0) }" not in day_editor:
+    fail("Day editor sheet must keep geometry independent from transient IME inset changes")
 
 calendar_view_model = (
     APP / "src/main/java/com/worktime/app/ui/calendar/CalendarViewModel.kt"
