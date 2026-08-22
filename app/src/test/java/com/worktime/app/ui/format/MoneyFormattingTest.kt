@@ -42,4 +42,10 @@ class MoneyFormattingTest {
     fun `compact amount formatter omits grouping separators`() {
         assertEquals("1234.5", formatCompactAmountMicros(1_234_500_000L, Locale.US))
     }
+
+    @Test
+    fun `whole amount formatter rounds away calendar fractions`() {
+        assertEquals("1235", formatWholeAmountMicros(1_234_500_000L, Locale.US))
+        assertEquals("1234", formatWholeAmountMicros(1_234_499_999L, Locale.US))
+    }
 }
