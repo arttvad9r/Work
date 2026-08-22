@@ -8,7 +8,7 @@
 python3 scripts/static_audit.py
 ```
 
-Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback and known interaction regressions around the report handle and frame-delayed editor focus.
+Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback and known interaction regressions around the report handle and persistent numeric editor.
 
 ### JVM tests
 
@@ -50,7 +50,11 @@ Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`,
 - monthly report opens by tap and drag and contains no duplicate total.
 - long-pressing the monthly report handle does not show Material's drag-handle tooltip.
 - the report content remains measured while collapsed so sheet anchors stay stable.
-- moving focus between numeric editor fields does not clear focus or intentionally wait a frame.
+- all numeric labels (`Время`, rate, bonus, penalty) remain minimized on the outline even when empty/inactive; the duration `00:00` hint remains a separate centered placeholder.
+- the first tap on any visible numeric logical field activates/focuses the persistent editor without requiring a second tap.
+- repeated `Время -> Ставка` switching keeps Gboard continuously visible and does not move the sheet.
+- after expanding adjustments, repeated `Время -> Ставка -> Премия -> Штраф -> Время` switching uses the same persistent editor/input session and does not cause an IME hide/restart/show cycle.
+- values remain attached to their logical fields across repeated switches and survive save/reopen.
 - persistence failures keep the relevant sheet open and surface transient Snackbar feedback without layout reflow.
 - portrait orientation remains enforced.
 
@@ -58,6 +62,6 @@ Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`,
 
 The `main` baseline has been exercised on physical hardware by the project owner. Exact device/build details were not previously recorded in the repository, so that result should not be expanded into unsupported device-specific claims.
 
-The interaction-stability branch changes report-handle composition, numeric focus transfer and operational error presentation. Those paths require a fresh physical-device pass before merge even though the baseline application was already hardware-tested.
+Physical-device ADB diagnostics on the interaction-stability branch identified the previous keyboard jump as a client-side IME hide/restart/show sequence during focus transfer between separate Compose TextFields. The persistent editor architecture has already eliminated that jump for `Время <-> Ставка`; the current branch extends the same mechanism to bonus and penalty and therefore requires one fresh four-field hardware pass before merge.
 
 GitHub Actions may fail to start while the account's Actions usage limit is exhausted. A run with no executed steps is an infrastructure/account limitation, not a test result. Local wrapper verification and recorded device QA remain valid evidence while CI runners are unavailable.
