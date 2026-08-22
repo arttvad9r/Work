@@ -14,7 +14,7 @@
 ./scripts/verify.sh
 ```
 
-Equivalent tasks:
+The script uses the checked-in Gradle Wrapper. Equivalent tasks:
 
 ```bash
 python3 scripts/static_audit.py
@@ -30,13 +30,19 @@ Debug APK output:
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
+Do not substitute an arbitrary system Gradle installation for the project wrapper when recording verification evidence.
+
 ## CI
 
-`.github/workflows/android.yml` is configured to check out source, install Java/Gradle, run static audit, JVM tests, lint, APK builds and upload reports/artifacts.
+`.github/workflows/android.yml` checks out source, installs Java, configures Gradle caching, then executes the same checked-in wrapper for static audit, JVM tests, lint and APK builds.
 
-The latest observed pull-request run for the compact-interface branch completed in a few seconds with a job containing no steps and no downloadable logs. This means the runner never started the configured workflow body. It must be treated as an Actions infrastructure/account/runner failure, not as a successful build and not as a compiler failure.
+GitHub Actions runners may currently fail to start because the account's Actions usage limit is exhausted. A run that contains no executed workflow steps is an infrastructure/account limitation; it is neither a successful build nor evidence of a compiler/test failure.
 
-When CI becomes available, rerun it from the current branch head and retain the resulting APK/test/lint artifacts.
+When runner capacity becomes available, rerun the workflow from the current branch head and retain the resulting APK/test/lint artifacts. Until then, local wrapper output and documented physical-device QA are the relevant verification evidence.
+
+## Device verification
+
+The `main` baseline has been exercised on physical hardware by the project owner. Interaction changes that affect IME focus, bottom-sheet drag/tap behavior or insets still require a focused device rerun before merge. Record exact device model, Android version and commit in `DEVICE_QA_REPORT.md` when available.
 
 ## NixOS note
 
