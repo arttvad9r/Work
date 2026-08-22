@@ -36,17 +36,28 @@ fun formatDecimalMicros(micros: Long): String = BigDecimal.valueOf(micros, 6)
 fun formatAmountMicros(
     micros: Long,
     locale: Locale = Locale.getDefault(),
-): String = amountFormatter(locale, grouping = true).format(BigDecimal.valueOf(micros, 6))
+): String = amountFormatter(locale, grouping = true, maximumFractionDigits = 2)
+    .format(BigDecimal.valueOf(micros, 6))
 
 fun formatCompactAmountMicros(
     micros: Long,
     locale: Locale = Locale.getDefault(),
-): String = amountFormatter(locale, grouping = false).format(BigDecimal.valueOf(micros, 6))
+): String = amountFormatter(locale, grouping = false, maximumFractionDigits = 2)
+    .format(BigDecimal.valueOf(micros, 6))
 
-private fun amountFormatter(locale: Locale, grouping: Boolean): NumberFormat =
-    NumberFormat.getNumberInstance(locale).apply {
-        isGroupingUsed = grouping
-        minimumFractionDigits = 0
-        maximumFractionDigits = 2
-        roundingMode = RoundingMode.HALF_UP
-    }
+fun formatWholeAmountMicros(
+    micros: Long,
+    locale: Locale = Locale.getDefault(),
+): String = amountFormatter(locale, grouping = false, maximumFractionDigits = 0)
+    .format(BigDecimal.valueOf(micros, 6))
+
+private fun amountFormatter(
+    locale: Locale,
+    grouping: Boolean,
+    maximumFractionDigits: Int,
+): NumberFormat = NumberFormat.getNumberInstance(locale).apply {
+    isGroupingUsed = grouping
+    minimumFractionDigits = 0
+    this.maximumFractionDigits = maximumFractionDigits
+    roundingMode = RoundingMode.HALF_UP
+}
