@@ -1,6 +1,7 @@
 package com.worktime.app.domain.model
 
 import java.time.LocalDate
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
@@ -30,6 +31,25 @@ class WorkEntryTest {
                 date = date,
                 workedMinutes = 60,
                 hourlyRateMicros = MoneyLimits.MAX_COMPONENT_MICROS + 1,
+            )
+        }
+    }
+
+    @Test
+    fun `rejects worked time with zero hourly rate`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            WorkEntry(date = date, workedMinutes = 60, hourlyRateMicros = 0)
+        }
+    }
+
+    @Test
+    fun `allows adjustment only entry with zero hourly rate`() {
+        assertDoesNotThrow {
+            WorkEntry(
+                date = date,
+                workedMinutes = 0,
+                hourlyRateMicros = 0,
+                bonusMicros = 1,
             )
         }
     }
