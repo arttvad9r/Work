@@ -18,9 +18,12 @@ open month -> tap a day -> enter duration and hourly rate -> save
 - one day-editor sheet with duration and hourly rate on one row;
 - optional bonus above optional penalty;
 - compact settings sheet with hourly rate and system/light/dark theme;
-- controlled light/dark color palettes and consistent Material 3 shapes.
+- controlled light/dark color palettes and consistent Material 3 shapes;
+- portrait-only application layout.
 
 Currency selection, currency symbols, notes and quick-duration presets are intentionally not part of the product. Numeric amounts are shown as neutral values. A fractional part is shown only when it is non-zero. Durations are displayed as `0`, `15` or `15:30`.
+
+Numeric validation is deliberately compact: invalid input is indicated by the red field outline without helper text. Persistence failures are separate operational errors and are shown transiently without changing sheet geometry.
 
 ## Product rules
 
@@ -44,7 +47,7 @@ Amounts use integer micros in domain/data code. `Float` and `Double` are not use
 
 - Kotlin 2.4.x
 - Jetpack Compose + Material 3
-- AGP 9.3.1 / Gradle 9.5.0 / Java 17
+- AGP 9.3.1 / Gradle Wrapper 9.5.0 / Java 17
 - Room 2.8.4
 - DataStore 1.2.1
 - coroutines and `StateFlow`
@@ -58,9 +61,11 @@ Preferred command:
 ./scripts/verify.sh
 ```
 
-It runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. Device execution remains a separate release gate.
+It uses the repository Gradle Wrapper and runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. Device execution remains a separate release gate.
 
-The current feature branch has passed targeted source/resource checks, but the latest GitHub Actions job ended before executing any step. Therefore this repository does not claim a successful CI build or physical-device verification for the newest interface commit. See [the current audit](docs/STATIC_AUDIT.md) and [Android QA checklist](docs/ANDROID_QA.md).
+The `main` baseline has been exercised on physical hardware by the project owner. The interaction-stability changes to report-sheet handling and IME focus require a fresh focused device pass before merge. GitHub Actions may be unavailable while the account's Actions usage limit prevents runners from starting; that infrastructure condition is tracked separately from application correctness.
+
+See [the current audit](docs/STATIC_AUDIT.md), [Android QA checklist](docs/ANDROID_QA.md) and [device QA report](docs/DEVICE_QA_REPORT.md).
 
 ## Documentation
 
