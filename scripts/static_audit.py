@@ -183,16 +183,25 @@ if "contentWindowInsets = { WindowInsets(0, 0, 0, 0) }" in day_editor:
     fail("Day editor must allow ModalBottomSheet to lift above the IME")
 if "val numericKeyboardOptions" not in day_editor:
     fail("Day editor must share one keyboard configuration across numeric fields")
-if day_editor.count("keyboardOptions = numericKeyboardOptions") < 3:
-    fail("Persistent primary editor and adjustment fields must share the numeric keyboard options")
 for expected in (
-    "val primaryEditorState",
-    "val primaryFocusRequester",
-    "focusPrimaryOnActivate",
+    "enum class NumericField",
+    "NumericField.Duration",
+    "NumericField.Rate",
+    "NumericField.Bonus",
+    "NumericField.Penalty",
+    "val editorState",
+    "val editorFocusRequester",
+    "focusEditorOnActivate",
+    "PersistentNumericEditor(",
+    "TextFieldLabelPosition.Attached(alwaysMinimize = true)",
     "indication = null",
 ):
     if expected not in day_editor:
-        fail(f"Persistent primary-input invariant missing: {expected}")
+        fail(f"Persistent numeric-input invariant missing: {expected}")
+if "bonusFocusRequester" in day_editor or "penaltyFocusRequester" in day_editor:
+    fail("Bonus/penalty must use the persistent editor instead of separate focus sessions")
+if day_editor.count("TextFieldLabelPosition.Attached(alwaysMinimize = true)") < 3:
+    fail("All primary/adjustment field renderers must keep labels minimized on the outline")
 
 calendar_view_model = (
     APP / "src/main/java/com/worktime/app/ui/calendar/CalendarViewModel.kt"
