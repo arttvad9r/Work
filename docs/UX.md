@@ -15,11 +15,11 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 
 - Header: previous month, localized month/year, next month, settings.
 - The calendar uses a fixed compact height above the fixed summary and report handle; no additional bottom padding may compete with the scaffold peek area.
-- The calendar is nearly edge-to-edge horizontally: the screen keeps only a minimal safety margin and the card itself uses minimal horizontal padding.
+- The calendar card is edge-to-edge horizontally. Top-bar controls keep only a minimal 2 dp horizontal safety margin; the fixed summary keeps 4 dp. The calendar card itself has no horizontal content padding, and individual day cells use only a 0.5 dp horizontal gutter.
 - It never scrolls vertically and its position does not depend on entries or report content.
 - The grid always has six rows; adjacent-month dates are faint and inactive.
 - Current-month cells remain large enough for date, duration and amount.
-- Every current-month date uses the same semi-bold weight, regardless of whether the day has an entry.
+- Day numbers use bold weight consistently, regardless of whether the day has an entry.
 - Date, duration and amount use fixed anchors: date at top, duration at the geometric center and amount at the bottom with matching outer padding.
 - Daily amounts inside calendar cells are rounded to a whole number with no fractional digits or grouping separators; full calculation precision is retained internally and richer amount displays elsewhere may show fractions.
 - Bonus/penalty icons are centered in equal circular markers.
@@ -64,7 +64,7 @@ Zero-valued numeric editor fields are represented as empty editor text and parse
 
 All day-editor numeric inputs use Material 3 state-based `TextFieldState` with synchronous `InputTransformation`. There is no duplicated parent `String` plus child `TextFieldValue` synchronization loop. The same decimal keyboard family is used across fields, and normal Compose `ImeAction.Next` focus traversal moves between stable input nodes without explicitly clearing focus. Expanding bonus or penalty while another numeric field is focused must transfer focus directly to the newly created field, so the IME remains visible.
 
-The modal editor uses zero `contentWindowInsets` so its geometry is independent from transient IME inset changes. The content remains vertically scrollable if the keyboard covers lower actions. Repeatedly switching focus between already visible numeric fields must not make the sheet jump up/down or visibly close and reopen the keyboard.
+The modal editor uses zero `contentWindowInsets` so its geometry is independent from transient IME inset changes. This depends on the Material 3 fix that makes `contentWindowInsets` authoritative instead of applying an unconditional outer `imePadding`; see `BUILD.md` for the targeted dependency override. The content remains vertically scrollable if the keyboard covers lower actions. Repeatedly switching focus between already visible numeric fields must not make the sheet jump up/down or visibly close and reopen the keyboard.
 
 Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The expansion buttons do not take keyboard focus.
 
@@ -96,7 +96,7 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 - Controlled calm blue-neutral palettes in light and dark modes. The expanded monthly report uses a distinct elevated surface color so its edge remains visible over the calendar.
 - 24 dp major-card radius, 16-20 dp compact-card radius, 8-12 dp cell/input radius.
-- Regular body weight for comparable labels/values; medium/semi-bold only for titles, selected dates and totals.
+- Regular body weight for comparable labels/values; medium/semi-bold for titles/totals and bold for calendar day numbers.
 - Error red is reserved for invalid input, persistence feedback, delete and penalty semantics.
 - Report expansion may use short Material easing. Month title/date-grid changes are immediate and must not crossfade; editor controls never animate sheet height or move it while focus changes.
 - Numeric input line height matches its text size so the caret does not visually exceed the entered value.
