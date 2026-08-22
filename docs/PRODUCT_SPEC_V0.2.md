@@ -7,18 +7,18 @@ This document supersedes the earlier broad v0.2 draft. The canonical short speci
 | Area | Required behavior |
 |---|---|
 | Orientation | Portrait-only application layout |
-| Calendar | Fixed 6 x 7 grid, Monday first, no vertical scrolling or data-dependent jumping |
+| Calendar | Fixed 6 x 7 grid, Monday first, no vertical scrolling or data-dependent jumping; month title/grid switch immediately with no crossfade or old/new month flash |
 | Adjacent dates | Previous/next-month dates visible in a faint inactive state |
-| Filled day | Centered compact duration, centered neutral amount, optional adjustment markers |
+| Filled day | Centered compact duration, centered rounded whole-number amount without fractional digits, optional adjustment markers |
 | Duration display | `0`, `15`, or `15:30`; no redundant suffix or zero minutes |
 | Fixed summary | Work days, hours worked, monthly income; constant size and position |
 | Detailed report | Separate draggable bottom sheet; tap/drag handle; optional bonus/penalty rows and one total; no long-press drag-handle tooltip |
-| Day editor | Duration and rate in one row; bonus above penalty; stable numeric IME focus chain; live calculation |
+| Day editor | Duration and rate in one row; bonus above penalty; state-based numeric input; new zero-valued fields start empty; leading zeroes are normalized; stable IME across focus changes |
 | Validation | Invalid numeric fields use red outline only; no helper-text rows |
 | Operational errors | Save/delete/settings failures remain recoverable and are shown without resizing the active sheet |
 | Settings | Compact hourly-rate field plus system/light/dark theme; focusing initial zero selects it instead of clearing it |
 | Amount input | At most two fractional digits |
-| Amount display | No currency labels; at most two fractional digits; zero fractional part omitted |
+| Amount display | No currency labels; normal displays use at most two fractional digits; calendar day cells intentionally show a rounded whole number only |
 | Internal money | Integer micros for deterministic six-decimal internal precision; no persisted `Float`/`Double` calculations |
 | Removed scope | Currency, notes, quick-duration presets, validation helper text and landscape support stay absent |
 
@@ -42,6 +42,9 @@ totalMicros = ratePayMicros + bonusMicros - penaltyMicros
 - physical-device create/edit/delete/relaunch pass;
 - monthly-report tap/drag/long-press behavior;
 - continuous IME visibility while moving between numeric editor fields and expanding adjustments;
+- new-day duration entry (`12` must remain `12`, never `01:2`), including defensive leading-zero normalization;
+- immediate previous/next month switching without crossfade or stale month rows;
+- whole-number daily amounts in calendar cells;
 - outline-only validation and layout-neutral persistence-error feedback;
 - narrow portrait screen, dark theme and increased-font checks.
 
