@@ -16,12 +16,13 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 
 - [ ] Calendar does not scroll vertically.
 - [ ] Grid position and size stay identical in empty, partially filled and full months.
-- [ ] Calendar card reaches the screen edges horizontally; only the top bar and fixed summary keep their small safety margins.
+- [ ] Calendar card keeps only the intended ~1 dp horizontal safety margin.
+- [ ] Neighboring day cells have the intended very small ~0.5 dp visual gap.
 - [ ] Every month shows six rows and faint adjacent-month dates.
 - [ ] Adjacent-month dates are inactive.
-- [ ] Day number is bold and anchored close to the top-right corner of each cell.
+- [ ] Day number is bold and anchored near the top-right corner with the intended small right inset.
 - [ ] Worked duration is geometrically centered and visibly larger than the previous `labelMedium` presentation.
-- [ ] Daily income is anchored close to the bottom-left corner and is displayed as a whole rounded number only.
+- [ ] Daily income is anchored near the bottom-left corner with the intended small left inset and is displayed as a whole rounded number only.
 - [ ] Bonus/penalty markers occupy the free top-left corner and do not overlap the date.
 - [ ] Previous/next arrows switch the month title and date grid immediately; there is no crossfade, delayed old month, or old/new date flash.
 - [ ] Rows from the previous Room month are never shown under the newly requested month.
@@ -49,10 +50,16 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] `0`, `15`, `530`, `1530`, `24:00` behave as specified.
 - [ ] `24:01`, invalid minutes and zero rate with worked time mark the affected field with a red outline only; no validation helper text appears.
 - [ ] Opening the numeric keyboard lifts the modal editor above the keyboard; the fields/actions are not left underneath the IME.
-- [ ] Duration, rate, bonus and penalty expose the same numeric keyboard layout/action key.
-- [ ] Repeatedly tapping between already visible numeric fields does not visibly hide/reopen or resize the keyboard.
-- [ ] Repeated focus switches do not make the editor sheet jump up/down.
-- [ ] Expanding bonus/penalty while another numeric field is focused transfers focus without an intermediate keyboard hide/reopen.
+- [ ] First tap on `Время` focuses it and opens the numeric keyboard immediately.
+- [ ] First tap on `Ставка за час`, including when `Время` was the active logical slot, focuses rate and opens the numeric keyboard immediately; a second tap is never required.
+- [ ] The active primary field shows exactly one label/value/placeholder; no overlapping duplicate `Время`, `00:00`, rate label or value is visible.
+- [ ] Tapping the inactive primary field does not show a rectangular gray ripple/pressed overlay.
+- [ ] Tap `Время -> Ставка -> Время -> Ставка` at least 10 times with the IME open: Gboard remains continuously visible and the sheet does not jump.
+- [ ] The same 10-switch sequence preserves the correct duration and rate values; they never swap, reset or leak into each other.
+- [ ] IME Next from `Время` activates `Ставка` without a visible IME rebuild or sheet movement.
+- [ ] Save and reopen after several primary-field switches preserves both values exactly.
+- [ ] Duration, rate, bonus and penalty use the same numeric keyboard family/action-key configuration.
+- [ ] Expand bonus and penalty and separately test transitions to/from those adjustment fields for any remaining IME hide/reopen cycle.
 - [ ] Bonus always appears above penalty in every expansion sequence.
 - [ ] Calculation uses `По ставке`; zero adjustment rows are hidden.
 - [ ] Save, edit, delete and delete confirmation work.
