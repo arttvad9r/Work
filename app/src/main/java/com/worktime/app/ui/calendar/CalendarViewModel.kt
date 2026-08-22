@@ -35,24 +35,27 @@ class CalendarViewModel(
         workEntryRepository.observeMonth(month).map { entries -> month to entries }
     }
 
-    val state: StateFlow<CalendarUiState> = combine(
+    private val visibleMonthEntries = combine(
         visibleMonth,
         monthSnapshot,
+    ) { requestedMonth, monthAndEntries ->
+        val (loadedMonth, loadedEntries) = monthAndEntries
+        requestedMonth to if (loadedMonth == requestedMonth) loadedEntries else emptyList()
+    }
+
+    val state: StateFlow<CalendarUiState> = combine(
+        visibleMonthEntries,
         userPreferencesRepository.preferences,
         selectedDate,
         settingsOpen,
         operationError,
-    ) { requestedMonth, monthAndEntries, preferences, selected, isSettingsOpen, error ->
-        val (loadedMonth, loadedEntries) = monthAndEntries
+    ) { monthAndEntries, preferences, selected, isSettingsOpen, error ->
+        val (requestedMonth, entries) = monthAndEntries
         CalendarUiState(
-            // Navigation must update immediately on arrow press. Room can emit the
-            // new month's rows a moment later without holding the month title/grid back.
+            // Navigation updates immediately on arrow press. Room can emit the new
+            // month's rows a moment later without holding the title/date grid back.
             visibleMonth = requestedMonth,
-            entries = if (loadedMonth == requestedMonth) {
-                loadedEntries.associateBy(WorkEntry::date)
-            } else {
-                emptyMap()
-            },
+            entries = entries.associateBy(WorkEntry::date),
             selectedDate = selected,
             defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
             themeMode = preferences.themeMode,
