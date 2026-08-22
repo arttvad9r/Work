@@ -501,11 +501,11 @@ private fun DayCell(
             )
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .clickable(enabled = isInVisibleMonth, onClick = onClick)
-            .padding(horizontal = 3.dp, vertical = 4.dp),
+            .padding(horizontal = 2.dp, vertical = 2.dp),
     ) {
         Text(
             text = date.dayOfMonth.toString(),
-            modifier = Modifier.align(Alignment.TopStart),
+            modifier = Modifier.align(Alignment.TopEnd),
             style = MaterialTheme.typography.titleSmall,
             color = foreground,
             fontWeight = FontWeight.Bold,
@@ -516,15 +516,15 @@ private fun DayCell(
             MarkerGroup(
                 hasBonus = visibleEntry.bonusMicros > 0L,
                 hasPenalty = visibleEntry.penaltyMicros > 0L,
-                modifier = Modifier.align(Alignment.TopEnd),
+                modifier = Modifier.align(Alignment.TopStart),
             )
             if (visibleEntry.workedMinutes > 0) {
                 Text(
                     text = formatDurationCompact(visibleEntry.workedMinutes),
                     modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                 )
@@ -532,11 +532,11 @@ private fun DayCell(
             if (totalMicros != null) {
                 Text(
                     text = formatWholeAmountMicros(totalMicros, locale),
-                    modifier = Modifier.align(Alignment.BottomCenter),
+                    modifier = Modifier.align(Alignment.BottomStart),
                     style = MaterialTheme.typography.labelSmall,
                     color = foreground.copy(alpha = 0.82f),
                     fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Start,
                     maxLines = 1,
                 )
             }
