@@ -44,9 +44,11 @@ for expected in (
     'android:allowBackup="false"',
     'android:dataExtractionRules="@xml/data_extraction_rules"',
     'android:fullBackupContent="@xml/backup_rules"',
+    'android:screenOrientation="portrait"',
+    'android:windowSoftInputMode="adjustResize"',
 ):
     if expected not in manifest_text:
-        fail(f"Missing backup/privacy manifest control: {expected}")
+        fail(f"Missing required manifest control: {expected}")
 
 xml_paths = (
     APP / "src/main/res/values/strings.xml",
@@ -77,6 +79,17 @@ if base_keys != ru_keys:
         fail(f"Russian resources missing keys: {', '.join(missing_ru)}")
     if extra_ru:
         fail(f"Russian resources have extra keys: {', '.join(extra_ru)}")
+
+obsolete_validation_keys = {
+    "hours_range_error",
+    "minutes_range_error",
+    "duration_24h_error",
+    "invalid_money_value",
+    "money_value_too_large",
+    "hourly_rate_required",
+}
+if obsolete_validation_keys & base_keys:
+    fail("Obsolete helper-text validation strings are present; numeric validation is outline-only")
 
 expected_domains = {
     "root",
@@ -119,6 +132,20 @@ for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
     if "fallbackToDestructiveMigration" in text:
         fail(f"Destructive Room fallback found: {kotlin_file.relative_to(ROOT)}")
 
+calendar_screen = (
+    APP / "src/main/java/com/worktime/app/ui/calendar/CalendarScreen.kt"
+).read_text(encoding="utf-8")
+if "sheetDragHandle = null" not in calendar_screen:
+    fail("Monthly report must not use Material's tooltip-wrapped sheet drag-handle slot")
+if "sheetDragHandle = { PlainDragHandle() }" in calendar_screen:
+    fail("Tooltip-prone Material sheet drag-handle slot regressed")
+
+day_editor = (
+    APP / "src/main/java/com/worktime/app/ui/dayeditor/DayEditorSheet.kt"
+).read_text(encoding="utf-8")
+if "withFrameNanos" in day_editor:
+    fail("Day editor contains a frame-delayed focus transfer that can restart the IME")
+
 build_file = (APP / "build.gradle.kts").read_text(encoding="utf-8")
 catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
 if 'testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"' not in build_file:
@@ -134,5 +161,5 @@ if failures:
 
 print(
     "static-audit: OK "
-    f"({len(base_keys)} localized string keys; XML/privacy/domain invariants passed)"
+    f"({len(base_keys)} localized string keys; XML/privacy/domain/UI invariants passed)"
 )
