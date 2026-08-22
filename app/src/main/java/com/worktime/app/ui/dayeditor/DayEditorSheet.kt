@@ -1,6 +1,7 @@
 package com.worktime.app.ui.dayeditor
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -20,10 +22,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,16 +35,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -50,8 +56,8 @@ import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.components.PlainDragHandle
-import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.formatAmountMicros
+import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import com.worktime.app.ui.format.parseDecimalMicros
 import com.worktime.app.ui.format.sanitizeMoneyInput
@@ -89,8 +95,14 @@ fun DayEditorSheet(
     }
     var focusBonusOnExpand by remember { mutableStateOf(false) }
     var focusPenaltyOnExpand by remember { mutableStateOf(false) }
+
+    val durationFocusRequester = remember { FocusRequester() }
+    val rateFocusRequester = remember { FocusRequester() }
     val bonusFocusRequester = remember { FocusRequester() }
     val penaltyFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
     val showBonus = {
         bonusVisible = true
         focusBonusOnExpand = true
@@ -102,18 +114,21 @@ fun DayEditorSheet(
 
     LaunchedEffect(focusBonusOnExpand, bonusVisible) {
         if (focusBonusOnExpand && bonusVisible) {
-            // Move focus directly between fields; never clear the previous focus first,
-            // otherwise Android briefly hides and recreates the IME.
-            withFrameNanos { }
+            // The previous text field keeps focus until this node exists, so the IME
+            // stays attached instead of closing for an intermediate frame.
             bonusFocusRequester.requestFocus()
             focusBonusOnExpand = false
         }
     }
     LaunchedEffect(focusPenaltyOnExpand, penaltyVisible) {
         if (focusPenaltyOnExpand && penaltyVisible) {
-            withFrameNanos { }
             penaltyFocusRequester.requestFocus()
             focusPenaltyOnExpand = false
+        }
+    }
+    LaunchedEffect(operationErrorMessage) {
+        if (!operationErrorMessage.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(operationErrorMessage)
         }
     }
 
@@ -161,10 +176,8 @@ fun DayEditorSheet(
         parsedRate == null ||
             parsedRate > MoneyLimits.MAX_COMPONENT_MICROS ||
             (positiveRateRequired && parsedRate == 0L)
-    val bonusHasError =
-        parsedBonus == null || parsedBonus > MoneyLimits.MAX_COMPONENT_MICROS
-    val penaltyHasError =
-        parsedPenalty == null || parsedPenalty > MoneyLimits.MAX_COMPONENT_MICROS
+    val bonusHasError = parsedBonus == null || parsedBonus > MoneyLimits.MAX_COMPONENT_MICROS
+    val penaltyHasError = parsedPenalty == null || parsedPenalty > MoneyLimits.MAX_COMPONENT_MICROS
     val totalMicros = draft?.let { runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -173,133 +186,165 @@ fun DayEditorSheet(
         sheetState = sheetState,
         dragHandle = null,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            PlainDragHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PlainDragHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
 
-            Text(
-                text = date.format(
-                    DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale),
-                ),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DurationField(
-                    value = duration,
-                    onValueChange = { duration = sanitizeDurationInput(it) },
-                    label = stringResource(R.string.worked),
-                    isError = durationHasError,
-                    modifier = Modifier.weight(1f),
+                Text(
+                    text = date.format(
+                        DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale),
+                    ),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
                 )
-                MoneyField(
-                    value = rate,
-                    onValueChange = { rate = sanitizeMoneyInput(it) },
-                    label = stringResource(R.string.hourly_rate),
-                    isError = rateHasError,
-                    modifier = Modifier.weight(1f),
-                )
-            }
 
-            if (!bonusVisible && !penaltyVisible) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = showBonus,
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DurationField(
+                        value = duration,
+                        onValueChange = { duration = sanitizeDurationInput(it) },
+                        label = stringResource(R.string.worked),
+                        isError = durationHasError,
+                        imeAction = ImeAction.Next,
+                        onNext = { rateFocusRequester.requestFocus() },
                         modifier = Modifier
                             .weight(1f)
-                            .heightIn(min = 42.dp),
-                    ) {
-                        Text(stringResource(R.string.add_bonus), maxLines = 1)
-                    }
-                    OutlinedButton(
-                        onClick = showPenalty,
+                            .focusRequester(durationFocusRequester),
+                    )
+                    val rateImeAction = if (bonusVisible || penaltyVisible) ImeAction.Next else ImeAction.Done
+                    MoneyField(
+                        value = rate,
+                        onValueChange = { rate = sanitizeMoneyInput(it) },
+                        label = stringResource(R.string.hourly_rate),
+                        isError = rateHasError,
+                        imeAction = rateImeAction,
+                        onNext = {
+                            when {
+                                bonusVisible -> bonusFocusRequester.requestFocus()
+                                penaltyVisible -> penaltyFocusRequester.requestFocus()
+                            }
+                        },
+                        onDone = { focusManager.clearFocus() },
                         modifier = Modifier
                             .weight(1f)
-                            .heightIn(min = 42.dp),
-                    ) {
-                        Text(stringResource(R.string.add_penalty), maxLines = 1)
-                    }
+                            .focusRequester(rateFocusRequester),
+                    )
                 }
-            } else {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (bonusVisible) {
-                        MoneyField(
-                            value = bonus,
-                            onValueChange = { bonus = sanitizeMoneyInput(it) },
-                            label = stringResource(R.string.bonus),
-                            isError = bonusHasError,
-                            modifier = Modifier.focusRequester(bonusFocusRequester),
-                        )
-                    } else {
+
+                if (!bonusVisible && !penaltyVisible) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         OutlinedButton(
                             onClick = showBonus,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 42.dp),
+                                .weight(1f)
+                                .heightIn(min = 42.dp)
+                                .focusProperties { canFocus = false },
                         ) {
                             Text(stringResource(R.string.add_bonus), maxLines = 1)
                         }
-                    }
-
-                    if (penaltyVisible) {
-                        MoneyField(
-                            value = penalty,
-                            onValueChange = { penalty = sanitizeMoneyInput(it) },
-                            label = stringResource(R.string.penalty),
-                            isError = penaltyHasError,
-                            modifier = Modifier.focusRequester(penaltyFocusRequester),
-                        )
-                    } else {
                         OutlinedButton(
                             onClick = showPenalty,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 42.dp),
+                                .weight(1f)
+                                .heightIn(min = 42.dp)
+                                .focusProperties { canFocus = false },
                         ) {
                             Text(stringResource(R.string.add_penalty), maxLines = 1)
                         }
                     }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (bonusVisible) {
+                            MoneyField(
+                                value = bonus,
+                                onValueChange = { bonus = sanitizeMoneyInput(it) },
+                                label = stringResource(R.string.bonus),
+                                isError = bonusHasError,
+                                imeAction = if (penaltyVisible) ImeAction.Next else ImeAction.Done,
+                                onNext = { penaltyFocusRequester.requestFocus() },
+                                onDone = { focusManager.clearFocus() },
+                                modifier = Modifier.focusRequester(bonusFocusRequester),
+                            )
+                        } else {
+                            OutlinedButton(
+                                onClick = showBonus,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 42.dp)
+                                    .focusProperties { canFocus = false },
+                            ) {
+                                Text(stringResource(R.string.add_bonus), maxLines = 1)
+                            }
+                        }
+
+                        if (penaltyVisible) {
+                            MoneyField(
+                                value = penalty,
+                                onValueChange = { penalty = sanitizeMoneyInput(it) },
+                                label = stringResource(R.string.penalty),
+                                isError = penaltyHasError,
+                                imeAction = ImeAction.Done,
+                                onDone = { focusManager.clearFocus() },
+                                modifier = Modifier.focusRequester(penaltyFocusRequester),
+                            )
+                        } else {
+                            OutlinedButton(
+                                onClick = showPenalty,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 42.dp)
+                                    .focusProperties { canFocus = false },
+                            ) {
+                                Text(stringResource(R.string.add_penalty), maxLines = 1)
+                            }
+                        }
+                    }
                 }
-            }
 
-            CalculationSummary(
-                draft = draft,
-                totalMicros = totalMicros,
-            )
+                CalculationSummary(
+                    draft = draft,
+                    totalMicros = totalMicros,
+                )
 
-            Button(
-                onClick = { draft?.let(onSave) },
-                enabled = draft != null && totalMicros != null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 50.dp),
-            ) {
-                Text(stringResource(R.string.save))
-            }
-            if (existing != null) {
-                TextButton(
-                    onClick = { confirmDelete = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
+                Button(
+                    onClick = { draft?.let(onSave) },
+                    enabled = draft != null && totalMicros != null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 50.dp),
                 ) {
-                    Text(stringResource(R.string.delete_entry))
+                    Text(stringResource(R.string.save))
+                }
+                if (existing != null) {
+                    TextButton(
+                        onClick = { confirmDelete = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                    ) {
+                        Text(stringResource(R.string.delete_entry))
+                    }
                 }
             }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(16.dp),
+            )
         }
     }
 
@@ -454,6 +499,9 @@ private fun DurationField(
     onValueChange: (String) -> Unit,
     label: String,
     isError: Boolean,
+    imeAction: ImeAction,
+    onNext: (() -> Unit)? = null,
+    onDone: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var fieldValue by remember {
@@ -500,7 +548,14 @@ private fun DurationField(
             }
         },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = imeAction,
+        ),
+        keyboardActions = KeyboardActions(
+            onNext = { onNext?.invoke() },
+            onDone = { onDone?.invoke() },
+        ),
     )
 }
 
@@ -510,6 +565,9 @@ private fun MoneyField(
     onValueChange: (String) -> Unit,
     label: String,
     isError: Boolean,
+    imeAction: ImeAction,
+    onNext: (() -> Unit)? = null,
+    onDone: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var fieldValue by remember {
@@ -546,6 +604,13 @@ private fun MoneyField(
                 }
             },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = imeAction,
+        ),
+        keyboardActions = KeyboardActions(
+            onNext = { onNext?.invoke() },
+            onDone = { onDone?.invoke() },
+        ),
     )
 }
