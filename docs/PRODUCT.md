@@ -22,6 +22,7 @@ It is a modern salary calendar, not a project tracker, shift planner, timer, HR 
 - Monday-first 6 x 7 layout with fixed geometry.
 - Previous/next month navigation updates the title and date grid immediately without crossfade or old/new month flashing.
 - Adjacent-month dates remain visible but faint and inactive.
+- The calendar uses a minimal horizontal safety margin so the seven columns have as much usable width as practical on a portrait phone.
 - Filled cells show a centered compact duration and a rounded whole-number daily amount with no fractional digits.
 - Bonus and penalty have distinct centered markers.
 - Application orientation remains locked to portrait.
@@ -29,10 +30,11 @@ It is a modern salary calendar, not a project tracker, shift planner, timer, HR 
 ### Day editor
 
 - One duration field accepting `H`, `HH`, `H:MM` or `HH:MM`.
-- A new day may display duration `0` before focus; focusing the field removes that zero before entry, and leading zeroes are normalized defensively.
+- A new day starts with an empty duration editor value and the `00:00` hint; leading zeroes are normalized defensively so typing `12` cannot become `01:2`.
 - Hourly rate beside duration on the same row.
 - Bonus is always above penalty when expanded.
-- Numeric fields use state-based Compose text input and focus moves directly between visible fields without intentionally closing/reopening the IME.
+- Numeric fields use state-based Compose text input; focus changes do not mutate field text.
+- Numeric focus moves directly between visible fields without intentionally closing/reopening the IME, and transient IME insets do not reposition the whole editor sheet.
 - Invalid numeric input is indicated by the Material error outline only; no validation helper text is shown.
 - Live calculation with `At hourly rate`, optional adjustments and total.
 - Save/edit/delete with delete confirmation and recoverable write errors shown without resizing the sheet.
@@ -92,6 +94,6 @@ The report opens by tap or drag. Holding its handle must not show Material's dra
 - All local verification commands pass on the current head.
 - Core create/edit/delete/relaunch flows pass on supported physical hardware.
 - Report tap/drag/long-press and editor IME transitions pass the focused device checklist.
-- Calendar month switching and compact whole-number daily totals pass the focused device checklist.
+- Calendar month switching, wider grid geometry and compact whole-number daily totals pass the focused device checklist.
 - Calendar, fixed summary and report sheet do not clip at supported portrait font scales.
 - No known data-loss or calculation defect remains.
