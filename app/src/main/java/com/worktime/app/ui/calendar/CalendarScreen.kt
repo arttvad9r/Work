@@ -154,6 +154,7 @@ fun CalendarScreen(
                 PlainDragHandle(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     onClick = toggleSummary,
+                    accessibilityLabel = stringResource(R.string.monthly_summary),
                 )
                 FullSummaryPanel(
                     state = state,
