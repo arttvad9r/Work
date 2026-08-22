@@ -36,16 +36,23 @@ class CalendarViewModel(
     }
 
     val state: StateFlow<CalendarUiState> = combine(
+        visibleMonth,
         monthSnapshot,
         userPreferencesRepository.preferences,
         selectedDate,
         settingsOpen,
         operationError,
-    ) { monthAndEntries, preferences, selected, isSettingsOpen, error ->
-        val (month, entries) = monthAndEntries
+    ) { requestedMonth, monthAndEntries, preferences, selected, isSettingsOpen, error ->
+        val (loadedMonth, loadedEntries) = monthAndEntries
         CalendarUiState(
-            visibleMonth = month,
-            entries = entries.associateBy(WorkEntry::date),
+            // Navigation must update immediately on arrow press. Room can emit the
+            // new month's rows a moment later without holding the month title/grid back.
+            visibleMonth = requestedMonth,
+            entries = if (loadedMonth == requestedMonth) {
+                loadedEntries.associateBy(WorkEntry::date)
+            } else {
+                emptyMap()
+            },
             selectedDate = selected,
             defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
             themeMode = preferences.themeMode,
