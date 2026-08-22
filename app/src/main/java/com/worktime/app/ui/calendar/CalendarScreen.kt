@@ -174,12 +174,13 @@ fun CalendarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(innerPadding)
-                .padding(horizontal = 4.dp),
+                .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             CenterAlignedTopAppBar(
-                modifier = Modifier.height(52.dp),
+                modifier = Modifier
+                    .padding(horizontal = 2.dp)
+                    .height(52.dp),
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 title = {
                     Text(
@@ -231,7 +232,10 @@ fun CalendarScreen(
                     modifier = Modifier.height(392.dp),
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                CollapsedSummaryCard(state = state)
+                CollapsedSummaryCard(
+                    state = state,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
                 Spacer(modifier = Modifier.height(4.dp))
             }
         }
@@ -253,7 +257,7 @@ private fun CalendarCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 2.dp, vertical = 8.dp),
+                .padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
@@ -477,7 +481,7 @@ private fun DayCell(
 
     Box(
         modifier = Modifier
-            .padding(1.dp)
+            .padding(horizontal = 0.5.dp, vertical = 1.dp)
             .fillMaxSize()
             .clip(shape)
             .background(background)
@@ -497,14 +501,14 @@ private fun DayCell(
             )
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .clickable(enabled = isInVisibleMonth, onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            .padding(horizontal = 3.dp, vertical = 4.dp),
     ) {
         Text(
             text = date.dayOfMonth.toString(),
             modifier = Modifier.align(Alignment.TopStart),
             style = MaterialTheme.typography.titleSmall,
             color = foreground,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
         )
 
