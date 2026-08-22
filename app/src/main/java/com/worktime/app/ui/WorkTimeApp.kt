@@ -48,6 +48,8 @@ fun WorkTimeApp(container: AppContainer) {
             val operationErrorMessage = when (state.operationError) {
                 CalendarOperationError.SAVE_ENTRY -> stringResource(R.string.save_entry_failed)
                 CalendarOperationError.DELETE_ENTRY -> stringResource(R.string.delete_entry_failed)
+                CalendarOperationError.BULK_RATE -> stringResource(R.string.bulk_rate_failed)
+                CalendarOperationError.UNDO -> stringResource(R.string.undo_failed)
                 else -> null
             }
             DayEditorSheet(
