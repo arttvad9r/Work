@@ -2,7 +2,7 @@
 
 ## Product statement
 
-WorkTime is a personal Android timesheet that records actual worked time by date and immediately shows an expected monthly total.
+WorkTime is a personal portrait-only Android timesheet that records actual worked time by date and immediately shows an expected monthly total.
 
 It is a modern salary calendar, not a project tracker, shift planner, timer, HR system or payroll suite.
 
@@ -13,7 +13,7 @@ It is a modern salary calendar, not a project tracker, shift planner, timer, HR 
 3. Enter duration and hourly rate.
 4. Optionally add a bonus and/or penalty.
 5. Review the calculation and save.
-6. Read the compact month summary or drag up the detailed report.
+6. Read the compact month summary or tap/drag up the detailed report.
 
 ## MVP requirements
 
@@ -24,14 +24,17 @@ It is a modern salary calendar, not a project tracker, shift planner, timer, HR 
 - Adjacent-month dates remain visible but faint and inactive.
 - Filled cells show a centered compact duration and neutral daily amount.
 - Bonus and penalty have distinct centered markers.
+- Application orientation remains locked to portrait.
 
 ### Day editor
 
 - One duration field accepting `H`, `HH`, `H:MM` or `HH:MM`.
 - Hourly rate beside duration on the same row.
 - Bonus is always above penalty when expanded.
+- Numeric focus moves directly between visible fields without intentionally closing/reopening the IME.
+- Invalid numeric input is indicated by the Material error outline only; no validation helper text is shown.
 - Live calculation with `At hourly rate`, optional adjustments and total.
-- Save/edit/delete with delete confirmation and recoverable write errors.
+- Save/edit/delete with delete confirmation and recoverable write errors shown without resizing the sheet.
 - No notes, quick presets or currency controls.
 
 ### Monthly information
@@ -50,10 +53,14 @@ The draggable report shows:
 - penalty only when non-zero;
 - total.
 
+The report opens by tap or drag. Holding its handle must not show Material's drag-handle tooltip.
+
 ### Settings
 
 - default hourly rate;
-- system, light or dark theme.
+- system, light or dark theme;
+- outline-only validation for an invalid rate;
+- persistence errors shown without changing sheet geometry.
 
 ## Business rules
 
@@ -63,7 +70,9 @@ The draggable report shows:
 - Bonus/penalty-only records are valid and do not increase work-day count.
 - Historical records retain their saved hourly rate.
 - Numeric amounts are neutral values; there is no currency setting or exchange-rate behavior.
-- Optional fractions are preserved up to six decimal places and omitted when zero.
+- User-entered amounts accept at most two fractional digits.
+- Displayed amounts use at most two fractional digits and omit a zero fractional part.
+- Domain/data calculations store integer micros (six decimal places of internal precision) and never use persisted binary floating point.
 
 ## Non-goals
 
@@ -73,11 +82,14 @@ The draggable report shows:
 - scheduled shifts or overtime rules;
 - taxes, exchange rates or multi-currency accounting;
 - notes or quick-duration templates;
+- validation helper text for numeric fields;
+- landscape layout support;
 - report export in the current release.
 
 ## Release criteria
 
-- All verification commands pass.
-- Core create/edit/delete/relaunch flows pass on supported devices.
-- Calendar, fixed summary and report sheet do not clip at supported font scales.
+- All local verification commands pass on the current head.
+- Core create/edit/delete/relaunch flows pass on supported physical hardware.
+- Report tap/drag/long-press and editor IME transitions pass the focused device checklist.
+- Calendar, fixed summary and report sheet do not clip at supported portrait font scales.
 - No known data-loss or calculation defect remains.
