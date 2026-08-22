@@ -12,6 +12,7 @@ All notable changes are documented here.
 - Numeric IME Next now relies on Compose's default focus traversal between stable text-field nodes; bonus/penalty expansion buttons cannot take keyboard focus before the newly created numeric field receives focus.
 - New/zero-valued day-editor numeric fields now start as empty editor text instead of mutating from `0` during focus. Duration sanitization also removes leading zeroes defensively, so typing `12` into a new day cannot produce `01:2`.
 - The day editor uses zero modal `contentWindowInsets`, preventing transient IME inset changes from moving the entire sheet while its scroll container remains available for covered lower actions.
+- Pinned Material 3 to `1.5.0-alpha26` as a targeted override because stable `1.4.0` applies `imePadding` unconditionally inside `ModalBottomSheet`; the upstream fix making `contentWindowInsets` authoritative landed in the 1.5 alpha line.
 - Reworked settings-rate focus so an initial `0` is selected instead of temporarily replaced with an empty value.
 - Removed the extra settings `imePadding` layer.
 - Moved save/delete/settings persistence errors to transient Snackbar overlays so failures do not reflow modal content.
@@ -23,7 +24,8 @@ All notable changes are documented here.
 - Removed obsolete validation-helper strings from EN/RU resources.
 - Enforced the documented domain rule that worked time requires a positive hourly rate while preserving zero-rate bonus/penalty-only entries.
 - Calendar day cells now display rounded whole daily amounts without fractional digits so values fit the compact cell width.
-- Reduced calendar outer horizontal padding to a minimal safety margin and reduced the card's internal horizontal padding, giving the 7-column grid more usable width.
+- Made the calendar card fully edge-to-edge horizontally, removed its internal horizontal padding, reduced per-cell horizontal gutters to `0.5 dp`, and kept only minimal margins on the top bar/fixed summary.
+- Calendar day numbers now use bold weight for stronger visual hierarchy.
 - Kept full fractional precision in calculations and up to two fractional digits in non-calendar amount displays.
 - Confirmed portrait-only orientation as a product constraint and aligned QA documentation accordingly.
 
