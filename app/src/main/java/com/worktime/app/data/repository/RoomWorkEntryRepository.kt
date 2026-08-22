@@ -26,4 +26,15 @@ class RoomWorkEntryRepository(
     override suspend fun delete(date: LocalDate) {
         dao.deleteByDate(date.toEpochDay())
     }
+
+    override suspend fun updateHourlyRate(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        hourlyRateMicros: Long,
+    ): List<WorkEntry> {
+        require(startDate <= endDate) { "startDate must not be after endDate" }
+        require(hourlyRateMicros > 0L) { "hourlyRateMicros must be positive" }
+        return dao.updateHourlyRate(startDate.toEpochDay(), endDate.toEpochDay(), hourlyRateMicros)
+            .map { it.toDomain() }
+    }
 }
