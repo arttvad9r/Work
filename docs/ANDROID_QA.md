@@ -44,23 +44,23 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 
 - [ ] Closed-keyboard form fits without a required scroll in the normal state.
 - [ ] Duration and rate share one row and remain centered.
-- [ ] A new empty day starts with an empty duration field and shows the `00:00` hint rather than a literal `0`.
+- [ ] Labels for `Время`, `Ставка за час`, `Премия` and `Штраф` always stay minimized on the field outline; an empty unfocused field never moves its label into the input area.
+- [ ] A new empty day starts with an empty duration field and shows the centered `00:00` hint rather than a literal `0`.
 - [ ] Typing `12` into a new duration field produces `12`, never `01:2` or another leading-zero variant.
 - [ ] Defensive leading-zero normalization also makes pasted/typed `012` resolve to `12`.
 - [ ] `0`, `15`, `530`, `1530`, `24:00` behave as specified.
 - [ ] `24:01`, invalid minutes and zero rate with worked time mark the affected field with a red outline only; no validation helper text appears.
 - [ ] Opening the numeric keyboard lifts the modal editor above the keyboard; the fields/actions are not left underneath the IME.
-- [ ] First tap on `Время` focuses it and opens the numeric keyboard immediately.
-- [ ] First tap on `Ставка за час`, including when `Время` was the active logical slot, focuses rate and opens the numeric keyboard immediately; a second tap is never required.
-- [ ] The active primary field shows exactly one label/value/placeholder; no overlapping duplicate `Время`, `00:00`, rate label or value is visible.
-- [ ] Tapping the inactive primary field does not show a rectangular gray ripple/pressed overlay.
+- [ ] First tap on any visible numeric slot focuses/activates it and opens the numeric keyboard immediately when the editor was previously unfocused; a second tap is never required.
+- [ ] The active logical field shows exactly one label/value/placeholder; no overlapping duplicate text is visible.
+- [ ] Tapping an inactive logical field does not show a rectangular gray ripple/pressed overlay.
 - [ ] Tap `Время -> Ставка -> Время -> Ставка` at least 10 times with the IME open: Gboard remains continuously visible and the sheet does not jump.
-- [ ] The same 10-switch sequence preserves the correct duration and rate values; they never swap, reset or leak into each other.
-- [ ] IME Next from `Время` activates `Ставка` without a visible IME rebuild or sheet movement.
-- [ ] Save and reopen after several primary-field switches preserves both values exactly.
+- [ ] Expand `Премия` and `Штраф`, then repeatedly cycle `Время -> Ставка -> Премия -> Штраф -> Время` at least 10 times: Gboard remains continuously visible, there is no hide/reopen cycle, and the sheet does not jump after the intentional one-time control expansion.
+- [ ] Repeated field switches preserve all four logical values; values never swap, reset or leak into another field.
+- [ ] IME Next advances through the visible logical fields without a visible IME rebuild or sheet movement.
+- [ ] Save and reopen after several four-field switches preserves duration, rate, bonus and penalty exactly.
 - [ ] Duration, rate, bonus and penalty use the same numeric keyboard family/action-key configuration.
-- [ ] Expand bonus and penalty and separately test transitions to/from those adjustment fields for any remaining IME hide/reopen cycle.
-- [ ] Bonus always appears above penalty in every expansion sequence.
+- [ ] Bonus always occupies the first adjustment slot and penalty the second after expansion.
 - [ ] Calculation uses `По ставке`; zero adjustment rows are hidden.
 - [ ] Save, edit, delete and delete confirmation work.
 - [ ] Failed save/delete keeps the draft open and shows a transient localized Snackbar without resizing the sheet.
