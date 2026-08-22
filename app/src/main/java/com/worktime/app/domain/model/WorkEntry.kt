@@ -24,6 +24,9 @@ data class WorkEntry(
         require(note.length <= MoneyLimits.MAX_NOTE_LENGTH) {
             "note must be at most ${MoneyLimits.MAX_NOTE_LENGTH} characters"
         }
+        require(workedMinutes == 0 || hourlyRateMicros > 0L) {
+            "worked time requires a positive hourly rate"
+        }
         require(workedMinutes > 0 || bonusMicros > 0L || penaltyMicros > 0L) {
             "work entry must contain worked time, a bonus, or a penalty"
         }
