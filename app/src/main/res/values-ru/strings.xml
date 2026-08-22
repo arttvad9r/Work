@@ -30,12 +30,6 @@
     <string name="calculation_total">Итого</string>
     <string name="save">Сохранить</string>
     <string name="delete_entry">Удалить запись</string>
-    <string name="hours_range_error">Введите от 0 до 24 часов</string>
-    <string name="minutes_range_error">Введите от 0 до 59 минут</string>
-    <string name="duration_24h_error">К 24 часам нельзя добавлять минуты</string>
-    <string name="invalid_money_value">Введите корректную неотрицательную сумму</string>
-    <string name="money_value_too_large">Максимальное поддерживаемое значение: %1$s</string>
-    <string name="hourly_rate_required">Для отработанного времени укажите ставку больше 0</string>
 
     <string name="default_hourly_rate">Ставка за час</string>
     <string name="theme">Тема</string>
