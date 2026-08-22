@@ -158,7 +158,8 @@ for expected in (
     "Modifier.align(Alignment.BottomStart)",
     "MaterialTheme.typography.titleMedium",
     "fontWeight = FontWeight.Bold",
-    ".padding(horizontal = 0.5.dp, vertical = 1.dp)",
+    ".padding(horizontal = 1.dp)",
+    ".padding(0.25.dp)",
 ):
     if expected not in calendar_screen:
         fail(f"Calendar compact cell layout invariant missing: {expected}")
@@ -172,8 +173,8 @@ if "rememberTextFieldState" not in day_editor or "InputTransformation.byValue" n
     fail("Day editor must use state-based text input and synchronous input transformations")
 if "TextFieldValue" in day_editor or "KeyboardActions" in day_editor:
     fail("Day editor regressed to value-based text input / custom IME action plumbing")
-if "onFocusChanged" in day_editor or "state.clearText()" in day_editor:
-    fail("Day editor must not mutate text from focus callbacks")
+if "state.clearText()" in day_editor:
+    fail("Day editor must not clear editor text from focus transitions")
 if 'if (workedMinutes == 0) ""' not in day_editor:
     fail("Empty/zero worked duration must start as an empty editor value")
 if 'if (micros == 0L) ""' not in day_editor:
@@ -182,8 +183,16 @@ if "contentWindowInsets = { WindowInsets(0, 0, 0, 0) }" in day_editor:
     fail("Day editor must allow ModalBottomSheet to lift above the IME")
 if "val numericKeyboardOptions" not in day_editor:
     fail("Day editor must share one keyboard configuration across numeric fields")
-if day_editor.count("keyboardOptions = numericKeyboardOptions") < 4:
-    fail("Every numeric editor field must use the same keyboard options to avoid IME rebuilds")
+if day_editor.count("keyboardOptions = numericKeyboardOptions") < 3:
+    fail("Persistent primary editor and adjustment fields must share the numeric keyboard options")
+for expected in (
+    "val primaryEditorState",
+    "val primaryFocusRequester",
+    "focusPrimaryOnActivate",
+    "indication = null",
+):
+    if expected not in day_editor:
+        fail(f"Persistent primary-input invariant missing: {expected}")
 
 calendar_view_model = (
     APP / "src/main/java/com/worktime/app/ui/calendar/CalendarViewModel.kt"
