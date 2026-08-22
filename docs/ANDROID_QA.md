@@ -19,8 +19,10 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] Every month shows six rows and faint adjacent-month dates.
 - [ ] Adjacent-month dates are inactive.
 - [ ] Duration and daily amount fit and stay centered.
+- [ ] Daily amount is displayed as a whole rounded number only; no decimal separator or fractional digits appear inside a day cell.
 - [ ] Bonus/penalty markers are centered and distinguishable.
-- [ ] Month navigation is fast and never mixes title/data.
+- [ ] Previous/next arrows switch the month title and date grid immediately; there is no crossfade, delayed old month, or old/new date flash.
+- [ ] Rows from the previous Room month are never shown under the newly requested month.
 
 ## Fixed summary and monthly report
 
@@ -39,11 +41,14 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 
 - [ ] Closed-keyboard form fits without a required scroll in the normal state.
 - [ ] Duration and rate share one row and remain centered.
+- [ ] A new empty day initially shows duration `0`; focusing the duration field removes that zero before typing.
+- [ ] Typing `12` into a newly focused duration field produces `12`, never `01:2` or another leading-zero variant.
 - [ ] `0`, `15`, `530`, `1530`, `24:00` behave as specified.
 - [ ] `24:01`, invalid minutes and zero rate with worked time mark the affected field with a red outline only; no validation helper text appears.
-- [ ] Moving focus between duration and rate keeps the numeric IME continuously visible.
+- [ ] Moving focus between duration and rate keeps the numeric IME continuously visible; it must not close for a frame and reopen.
 - [ ] Expanding bonus/penalty while another numeric field is focused transfers focus directly without closing/reopening the IME.
-- [ ] Moving through rate -> bonus -> penalty using the IME Next action does not move the sheet vertically.
+- [ ] Moving through duration -> rate -> bonus -> penalty using the IME Next action does not move the sheet vertically.
+- [ ] Repeatedly switching focus between already visible numeric fields does not make the sheet jump up/down.
 - [ ] Bonus always appears above penalty in every expansion sequence.
 - [ ] Calculation uses `По ставке`; zero adjustment rows are hidden.
 - [ ] Save, edit, delete and delete confirmation work.
