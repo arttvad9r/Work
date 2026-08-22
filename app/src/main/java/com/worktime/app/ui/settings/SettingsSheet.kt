@@ -1,13 +1,16 @@
 package com.worktime.app.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -15,25 +18,32 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.width
 import com.worktime.app.R
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.preferences.ThemeMode
@@ -55,19 +65,27 @@ fun SettingsSheet(
     var rate by rememberSaveable(defaultHourlyRateMicros) {
         mutableStateOf(formatDecimalMicros(defaultHourlyRateMicros))
     }
+    var rateFieldValue by remember {
+        mutableStateOf(TextFieldValue(rate, TextRange(rate.length)))
+    }
     var selectedTheme by rememberSaveable(themeMode) { mutableStateOf(themeMode) }
+    val focusManager = LocalFocusManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(rate) {
+        if (rate != rateFieldValue.text) {
+            rateFieldValue = TextFieldValue(rate, TextRange(rate.length))
+        }
+    }
+    LaunchedEffect(operationErrorMessage) {
+        if (!operationErrorMessage.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(operationErrorMessage)
+        }
+    }
 
     val parsedRate = runCatching { parseDecimalMicros(rate) }.getOrNull()
-    val rateValid = parsedRate != null && parsedRate <= MoneyLimits.MAX_COMPONENT_MICROS
-    val canSave = rateValid
-    val rateError = when {
-        parsedRate == null -> stringResource(R.string.invalid_money_value)
-        parsedRate > MoneyLimits.MAX_COMPONENT_MICROS -> stringResource(
-            R.string.money_value_too_large,
-            formatDecimalMicros(MoneyLimits.MAX_COMPONENT_MICROS),
-        )
-        else -> null
-    }
+    val rateHasError = parsedRate == null || parsedRate > MoneyLimits.MAX_COMPONENT_MICROS
+    val canSave = !rateHasError
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val rateLabel = stringResource(R.string.default_hourly_rate)
 
@@ -76,33 +94,32 @@ fun SettingsSheet(
         sheetState = sheetState,
         dragHandle = null,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .imePadding()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            PlainDragHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
-
-            Text(
-                text = stringResource(R.string.settings),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                PlainDragHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
+
+                Text(
+                    text = stringResource(R.string.settings),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -113,16 +130,23 @@ fun SettingsSheet(
                             fontWeight = FontWeight.SemiBold,
                         )
                         OutlinedTextField(
-                            value = rate,
-                            onValueChange = { rate = sanitizeMoneyInput(it) },
-                            isError = rateError != null,
+                            value = rateFieldValue,
+                            onValueChange = { updated ->
+                                val sanitized = sanitizeMoneyInput(updated.text)
+                                rateFieldValue = TextFieldValue(
+                                    text = sanitized,
+                                    selection = TextRange(sanitized.length),
+                                )
+                                rate = sanitized
+                            },
+                            isError = rateHasError,
                             modifier = Modifier
                                 .width(120.dp)
                                 .onFocusChanged { focusState ->
-                                    if (focusState.isFocused && rate == "0") {
-                                        rate = ""
-                                    } else if (!focusState.isFocused && rate.isBlank()) {
-                                        rate = "0"
+                                    if (focusState.isFocused && rateFieldValue.text == "0") {
+                                        rateFieldValue = rateFieldValue.copy(
+                                            selection = TextRange(0, rateFieldValue.text.length),
+                                        )
                                     }
                                 }
                                 .semantics { contentDescription = rateLabel },
@@ -131,83 +155,81 @@ fun SettingsSheet(
                                 lineHeight = MaterialTheme.typography.titleMedium.fontSize,
                             ),
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        )
-                    }
-
-                    if (rateError != null) {
-                        Text(
-                            text = rateError,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { focusManager.clearFocus() },
+                            ),
                         )
                     }
                 }
-            }
 
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
                 ) {
-                    Text(
-                        text = stringResource(R.string.theme),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        ThemeMode.entries.forEach { mode ->
-                            FilterChip(
-                                selected = selectedTheme == mode,
-                                onClick = {
-                                    selectedTheme = mode
-                                    onPreviewTheme(mode)
-                                },
-                                label = {
-                                    Text(
-                                        text = themeLabel(mode),
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        maxLines = 1,
-                                    )
-                                },
-                                modifier = Modifier.weight(
-                                    if (mode == ThemeMode.SYSTEM) 1.2f else 1f,
-                                ),
-                            )
+                        Text(
+                            text = stringResource(R.string.theme),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            ThemeMode.entries.forEach { mode ->
+                                FilterChip(
+                                    selected = selectedTheme == mode,
+                                    onClick = {
+                                        selectedTheme = mode
+                                        onPreviewTheme(mode)
+                                    },
+                                    label = {
+                                        Text(
+                                            text = themeLabel(mode),
+                                            modifier = Modifier.fillMaxWidth(),
+                                            textAlign = TextAlign.Center,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            maxLines = 1,
+                                        )
+                                    },
+                                    modifier = Modifier.weight(
+                                        if (mode == ThemeMode.SYSTEM) 1.2f else 1f,
+                                    ),
+                                )
+                            }
                         }
                     }
                 }
+
+                Button(
+                    onClick = {
+                        val safeRate = parsedRate ?: return@Button
+                        onSave(safeRate, selectedTheme)
+                    },
+                    enabled = canSave,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 50.dp),
+                ) {
+                    Text(stringResource(R.string.save_settings))
+                }
             }
 
-            if (operationErrorMessage != null) {
-                Text(
-                    text = operationErrorMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
-            Button(
-                onClick = {
-                    val safeRate = parsedRate ?: return@Button
-                    onSave(safeRate, selectedTheme)
-                },
-                enabled = canSave,
+            SnackbarHost(
+                hostState = snackbarHostState,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 50.dp),
-            ) {
-                Text(stringResource(R.string.save_settings))
-            }
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(16.dp),
+            )
         }
     }
 }
