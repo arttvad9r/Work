@@ -21,7 +21,7 @@ import com.worktime.app.ui.theme.WorkTimeTheme
 @Composable
 fun WorkTimeApp(container: AppContainer) {
     val viewModel: CalendarViewModel = viewModel(
-        factory = CalendarViewModel.Factory(
+        factory = CalendarViewModel.factory(
             workEntryRepository = container.workEntryRepository,
             userPreferencesRepository = container.userPreferencesRepository,
         ),

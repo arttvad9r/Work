@@ -23,11 +23,9 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -192,7 +191,7 @@ fun CalendarScreen(
                 navigationIcon = {
                     IconButton(onClick = { closeSummaryBehind(onPreviousMonth) }) {
                         Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.previous_month),
                         )
                     }
@@ -200,7 +199,7 @@ fun CalendarScreen(
                 actions = {
                     IconButton(onClick = { closeSummaryBehind(onNextMonth) }) {
                         Icon(
-                            Icons.AutoMirrored.Rounded.ArrowForward,
+                            Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = stringResource(R.string.next_month),
                         )
                     }
@@ -209,7 +208,7 @@ fun CalendarScreen(
                         enabled = state.isReady,
                     ) {
                         Icon(
-                            Icons.Rounded.Settings,
+                            Icons.Filled.Settings,
                             contentDescription = stringResource(R.string.settings),
                         )
                     }
@@ -474,7 +473,7 @@ private fun DayCell(
         if (visibleEntry != null && visibleEntry.workedMinutes > 0) {
             append(", ").append(formatDuration(visibleEntry.workedMinutes))
         }
-        if (totalMicros != null) {
+        if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
             append(", ").append(formatAmountMicros(totalMicros, locale))
         }
         if (visibleEntry?.bonusMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_bonus))
@@ -533,7 +532,7 @@ private fun DayCell(
                     maxLines = 1,
                 )
             }
-            if (totalMicros != null) {
+            if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
                 Text(
                     text = formatWholeAmountMicros(totalMicros, locale),
                     modifier = Modifier
@@ -549,6 +548,8 @@ private fun DayCell(
         }
     }
 }
+
+internal fun shouldShowDayAmount(totalMicros: Long?): Boolean = totalMicros != null && totalMicros != 0L
 
 @Composable
 private fun MarkerGroup(
@@ -566,18 +567,8 @@ private fun MarkerGroup(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Rounded.Add,
-                contentDescription = null,
-                modifier = Modifier.size(8.dp),
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
-            Icon(
-                imageVector = Icons.Rounded.Remove,
-                contentDescription = null,
-                modifier = Modifier.size(8.dp),
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-            )
+            AdjustmentGlyph(isBonus = true)
+            AdjustmentGlyph(isBonus = false)
         }
     } else if (hasBonus) {
         Marker(isBonus = true, modifier = modifier)
@@ -605,16 +596,36 @@ private fun Marker(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = if (isBonus) Icons.Rounded.Add else Icons.Rounded.Remove,
-            contentDescription = null,
-            modifier = Modifier.size(8.dp),
-            tint = if (isBonus) {
-                MaterialTheme.colorScheme.onTertiaryContainer
-            } else {
-                MaterialTheme.colorScheme.onErrorContainer
-            },
+        AdjustmentGlyph(isBonus = isBonus)
+    }
+}
+
+@Composable
+private fun AdjustmentGlyph(isBonus: Boolean) {
+    val tint = if (isBonus) {
+        MaterialTheme.colorScheme.onTertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.onErrorContainer
+    }
+    Box(
+        modifier = Modifier
+            .size(8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(if (isBonus) 8.dp else 6.dp)
+                .height(1.5.dp)
+                .background(tint),
         )
+        if (isBonus) {
+            Box(
+                modifier = Modifier
+                    .width(1.5.dp)
+                    .height(8.dp)
+                    .background(tint),
+            )
+        }
     }
 }
 

@@ -3,6 +3,8 @@ package com.worktime.app.ui.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
@@ -140,16 +142,12 @@ class CalendarViewModel(
         }
     }
 
-    class Factory(
-        private val workEntryRepository: WorkEntryRepository,
-        private val userPreferencesRepository: UserPreferencesRepository,
-    ) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(CalendarViewModel::class.java)) {
-                return CalendarViewModel(workEntryRepository, userPreferencesRepository) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    companion object {
+        fun factory(
+            workEntryRepository: WorkEntryRepository,
+            userPreferencesRepository: UserPreferencesRepository,
+        ): ViewModelProvider.Factory = viewModelFactory {
+            initializer { CalendarViewModel(workEntryRepository, userPreferencesRepository) }
         }
     }
 }

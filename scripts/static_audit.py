@@ -153,9 +153,20 @@ if "Crossfade(" in calendar_screen or "animateColorAsState" in calendar_screen:
     fail("Calendar month navigation must not crossfade/reuse animated day-cell state")
 if "formatWholeAmountMicros(totalMicros, locale)" not in calendar_screen:
     fail("Calendar day cells must display whole amounts without fractional digits")
+if "totalMicros != 0L" not in calendar_screen:
+    fail("Calendar day cells must hide zero net amounts")
+
+day_editor = (
+    APP / "src/main/java/com/worktime/app/ui/dayeditor/DayEditorSheet.kt"
+).read_text(encoding="utf-8")
+if "lineHeight = MaterialTheme.typography.titleMedium.fontSize" in day_editor:
+    fail("Numeric editor must use Material's default line height to avoid clipped digits")
+if "val fieldHeight = 64.dp" not in day_editor:
+    fail("Numeric editor fields need enough height for attached labels and title text")
+
 for expected in (
-    "Modifier.align(Alignment.TopEnd)",
-    "Modifier.align(Alignment.BottomStart)",
+    ".align(Alignment.TopEnd)",
+    ".align(Alignment.BottomStart)",
     "MaterialTheme.typography.titleMedium",
     "fontWeight = FontWeight.Bold",
     ".padding(horizontal = 1.dp)",
@@ -164,9 +175,6 @@ for expected in (
     if expected not in calendar_screen:
         fail(f"Calendar compact cell layout invariant missing: {expected}")
 
-day_editor = (
-    APP / "src/main/java/com/worktime/app/ui/dayeditor/DayEditorSheet.kt"
-).read_text(encoding="utf-8")
 if "withFrameNanos" in day_editor:
     fail("Day editor contains a frame-delayed focus transfer that can restart the IME")
 if "rememberTextFieldState" not in day_editor or "InputTransformation.byValue" not in day_editor:

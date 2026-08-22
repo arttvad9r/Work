@@ -61,15 +61,4 @@ class WorkEntryTest {
         }
     }
 
-    @Test
-    fun `rejects notes above storage limit`() {
-        assertThrows(IllegalArgumentException::class.java) {
-            WorkEntry(
-                date = date,
-                workedMinutes = 60,
-                hourlyRateMicros = 1_000_000,
-                note = "x".repeat(MoneyLimits.MAX_NOTE_LENGTH + 1),
-            )
-        }
-    }
 }

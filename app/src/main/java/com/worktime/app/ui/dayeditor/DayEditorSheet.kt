@@ -413,7 +413,7 @@ private fun NumericEditorSection(
     editorFocusRequester: FocusRequester,
     onEditorFocusChanged: (Boolean) -> Unit,
 ) {
-    val fieldHeight = 56.dp
+    val fieldHeight = 64.dp
     val buttonHeight = 48.dp
     val gap = 8.dp
     val adjustmentTop = fieldHeight + gap
@@ -636,7 +636,6 @@ private fun PersistentNumericEditor(
         },
         textStyle = MaterialTheme.typography.titleMedium.copy(
             textAlign = TextAlign.Center,
-            lineHeight = MaterialTheme.typography.titleMedium.fontSize,
         ),
         isError = isError,
         modifier = modifier,
@@ -871,7 +870,6 @@ private fun DurationField(
         },
         textStyle = MaterialTheme.typography.titleMedium.copy(
             textAlign = TextAlign.Center,
-            lineHeight = MaterialTheme.typography.titleMedium.fontSize,
         ),
         isError = isError,
         modifier = modifier,
@@ -898,7 +896,6 @@ private fun MoneyField(
         labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
         textStyle = MaterialTheme.typography.titleMedium.copy(
             textAlign = TextAlign.Center,
-            lineHeight = MaterialTheme.typography.titleMedium.fontSize,
         ),
         isError = isError,
         modifier = modifier.fillMaxWidth(),

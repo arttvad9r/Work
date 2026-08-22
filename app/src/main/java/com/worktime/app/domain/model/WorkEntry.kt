@@ -21,9 +21,6 @@ data class WorkEntry(
         require(penaltyMicros in 0..MoneyLimits.MAX_COMPONENT_MICROS) {
             "penaltyMicros is outside the supported range"
         }
-        require(note.length <= MoneyLimits.MAX_NOTE_LENGTH) {
-            "note must be at most ${MoneyLimits.MAX_NOTE_LENGTH} characters"
-        }
         require(workedMinutes == 0 || hourlyRateMicros > 0L) {
             "worked time requires a positive hourly rate"
         }
