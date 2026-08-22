@@ -3,12 +3,12 @@ set -eu
 
 python3 scripts/static_audit.py
 
-if ! command -v gradle >/dev/null 2>&1; then
-  echo "Gradle is not on PATH. Install trusted Gradle 9.5.0 or bootstrap the project wrapper." >&2
+if [ ! -x ./gradlew ]; then
+  echo "Gradle Wrapper is missing or not executable." >&2
   exit 2
 fi
 
-gradle --no-daemon \
+./gradlew --no-daemon \
   :app:testDebugUnitTest \
   :app:lintDebug \
   :app:assembleDebug \
