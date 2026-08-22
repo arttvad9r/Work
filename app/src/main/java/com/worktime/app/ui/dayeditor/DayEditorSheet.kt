@@ -1,6 +1,7 @@
 package com.worktime.app.ui.dayeditor
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -50,7 +51,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -134,21 +137,23 @@ private fun DayEditorSheetContent(
         )
     }
 
-    // Compose's state-based TextField owns one platform input session per focused
-    // field. On the tested Gboard/device, moving focus between two editable fields
-    // disposes the old session and briefly hides/restarts the IME. Keep one editable
-    // TextField focused for the primary row and move that same node between the two
-    // visual slots instead of transferring Android/Compose focus.
+    // Keep one platform input session for the two primary logical fields. The same
+    // editable node moves between slots; switching Duration <-> Rate never transfers
+    // Compose focus to another TextField.
     val primaryEditorState = rememberTextFieldState(initialText = durationState.text.toString())
     var activePrimaryField by remember { mutableStateOf(PrimaryNumericField.Duration) }
+    var primaryEditorHasFocus by remember { mutableStateOf(false) }
+    var focusPrimaryOnActivate by remember { mutableStateOf(false) }
 
     var bonusVisible by rememberSaveable { mutableStateOf((existing?.bonusMicros ?: 0L) > 0L) }
     var penaltyVisible by rememberSaveable { mutableStateOf((existing?.penaltyMicros ?: 0L) > 0L) }
     var focusBonusOnExpand by remember { mutableStateOf(false) }
     var focusPenaltyOnExpand by remember { mutableStateOf(false) }
 
+    val primaryFocusRequester = remember { FocusRequester() }
     val bonusFocusRequester = remember { FocusRequester() }
     val penaltyFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     val activatePrimaryField: (PrimaryNumericField) -> Unit = { target ->
@@ -165,6 +170,21 @@ private fun DayEditorSheetContent(
                 PrimaryNumericField.Rate -> rateState
             }
             primaryEditorState.setTextAndPlaceCursorAtEnd(targetBackingState.text.toString())
+        }
+
+        // A tap on the passive slot must behave like a tap directly on a text field.
+        // Request focus only when the persistent editor is not already focused; a
+        // normal Duration <-> Rate switch therefore keeps the existing input session.
+        if (!primaryEditorHasFocus) {
+            focusPrimaryOnActivate = true
+        }
+    }
+
+    LaunchedEffect(focusPrimaryOnActivate, activePrimaryField) {
+        if (focusPrimaryOnActivate) {
+            primaryFocusRequester.requestFocus()
+            keyboardController?.show()
+            focusPrimaryOnActivate = false
         }
     }
 
@@ -297,24 +317,36 @@ private fun DayEditorSheetContent(
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                     val primaryFieldWidth = (maxWidth - 8.dp) / 2f
 
+                    // Only the inactive logical field gets a passive shell. The active
+                    // slot is occupied solely by PrimaryEditorField, so labels/text are
+                    // never drawn twice on top of each other.
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        PassiveDurationField(
-                            state = durationState,
-                            label = stringResource(R.string.worked),
-                            isError = durationHasError,
-                            onClick = { activatePrimaryField(PrimaryNumericField.Duration) },
-                            modifier = Modifier.weight(1f),
-                        )
-                        PassiveMoneyField(
-                            state = rateState,
-                            label = stringResource(R.string.hourly_rate),
-                            isError = rateHasError,
-                            onClick = { activatePrimaryField(PrimaryNumericField.Rate) },
-                            modifier = Modifier.weight(1f),
-                        )
+                        if (activePrimaryField == PrimaryNumericField.Rate) {
+                            PassiveDurationField(
+                                state = durationState,
+                                label = stringResource(R.string.worked),
+                                isError = durationHasError,
+                                onClick = { activatePrimaryField(PrimaryNumericField.Duration) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        } else {
+                            Box(modifier = Modifier.weight(1f))
+                        }
+
+                        if (activePrimaryField == PrimaryNumericField.Duration) {
+                            PassiveMoneyField(
+                                state = rateState,
+                                label = stringResource(R.string.hourly_rate),
+                                isError = rateHasError,
+                                onClick = { activatePrimaryField(PrimaryNumericField.Rate) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        } else {
+                            Box(modifier = Modifier.weight(1f))
+                        }
                     }
 
                     PrimaryEditorField(
@@ -348,7 +380,9 @@ private fun DayEditorSheetContent(
                                 } else {
                                     Alignment.CenterEnd
                                 },
-                            ),
+                            )
+                            .focusRequester(primaryFocusRequester)
+                            .onFocusChanged { primaryEditorHasFocus = it.isFocused },
                     )
                 }
 
@@ -538,6 +572,7 @@ private fun PassiveDurationField(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Box(modifier = modifier) {
         DurationField(
             state = state,
@@ -553,7 +588,11 @@ private fun PassiveDurationField(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clickable(onClick = onClick),
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                ),
         )
     }
 }
@@ -566,6 +605,7 @@ private fun PassiveMoneyField(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Box(modifier = modifier) {
         MoneyField(
             state = state,
@@ -581,7 +621,11 @@ private fun PassiveMoneyField(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clickable(onClick = onClick),
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                ),
         )
     }
 }
