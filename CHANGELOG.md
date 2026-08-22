@@ -8,31 +8,31 @@ All notable changes are documented here.
 
 - Removed Material 3's tooltip-wrapped monthly-report handle slot and replaced it with a stable in-content handle that keeps tap and drag behavior without showing `Drag handle` / `Маркер перемещения` on long press.
 - Kept the full report composed/measured while collapsed so sheet height and swipe anchors remain stable during repeated tap/drag cycles.
-- Replaced the day editor's duplicated `String` + `TextFieldValue` ownership with Material 3 state-based `TextFieldState` and synchronous `InputTransformation`, so the active IME editing session is no longer recreated by callback/state synchronization on every edit.
-- Numeric IME Next now relies on Compose's default focus traversal between stable text-field nodes; bonus/penalty expansion buttons cannot take keyboard focus before the newly created numeric field receives focus.
-- New/zero-valued day-editor numeric fields now start as empty editor text instead of mutating from `0` during focus. Duration sanitization also removes leading zeroes defensively, so typing `12` into a new day cannot produce `01:2`.
-- The day editor uses zero modal `contentWindowInsets`, preventing transient IME inset changes from moving the entire sheet while its scroll container remains available for covered lower actions.
-- Pinned Material 3 to `1.5.0-alpha26` as a targeted override because stable `1.4.0` applies `imePadding` unconditionally inside `ModalBottomSheet`; the upstream fix making `contentWindowInsets` authoritative landed in the 1.5 alpha line.
+- Replaced the day editor's duplicated `String` + `TextFieldValue` ownership with Material 3 state-based `TextFieldState` and synchronous `InputTransformation`.
+- New/zero-valued day-editor numeric fields start as empty editor text instead of mutating from `0` during focus. Duration sanitization removes leading zeroes defensively, so typing `12` into a new day cannot produce `01:2`.
+- Restored normal `ModalBottomSheet` inset handling after the zero-inset experiment left the editor underneath the software keyboard.
+- All day-editor numeric fields now share one identical decimal `KeyboardOptions`/`ImeAction.Next` configuration so switching fields does not change the OEM IME action-key layout.
+- Removed the temporary Material 3 alpha override after it did not eliminate the keyboard rebuild on the tested physical device; Material 3 again follows the stable Compose BOM.
 - Reworked settings-rate focus so an initial `0` is selected instead of temporarily replaced with an empty value.
 - Removed the extra settings `imePadding` layer.
 - Moved save/delete/settings persistence errors to transient Snackbar overlays so failures do not reflow modal content.
-- Month navigation now publishes the requested month immediately instead of waiting for the Room month flow; the month title and day-cell colors no longer crossfade, eliminating old/new month flashes.
+- Month navigation publishes the requested month immediately instead of waiting for the Room month flow; the month title and day-cell colors no longer crossfade, eliminating old/new month flashes.
 
 ### Product and domain consistency
 
 - Numeric validation remains intentionally outline-only: invalid fields turn red without helper text.
 - Removed obsolete validation-helper strings from EN/RU resources.
 - Enforced the documented domain rule that worked time requires a positive hourly rate while preserving zero-rate bonus/penalty-only entries.
-- Calendar day cells now display rounded whole daily amounts without fractional digits so values fit the compact cell width.
-- Made the calendar card fully edge-to-edge horizontally, removed its internal horizontal padding, reduced per-cell horizontal gutters to `0.5 dp`, and kept only minimal margins on the top bar/fixed summary.
-- Calendar day numbers now use bold weight for stronger visual hierarchy.
+- Calendar day cells display rounded whole daily amounts without fractional digits so values fit the compact cell width.
+- Calendar card is edge-to-edge horizontally, with 0.5 dp horizontal cell gutters.
+- Day-cell layout now follows the compact reference geometry: bold date at top-right, daily income at bottom-left, larger worked-duration text in the center, and adjustment markers in the free top-left corner.
 - Kept full fractional precision in calculations and up to two fractional digits in non-calendar amount displays.
 - Confirmed portrait-only orientation as a product constraint and aligned QA documentation accordingly.
 
 ### Build and maintenance
 
-- `scripts/verify.sh` and GitHub Actions now use the checked-in Gradle Wrapper rather than a system Gradle binary.
-- Extended the static audit with portrait/IME manifest checks and guards against tooltip, value-based editor input, focus-time text mutation, delayed month animation and fractional calendar-amount regressions.
+- `scripts/verify.sh` and GitHub Actions use the checked-in Gradle Wrapper rather than a system Gradle binary.
+- Extended the static audit with portrait/IME manifest checks and guards against tooltip, value-based editor input, focus-time text mutation, changing per-field IME configurations, delayed month animation and fractional calendar-amount regressions.
 - Updated README, product/UX, testing, build, device QA, release and static-audit documentation to match the current application behavior and verification process.
 - Documented that the `main` baseline has been exercised on physical hardware; GitHub Actions runner failures caused by account usage limits are tracked separately from application correctness.
 
@@ -70,4 +70,4 @@ All notable changes are documented here.
 - Anchored calendar date, duration and amount independently for equal top/bottom spacing and true center alignment.
 - Standardized current-month date weight and separated the expanded monthly report with a distinct surface color.
 
-Some intermediate 21 August attempts to suppress the report-handle tooltip or stabilize IME focus were later reverted or superseded. The 22 August interaction-stability work above is the current implementation.
+Some intermediate 21 August and 22 August attempts to suppress the report-handle tooltip or stabilize IME focus/insets were later reverted or superseded. The current branch implementation above is authoritative.
