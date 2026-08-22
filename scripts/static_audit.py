@@ -149,12 +149,28 @@ if "sheetDragHandle = null" not in calendar_screen:
     fail("Monthly report must not use Material's tooltip-wrapped sheet drag-handle slot")
 if "sheetDragHandle = { PlainDragHandle() }" in calendar_screen:
     fail("Tooltip-prone Material sheet drag-handle slot regressed")
+if "Crossfade(" in calendar_screen or "animateColorAsState" in calendar_screen:
+    fail("Calendar month navigation must not crossfade/reuse animated day-cell state")
+if "formatWholeAmountMicros(totalMicros, locale)" not in calendar_screen:
+    fail("Calendar day cells must display whole amounts without fractional digits")
 
 day_editor = (
     APP / "src/main/java/com/worktime/app/ui/dayeditor/DayEditorSheet.kt"
 ).read_text(encoding="utf-8")
 if "withFrameNanos" in day_editor:
     fail("Day editor contains a frame-delayed focus transfer that can restart the IME")
+if "rememberTextFieldState" not in day_editor or "InputTransformation.byValue" not in day_editor:
+    fail("Day editor must use state-based text input and synchronous input transformations")
+if "TextFieldValue" in day_editor or "KeyboardActions" in day_editor:
+    fail("Day editor regressed to value-based text input / custom IME action plumbing")
+if 'state.clearText()' not in day_editor:
+    fail("Numeric zero must clear on focus before new input is entered")
+
+calendar_view_model = (
+    APP / "src/main/java/com/worktime/app/ui/calendar/CalendarViewModel.kt"
+).read_text(encoding="utf-8")
+if "visibleMonth," not in calendar_view_model or "loadedMonth == requestedMonth" not in calendar_view_model:
+    fail("Calendar navigation must publish the requested month before Room finishes loading rows")
 
 build_file = (APP / "build.gradle.kts").read_text(encoding="utf-8")
 catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
