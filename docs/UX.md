@@ -15,6 +15,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 
 - Header: previous month, localized month/year, next month, settings.
 - The calendar uses a fixed compact height above the fixed summary and report handle; no additional bottom padding may compete with the scaffold peek area.
+- The calendar is nearly edge-to-edge horizontally: the screen keeps only a minimal safety margin and the card itself uses minimal horizontal padding.
 - It never scrolls vertically and its position does not depend on entries or report content.
 - The grid always has six rows; adjacent-month dates are faint and inactive.
 - Current-month cells remain large enough for date, duration and amount.
@@ -57,11 +58,13 @@ Normal closed-keyboard state should fit as one compact sheet.
 5. Save.
 6. Delete for an existing entry.
 
-The duration field is labeled `Время` and shows a faint `00:00` format hint while empty. Duration and rate values stay centered in focused and unfocused states. A new day may display duration `0` before focus; focusing that numeric field clears the zero before input, so typing `12` results in `12`, never `01:2`. Duration sanitization also removes accidental leading zeroes defensively. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`.
+The duration field is labeled `Время` and shows a faint `00:00` format hint while empty. A new day starts with an empty duration field rather than a literal `0`, so typing `12` yields `12` immediately. Duration sanitization also removes accidental leading zeroes defensively, so input such as `012` cannot become `01:2`. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`.
 
-Numeric validation is intentionally minimal: invalid duration/rate/bonus/penalty values are indicated by the field's red error outline only. Validation helper text is not shown and must not change sheet height.
+Zero-valued numeric editor fields are represented as empty editor text and parsed as zero. Focus changes must not mutate field text. Numeric validation is intentionally minimal: invalid duration/rate/bonus/penalty values are indicated by the field's red error outline only. Validation helper text is not shown and must not change sheet height.
 
-All day-editor numeric inputs use Material 3 state-based `TextFieldState` with synchronous `InputTransformation`. There is no duplicated parent `String` plus child `TextFieldValue` synchronization loop. The same decimal keyboard family is used across fields, and normal Compose `ImeAction.Next` focus traversal moves between stable input nodes without explicitly clearing focus. Expanding bonus or penalty while another numeric field is focused must transfer focus directly to the newly created field, so the IME remains visible and the modal sheet does not jump.
+All day-editor numeric inputs use Material 3 state-based `TextFieldState` with synchronous `InputTransformation`. There is no duplicated parent `String` plus child `TextFieldValue` synchronization loop. The same decimal keyboard family is used across fields, and normal Compose `ImeAction.Next` focus traversal moves between stable input nodes without explicitly clearing focus. Expanding bonus or penalty while another numeric field is focused must transfer focus directly to the newly created field, so the IME remains visible.
+
+The modal editor uses zero `contentWindowInsets` so its geometry is independent from transient IME inset changes. The content remains vertically scrollable if the keyboard covers lower actions. Repeatedly switching focus between already visible numeric fields must not make the sheet jump up/down or visibly close and reopen the keyboard.
 
 Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The expansion buttons do not take keyboard focus.
 
