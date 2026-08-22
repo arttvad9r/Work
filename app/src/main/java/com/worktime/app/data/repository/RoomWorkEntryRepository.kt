@@ -3,6 +3,7 @@ package com.worktime.app.data.repository
 import com.worktime.app.data.db.WorkEntryDao
 import com.worktime.app.data.db.toDomain
 import com.worktime.app.data.db.toEntity
+import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.repository.WorkEntryRepository
 import java.time.LocalDate
@@ -33,7 +34,9 @@ class RoomWorkEntryRepository(
         hourlyRateMicros: Long,
     ): List<WorkEntry> {
         require(startDate <= endDate) { "startDate must not be after endDate" }
-        require(hourlyRateMicros > 0L) { "hourlyRateMicros must be positive" }
+        require(hourlyRateMicros in 1..MoneyLimits.MAX_COMPONENT_MICROS) {
+            "hourlyRateMicros is outside the supported range"
+        }
         return dao.updateHourlyRate(startDate.toEpochDay(), endDate.toEpochDay(), hourlyRateMicros)
             .map { it.toDomain() }
     }
