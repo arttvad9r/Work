@@ -7,6 +7,12 @@
 - Android Gradle Plugin 9.3.1
 - Kotlin 2.4.10
 - compile/target SDK 37
+- Compose BOM 2026.08.00
+- Material 3 1.5.0-alpha26 (targeted override)
+
+The Material 3 override is intentional and narrow. Compose BOM `2026.08.00` otherwise stays stable, but its Material 3 `1.4.0` still applies `imePadding` unconditionally inside `ModalBottomSheet`, so `contentWindowInsets = { WindowInsets(0, 0, 0, 0) }` cannot keep the editor sheet stationary while the IME visibility changes. Material 3 fixed that behavior starting in `1.5.0-alpha19`; the project pins the current `1.5.0-alpha26` until the fix reaches a stable release.
+
+When a stable Material 3 release contains the same fix, remove the explicit Material 3 version and return to the BOM-managed version after a physical-device IME regression pass.
 
 ## Local verification
 
