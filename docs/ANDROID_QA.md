@@ -69,7 +69,7 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 
 - [ ] Rate field is compact and centered.
 - [ ] Focusing an initial `0` selects it instead of deleting it; the sheet height remains unchanged.
-- [ ] Invalid rate marks only the field outline red; no validation helper text appears.
+- [ ] Invalid rate marks only the field outline red; no helper text appears.
 - [ ] Opening/closing the numeric keyboard does not produce a second inset jump.
 - [ ] `Системная`, `Светлая`, `Тёмная` fit without clipping.
 - [ ] Save is reachable with keyboard closed and after keyboard dismissal.
