@@ -20,18 +20,19 @@ It is a modern salary calendar, not a project tracker, shift planner, timer, HR 
 ### Calendar
 
 - Monday-first 6 x 7 layout with fixed geometry.
-- Previous/next month navigation.
+- Previous/next month navigation updates the title and date grid immediately without crossfade or old/new month flashing.
 - Adjacent-month dates remain visible but faint and inactive.
-- Filled cells show a centered compact duration and neutral daily amount.
+- Filled cells show a centered compact duration and a rounded whole-number daily amount with no fractional digits.
 - Bonus and penalty have distinct centered markers.
 - Application orientation remains locked to portrait.
 
 ### Day editor
 
 - One duration field accepting `H`, `HH`, `H:MM` or `HH:MM`.
+- A new day may display duration `0` before focus; focusing the field removes that zero before entry, and leading zeroes are normalized defensively.
 - Hourly rate beside duration on the same row.
 - Bonus is always above penalty when expanded.
-- Numeric focus moves directly between visible fields without intentionally closing/reopening the IME.
+- Numeric fields use state-based Compose text input and focus moves directly between visible fields without intentionally closing/reopening the IME.
 - Invalid numeric input is indicated by the Material error outline only; no validation helper text is shown.
 - Live calculation with `At hourly rate`, optional adjustments and total.
 - Save/edit/delete with delete confirmation and recoverable write errors shown without resizing the sheet.
@@ -71,7 +72,7 @@ The report opens by tap or drag. Holding its handle must not show Material's dra
 - Historical records retain their saved hourly rate.
 - Numeric amounts are neutral values; there is no currency setting or exchange-rate behavior.
 - User-entered amounts accept at most two fractional digits.
-- Displayed amounts use at most two fractional digits and omit a zero fractional part.
+- Normal amount displays use at most two fractional digits and omit a zero fractional part; compact calendar day cells intentionally show only a rounded whole number.
 - Domain/data calculations store integer micros (six decimal places of internal precision) and never use persisted binary floating point.
 
 ## Non-goals
@@ -91,5 +92,6 @@ The report opens by tap or drag. Holding its handle must not show Material's dra
 - All local verification commands pass on the current head.
 - Core create/edit/delete/relaunch flows pass on supported physical hardware.
 - Report tap/drag/long-press and editor IME transitions pass the focused device checklist.
+- Calendar month switching and compact whole-number daily totals pass the focused device checklist.
 - Calendar, fixed summary and report sheet do not clip at supported portrait font scales.
 - No known data-loss or calculation defect remains.
