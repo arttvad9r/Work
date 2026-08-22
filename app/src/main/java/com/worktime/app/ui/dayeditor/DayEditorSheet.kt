@@ -1,13 +1,17 @@
 package com.worktime.app.ui.dayeditor
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,6 +20,7 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.byValue
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -40,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -88,6 +94,11 @@ fun DayEditorSheet(
     }
 }
 
+private enum class PrimaryNumericField {
+    Duration,
+    Rate,
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DayEditorSheetContent(
@@ -117,14 +128,20 @@ private fun DayEditorSheetContent(
     val moneyInputTransformation = remember {
         InputTransformation.byValue { _, proposed -> sanitizeMoneyInput(proposed.toString()) }
     }
-    // Keep EditorInfo identical while moving between numeric fields. Some OEM IMEs
-    // visibly rebuild when the action key changes between Next and Done.
     val numericKeyboardOptions = remember {
         KeyboardOptions(
             keyboardType = KeyboardType.Decimal,
             imeAction = ImeAction.Next,
         )
     }
+
+    // Compose's state-based TextField owns one platform input session per focused
+    // field. On the tested Gboard/device, moving focus between two editable fields
+    // disposes the old session and briefly hides/restarts the IME. Keep one editable
+    // TextField focused for the primary row and move that same node between the two
+    // visual slots instead of transferring Android/Compose focus.
+    val primaryEditorState = rememberTextFieldState(initialText = durationState.text.toString())
+    var activePrimaryField by remember { mutableStateOf(PrimaryNumericField.Duration) }
 
     var bonusVisible by rememberSaveable { mutableStateOf((existing?.bonusMicros ?: 0L) > 0L) }
     var penaltyVisible by rememberSaveable { mutableStateOf((existing?.penaltyMicros ?: 0L) > 0L) }
@@ -134,6 +151,35 @@ private fun DayEditorSheetContent(
     val bonusFocusRequester = remember { FocusRequester() }
     val penaltyFocusRequester = remember { FocusRequester() }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val activatePrimaryField: (PrimaryNumericField) -> Unit = { target ->
+        if (target != activePrimaryField) {
+            val currentBackingState = when (activePrimaryField) {
+                PrimaryNumericField.Duration -> durationState
+                PrimaryNumericField.Rate -> rateState
+            }
+            currentBackingState.setTextAndPlaceCursorAtEnd(primaryEditorState.text.toString())
+
+            activePrimaryField = target
+            val targetBackingState = when (target) {
+                PrimaryNumericField.Duration -> durationState
+                PrimaryNumericField.Rate -> rateState
+            }
+            primaryEditorState.setTextAndPlaceCursorAtEnd(targetBackingState.text.toString())
+        }
+    }
+
+    LaunchedEffect(primaryEditorState, activePrimaryField) {
+        snapshotFlow { primaryEditorState.text.toString() }.collect { editorText ->
+            val backingState = when (activePrimaryField) {
+                PrimaryNumericField.Duration -> durationState
+                PrimaryNumericField.Rate -> rateState
+            }
+            if (backingState.text.toString() != editorText) {
+                backingState.setTextAndPlaceCursorAtEnd(editorText)
+            }
+        }
+    }
 
     val showBonus = {
         bonusVisible = true
@@ -164,8 +210,16 @@ private fun DayEditorSheetContent(
 
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
-    val duration = durationState.text.toString()
-    val rate = rateState.text.toString()
+    val duration = if (activePrimaryField == PrimaryNumericField.Duration) {
+        primaryEditorState.text.toString()
+    } else {
+        durationState.text.toString()
+    }
+    val rate = if (activePrimaryField == PrimaryNumericField.Rate) {
+        primaryEditorState.text.toString()
+    } else {
+        rateState.text.toString()
+    }
     val bonus = bonusState.text.toString()
     val penalty = penaltyState.text.toString()
 
@@ -241,22 +295,61 @@ private fun DayEditorSheetContent(
                     fontWeight = FontWeight.SemiBold,
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DurationField(
-                        state = durationState,
-                        inputTransformation = durationInputTransformation,
-                        label = stringResource(R.string.worked),
-                        isError = durationHasError,
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val primaryFieldWidth = (maxWidth - 8.dp) / 2
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        PassiveDurationField(
+                            state = durationState,
+                            label = stringResource(R.string.worked),
+                            isError = durationHasError,
+                            onClick = { activatePrimaryField(PrimaryNumericField.Duration) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        PassiveMoneyField(
+                            state = rateState,
+                            label = stringResource(R.string.hourly_rate),
+                            isError = rateHasError,
+                            onClick = { activatePrimaryField(PrimaryNumericField.Rate) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+
+                    PrimaryEditorField(
+                        state = primaryEditorState,
+                        activeField = activePrimaryField,
+                        durationInputTransformation = durationInputTransformation,
+                        moneyInputTransformation = moneyInputTransformation,
+                        durationLabel = stringResource(R.string.worked),
+                        rateLabel = stringResource(R.string.hourly_rate),
+                        durationHasError = durationHasError,
+                        rateHasError = rateHasError,
                         keyboardOptions = numericKeyboardOptions,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MoneyField(
-                        state = rateState,
-                        inputTransformation = moneyInputTransformation,
-                        label = stringResource(R.string.hourly_rate),
-                        isError = rateHasError,
-                        keyboardOptions = numericKeyboardOptions,
-                        modifier = Modifier.weight(1f),
+                        onNext = {
+                            when (activePrimaryField) {
+                                PrimaryNumericField.Duration -> {
+                                    activatePrimaryField(PrimaryNumericField.Rate)
+                                }
+                                PrimaryNumericField.Rate -> {
+                                    when {
+                                        bonusVisible -> bonusFocusRequester.requestFocus()
+                                        penaltyVisible -> penaltyFocusRequester.requestFocus()
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .width(primaryFieldWidth)
+                            .align(
+                                if (activePrimaryField == PrimaryNumericField.Duration) {
+                                    Alignment.CenterStart
+                                } else {
+                                    Alignment.CenterEnd
+                                },
+                            ),
                     )
                 }
 
@@ -385,6 +478,111 @@ private fun DayEditorSheetContent(
                     Text(stringResource(R.string.cancel))
                 }
             },
+        )
+    }
+}
+
+@Composable
+private fun PrimaryEditorField(
+    state: TextFieldState,
+    activeField: PrimaryNumericField,
+    durationInputTransformation: InputTransformation,
+    moneyInputTransformation: InputTransformation,
+    durationLabel: String,
+    rateLabel: String,
+    durationHasError: Boolean,
+    rateHasError: Boolean,
+    keyboardOptions: KeyboardOptions,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isDuration = activeField == PrimaryNumericField.Duration
+    OutlinedTextField(
+        state = state,
+        inputTransformation = if (isDuration) {
+            durationInputTransformation
+        } else {
+            moneyInputTransformation
+        },
+        label = { Text(if (isDuration) durationLabel else rateLabel, maxLines = 1) },
+        placeholder = if (isDuration) {
+            {
+                Text(
+                    text = stringResource(R.string.duration_placeholder),
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.46f),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+            }
+        } else {
+            null
+        },
+        textStyle = MaterialTheme.typography.titleMedium.copy(
+            textAlign = TextAlign.Center,
+            lineHeight = MaterialTheme.typography.titleMedium.fontSize,
+        ),
+        isError = if (isDuration) durationHasError else rateHasError,
+        modifier = modifier,
+        lineLimits = TextFieldLineLimits.SingleLine,
+        keyboardOptions = keyboardOptions,
+        onKeyboardAction = { onNext() },
+    )
+}
+
+@Composable
+private fun PassiveDurationField(
+    state: TextFieldState,
+    label: String,
+    isError: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        DurationField(
+            state = state,
+            inputTransformation = null,
+            label = label,
+            isError = isError,
+            keyboardOptions = KeyboardOptions.Default,
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusProperties { canFocus = false },
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(onClick = onClick),
+        )
+    }
+}
+
+@Composable
+private fun PassiveMoneyField(
+    state: TextFieldState,
+    label: String,
+    isError: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        MoneyField(
+            state = state,
+            inputTransformation = null,
+            label = label,
+            isError = isError,
+            keyboardOptions = KeyboardOptions.Default,
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusProperties { canFocus = false },
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(onClick = onClick),
         )
     }
 }
@@ -524,11 +722,12 @@ private fun parseMoneyOrNull(text: String): Long? = runCatching { parseDecimalMi
 @Composable
 private fun DurationField(
     state: TextFieldState,
-    inputTransformation: InputTransformation,
+    inputTransformation: InputTransformation?,
     label: String,
     isError: Boolean,
     keyboardOptions: KeyboardOptions,
     modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
 ) {
     OutlinedTextField(
         state = state,
@@ -550,6 +749,7 @@ private fun DurationField(
         ),
         isError = isError,
         modifier = modifier,
+        readOnly = readOnly,
         lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = keyboardOptions,
     )
@@ -558,11 +758,12 @@ private fun DurationField(
 @Composable
 private fun MoneyField(
     state: TextFieldState,
-    inputTransformation: InputTransformation,
+    inputTransformation: InputTransformation?,
     label: String,
     isError: Boolean,
     keyboardOptions: KeyboardOptions,
     modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
 ) {
     OutlinedTextField(
         state = state,
@@ -574,6 +775,7 @@ private fun MoneyField(
         ),
         isError = isError,
         modifier = modifier.fillMaxWidth(),
+        readOnly = readOnly,
         lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = keyboardOptions,
     )
