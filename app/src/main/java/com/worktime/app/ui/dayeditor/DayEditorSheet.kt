@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -118,6 +117,14 @@ private fun DayEditorSheetContent(
     val moneyInputTransformation = remember {
         InputTransformation.byValue { _, proposed -> sanitizeMoneyInput(proposed.toString()) }
     }
+    // Keep EditorInfo identical while moving between numeric fields. Some OEM IMEs
+    // visibly rebuild when the action key changes between Next and Done.
+    val numericKeyboardOptions = remember {
+        KeyboardOptions(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = ImeAction.Next,
+        )
+    }
 
     var bonusVisible by rememberSaveable { mutableStateOf((existing?.bonusMicros ?: 0L) > 0L) }
     var penaltyVisible by rememberSaveable { mutableStateOf((existing?.penaltyMicros ?: 0L) > 0L) }
@@ -213,9 +220,6 @@ private fun DayEditorSheetContent(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = null,
-        // Keep sheet geometry independent from transient IME inset changes. The
-        // content itself remains scrollable if the keyboard covers lower actions.
-        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(
@@ -243,16 +247,15 @@ private fun DayEditorSheetContent(
                         inputTransformation = durationInputTransformation,
                         label = stringResource(R.string.worked),
                         isError = durationHasError,
-                        imeAction = ImeAction.Next,
+                        keyboardOptions = numericKeyboardOptions,
                         modifier = Modifier.weight(1f),
                     )
-                    val rateImeAction = if (bonusVisible || penaltyVisible) ImeAction.Next else ImeAction.Done
                     MoneyField(
                         state = rateState,
                         inputTransformation = moneyInputTransformation,
                         label = stringResource(R.string.hourly_rate),
                         isError = rateHasError,
-                        imeAction = rateImeAction,
+                        keyboardOptions = numericKeyboardOptions,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -289,7 +292,7 @@ private fun DayEditorSheetContent(
                                 inputTransformation = moneyInputTransformation,
                                 label = stringResource(R.string.bonus),
                                 isError = bonusHasError,
-                                imeAction = if (penaltyVisible) ImeAction.Next else ImeAction.Done,
+                                keyboardOptions = numericKeyboardOptions,
                                 modifier = Modifier.focusRequester(bonusFocusRequester),
                             )
                         } else {
@@ -310,7 +313,7 @@ private fun DayEditorSheetContent(
                                 inputTransformation = moneyInputTransformation,
                                 label = stringResource(R.string.penalty),
                                 isError = penaltyHasError,
-                                imeAction = ImeAction.Done,
+                                keyboardOptions = numericKeyboardOptions,
                                 modifier = Modifier.focusRequester(penaltyFocusRequester),
                             )
                         } else {
@@ -524,7 +527,7 @@ private fun DurationField(
     inputTransformation: InputTransformation,
     label: String,
     isError: Boolean,
-    imeAction: ImeAction,
+    keyboardOptions: KeyboardOptions,
     modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
@@ -548,10 +551,7 @@ private fun DurationField(
         isError = isError,
         modifier = modifier,
         lineLimits = TextFieldLineLimits.SingleLine,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Decimal,
-            imeAction = imeAction,
-        ),
+        keyboardOptions = keyboardOptions,
     )
 }
 
@@ -561,7 +561,7 @@ private fun MoneyField(
     inputTransformation: InputTransformation,
     label: String,
     isError: Boolean,
-    imeAction: ImeAction,
+    keyboardOptions: KeyboardOptions,
     modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
@@ -575,9 +575,6 @@ private fun MoneyField(
         isError = isError,
         modifier = modifier.fillMaxWidth(),
         lineLimits = TextFieldLineLimits.SingleLine,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Decimal,
-            imeAction = imeAction,
-        ),
+        keyboardOptions = keyboardOptions,
     )
 }
