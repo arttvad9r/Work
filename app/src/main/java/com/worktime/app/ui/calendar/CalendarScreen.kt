@@ -250,7 +250,9 @@ private fun CalendarCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .padding(horizontal = 1.dp)
+            .fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
@@ -481,7 +483,7 @@ private fun DayCell(
 
     Box(
         modifier = Modifier
-            .padding(horizontal = 0.5.dp, vertical = 1.dp)
+            .padding(0.25.dp)
             .fillMaxSize()
             .clip(shape)
             .background(background)
@@ -505,7 +507,9 @@ private fun DayCell(
     ) {
         Text(
             text = date.dayOfMonth.toString(),
-            modifier = Modifier.align(Alignment.TopEnd),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 2.dp),
             style = MaterialTheme.typography.titleSmall,
             color = foreground,
             fontWeight = FontWeight.Bold,
@@ -532,7 +536,9 @@ private fun DayCell(
             if (totalMicros != null) {
                 Text(
                     text = formatWholeAmountMicros(totalMicros, locale),
-                    modifier = Modifier.align(Alignment.BottomStart),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 2.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = foreground.copy(alpha = 0.82f),
                     fontWeight = FontWeight.Medium,
