@@ -31,6 +31,7 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] Handle/sheet opens by upward drag and collapses by downward drag.
 - [ ] Repeated tap/drag cycles do not change the sheet anchors or break the peek height.
 - [ ] Long-pressing/holding the handle never shows `Маркер перемещения`, `Drag handle` or another tooltip.
+- [ ] TalkBack exposes one monthly-report action for the custom handle without duplicate drag-handle speech.
 - [ ] Report has one title and one total; no duplicated income row/handle.
 - [ ] Bonus and penalty rows appear only when non-zero.
 
@@ -65,5 +66,4 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] 200% font scale does not hide essential actions.
 - [ ] Narrow portrait phone does not produce overlapping text.
 - [ ] TalkBack announces dates, selected/today state, duration and adjustments.
-- [ ] The custom monthly-report handle does not expose duplicate tooltip/content-description speech.
 - [ ] No currency label/symbol appears anywhere.
