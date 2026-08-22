@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.byValue
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,6 +35,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,14 +46,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
@@ -64,7 +66,6 @@ import com.worktime.app.ui.format.sanitizeMoneyInput
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayEditorSheet(
     date: LocalDate,
@@ -75,32 +76,56 @@ fun DayEditorSheet(
     onSave: (WorkEntry) -> Unit,
     onDelete: (LocalDate) -> Unit,
 ) {
-    var duration by rememberSaveable(date.toEpochDay(), existing) {
-        mutableStateOf(formatDurationInput(existing?.workedMinutes ?: 0))
+    key(date.toEpochDay(), existing) {
+        DayEditorSheetContent(
+            date = date,
+            existing = existing,
+            defaultHourlyRateMicros = defaultHourlyRateMicros,
+            operationErrorMessage = operationErrorMessage,
+            onDismiss = onDismiss,
+            onSave = onSave,
+            onDelete = onDelete,
+        )
     }
-    var rate by rememberSaveable(date.toEpochDay(), existing) {
-        mutableStateOf(formatDecimalMicros(existing?.hourlyRateMicros ?: defaultHourlyRateMicros))
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DayEditorSheetContent(
+    date: LocalDate,
+    existing: WorkEntry?,
+    defaultHourlyRateMicros: Long,
+    operationErrorMessage: String?,
+    onDismiss: () -> Unit,
+    onSave: (WorkEntry) -> Unit,
+    onDelete: (LocalDate) -> Unit,
+) {
+    val durationState = rememberTextFieldState(
+        initialText = formatDurationInput(existing?.workedMinutes ?: 0),
+    )
+    val rateState = rememberTextFieldState(
+        initialText = formatDecimalMicros(existing?.hourlyRateMicros ?: defaultHourlyRateMicros),
+    )
+    val bonusState = rememberTextFieldState(
+        initialText = formatDecimalMicros(existing?.bonusMicros ?: 0L),
+    )
+    val penaltyState = rememberTextFieldState(
+        initialText = formatDecimalMicros(existing?.penaltyMicros ?: 0L),
+    )
+    val durationInputTransformation = remember {
+        InputTransformation.byValue { _, proposed -> sanitizeDurationInput(proposed.toString()) }
     }
-    var bonus by rememberSaveable(date.toEpochDay(), existing) {
-        mutableStateOf(formatDecimalMicros(existing?.bonusMicros ?: 0L))
+    val moneyInputTransformation = remember {
+        InputTransformation.byValue { _, proposed -> sanitizeMoneyInput(proposed.toString()) }
     }
-    var penalty by rememberSaveable(date.toEpochDay(), existing) {
-        mutableStateOf(formatDecimalMicros(existing?.penaltyMicros ?: 0L))
-    }
-    var bonusVisible by rememberSaveable(date.toEpochDay(), existing) {
-        mutableStateOf((existing?.bonusMicros ?: 0L) > 0L)
-    }
-    var penaltyVisible by rememberSaveable(date.toEpochDay(), existing) {
-        mutableStateOf((existing?.penaltyMicros ?: 0L) > 0L)
-    }
+
+    var bonusVisible by rememberSaveable { mutableStateOf((existing?.bonusMicros ?: 0L) > 0L) }
+    var penaltyVisible by rememberSaveable { mutableStateOf((existing?.penaltyMicros ?: 0L) > 0L) }
     var focusBonusOnExpand by remember { mutableStateOf(false) }
     var focusPenaltyOnExpand by remember { mutableStateOf(false) }
 
-    val durationFocusRequester = remember { FocusRequester() }
-    val rateFocusRequester = remember { FocusRequester() }
     val bonusFocusRequester = remember { FocusRequester() }
     val penaltyFocusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     val showBonus = {
@@ -114,8 +139,6 @@ fun DayEditorSheet(
 
     LaunchedEffect(focusBonusOnExpand, bonusVisible) {
         if (focusBonusOnExpand && bonusVisible) {
-            // The previous text field keeps focus until this node exists, so the IME
-            // stays attached instead of closing for an intermediate frame.
             bonusFocusRequester.requestFocus()
             focusBonusOnExpand = false
         }
@@ -132,7 +155,12 @@ fun DayEditorSheet(
         }
     }
 
-    var confirmDelete by rememberSaveable(date.toEpochDay(), existing) { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+
+    val duration = durationState.text.toString()
+    val rate = rateState.text.toString()
+    val bonus = bonusState.text.toString()
+    val penalty = penaltyState.text.toString()
 
     val parsedDuration = parseDurationInput(duration)
     val parsedHours = parsedDuration?.hours
@@ -208,33 +236,21 @@ fun DayEditorSheet(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DurationField(
-                        value = duration,
-                        onValueChange = { duration = sanitizeDurationInput(it) },
+                        state = durationState,
+                        inputTransformation = durationInputTransformation,
                         label = stringResource(R.string.worked),
                         isError = durationHasError,
                         imeAction = ImeAction.Next,
-                        onNext = { rateFocusRequester.requestFocus() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .focusRequester(durationFocusRequester),
+                        modifier = Modifier.weight(1f),
                     )
                     val rateImeAction = if (bonusVisible || penaltyVisible) ImeAction.Next else ImeAction.Done
                     MoneyField(
-                        value = rate,
-                        onValueChange = { rate = sanitizeMoneyInput(it) },
+                        state = rateState,
+                        inputTransformation = moneyInputTransformation,
                         label = stringResource(R.string.hourly_rate),
                         isError = rateHasError,
                         imeAction = rateImeAction,
-                        onNext = {
-                            when {
-                                bonusVisible -> bonusFocusRequester.requestFocus()
-                                penaltyVisible -> penaltyFocusRequester.requestFocus()
-                            }
-                        },
-                        onDone = { focusManager.clearFocus() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .focusRequester(rateFocusRequester),
+                        modifier = Modifier.weight(1f),
                     )
                 }
 
@@ -266,13 +282,11 @@ fun DayEditorSheet(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (bonusVisible) {
                             MoneyField(
-                                value = bonus,
-                                onValueChange = { bonus = sanitizeMoneyInput(it) },
+                                state = bonusState,
+                                inputTransformation = moneyInputTransformation,
                                 label = stringResource(R.string.bonus),
                                 isError = bonusHasError,
                                 imeAction = if (penaltyVisible) ImeAction.Next else ImeAction.Done,
-                                onNext = { penaltyFocusRequester.requestFocus() },
-                                onDone = { focusManager.clearFocus() },
                                 modifier = Modifier.focusRequester(bonusFocusRequester),
                             )
                         } else {
@@ -289,12 +303,11 @@ fun DayEditorSheet(
 
                         if (penaltyVisible) {
                             MoneyField(
-                                value = penalty,
-                                onValueChange = { penalty = sanitizeMoneyInput(it) },
+                                state = penaltyState,
+                                inputTransformation = moneyInputTransformation,
                                 label = stringResource(R.string.penalty),
                                 isError = penaltyHasError,
                                 imeAction = ImeAction.Done,
-                                onDone = { focusManager.clearFocus() },
                                 modifier = Modifier.focusRequester(penaltyFocusRequester),
                             )
                         } else {
@@ -451,20 +464,20 @@ private fun CalculationRow(
 
 private data class DurationInput(val hours: Int, val minutes: Int)
 
-private fun formatDurationInput(workedMinutes: Int): String {
-    return formatDurationCompact(workedMinutes)
-}
+private fun formatDurationInput(workedMinutes: Int): String = formatDurationCompact(workedMinutes)
 
 internal fun sanitizeDurationInput(value: String): String {
     val filtered = value.filter { it.isDigit() || it == ':' }
     val firstColon = filtered.indexOf(':')
     if (firstColon >= 0) {
-        val hours = filtered.take(firstColon).filter(Char::isDigit).take(2)
+        val rawHours = filtered.take(firstColon).filter(Char::isDigit)
+        val hours = normalizeLeadingZeroes(rawHours).take(2)
         val minutes = filtered.drop(firstColon + 1).filter(Char::isDigit).take(2)
         return "$hours:$minutes"
     }
 
-    val digits = filtered.filter(Char::isDigit).take(4)
+    val rawDigits = filtered.filter(Char::isDigit).take(4)
+    val digits = if (rawDigits.length > 1) normalizeLeadingZeroes(rawDigits) else rawDigits
     return when (digits.length) {
         0, 1 -> digits
         2 -> {
@@ -482,6 +495,11 @@ internal fun sanitizeDurationInput(value: String): String {
     }
 }
 
+private fun normalizeLeadingZeroes(value: String): String {
+    if (value.isEmpty()) return value
+    return value.trimStart('0').ifEmpty { "0" }
+}
+
 private fun parseDurationInput(text: String): DurationInput? {
     if (text.isBlank()) return DurationInput(hours = 0, minutes = 0)
     val parts = text.split(':')
@@ -495,35 +513,16 @@ private fun parseMoneyOrNull(text: String): Long? = runCatching { parseDecimalMi
 
 @Composable
 private fun DurationField(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
+    inputTransformation: InputTransformation,
     label: String,
     isError: Boolean,
     imeAction: ImeAction,
-    onNext: (() -> Unit)? = null,
-    onDone: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    var fieldValue by remember {
-        mutableStateOf(TextFieldValue(value, TextRange(value.length)))
-    }
-    // Parent state changes after each keystroke. Only sync external changes so the
-    // platform editing session retains its cursor and does not restart the IME.
-    LaunchedEffect(value) {
-        if (value != fieldValue.text) {
-            fieldValue = TextFieldValue(value, TextRange(value.length))
-        }
-    }
     OutlinedTextField(
-        value = fieldValue,
-        onValueChange = { updated ->
-            val sanitized = sanitizeDurationInput(updated.text)
-            fieldValue = TextFieldValue(
-                text = sanitized,
-                selection = TextRange(sanitized.length),
-            )
-            onValueChange(sanitized)
-        },
+        state = state,
+        inputTransformation = inputTransformation,
         label = { Text(label, maxLines = 1) },
         placeholder = {
             Text(
@@ -541,53 +540,30 @@ private fun DurationField(
         ),
         isError = isError,
         modifier = modifier.onFocusChanged { focusState ->
-            if (focusState.isFocused && fieldValue.text == "0") {
-                fieldValue = fieldValue.copy(
-                    selection = TextRange(0, fieldValue.text.length),
-                )
+            if (focusState.isFocused && state.text.toString() == "0") {
+                state.clearText()
             }
         },
-        singleLine = true,
+        lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Decimal,
             imeAction = imeAction,
-        ),
-        keyboardActions = KeyboardActions(
-            onNext = { onNext?.invoke() },
-            onDone = { onDone?.invoke() },
         ),
     )
 }
 
 @Composable
 private fun MoneyField(
-    value: String,
-    onValueChange: (String) -> Unit,
+    state: TextFieldState,
+    inputTransformation: InputTransformation,
     label: String,
     isError: Boolean,
     imeAction: ImeAction,
-    onNext: (() -> Unit)? = null,
-    onDone: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    var fieldValue by remember {
-        mutableStateOf(TextFieldValue(value, TextRange(value.length)))
-    }
-    LaunchedEffect(value) {
-        if (value != fieldValue.text) {
-            fieldValue = TextFieldValue(value, TextRange(value.length))
-        }
-    }
     OutlinedTextField(
-        value = fieldValue,
-        onValueChange = { updated ->
-            val sanitized = sanitizeMoneyInput(updated.text)
-            fieldValue = TextFieldValue(
-                text = sanitized,
-                selection = TextRange(sanitized.length),
-            )
-            onValueChange(sanitized)
-        },
+        state = state,
+        inputTransformation = inputTransformation,
         label = { Text(label) },
         textStyle = MaterialTheme.typography.titleMedium.copy(
             textAlign = TextAlign.Center,
@@ -597,20 +573,14 @@ private fun MoneyField(
         modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { focusState ->
-                if (focusState.isFocused && fieldValue.text == "0") {
-                    fieldValue = fieldValue.copy(
-                        selection = TextRange(0, fieldValue.text.length),
-                    )
+                if (focusState.isFocused && state.text.toString() == "0") {
+                    state.clearText()
                 }
             },
-        singleLine = true,
+        lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Decimal,
             imeAction = imeAction,
-        ),
-        keyboardActions = KeyboardActions(
-            onNext = { onNext?.invoke() },
-            onDone = { onDone?.invoke() },
         ),
     )
 }
