@@ -36,10 +36,17 @@ fun formatDecimalMicros(micros: Long): String = BigDecimal.valueOf(micros, 6)
 fun formatAmountMicros(
     micros: Long,
     locale: Locale = Locale.getDefault(),
-): String {
-    val formatter = NumberFormat.getNumberInstance(locale)
-    formatter.minimumFractionDigits = 0
-    formatter.maximumFractionDigits = 2
-    formatter.roundingMode = RoundingMode.HALF_UP
-    return formatter.format(BigDecimal.valueOf(micros, 6))
-}
+): String = amountFormatter(locale, grouping = true).format(BigDecimal.valueOf(micros, 6))
+
+fun formatCompactAmountMicros(
+    micros: Long,
+    locale: Locale = Locale.getDefault(),
+): String = amountFormatter(locale, grouping = false).format(BigDecimal.valueOf(micros, 6))
+
+private fun amountFormatter(locale: Locale, grouping: Boolean): NumberFormat =
+    NumberFormat.getNumberInstance(locale).apply {
+        isGroupingUsed = grouping
+        minimumFractionDigits = 0
+        maximumFractionDigits = 2
+        roundingMode = RoundingMode.HALF_UP
+    }
