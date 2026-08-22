@@ -23,15 +23,13 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "9.5.0"
       - name: Environment
-        run: gradle --version
+        run: ./gradlew --version
       - name: Repository static audit
         run: python3 scripts/static_audit.py
       - name: Unit tests, lint and Android target compilation
         run: |
-          gradle --no-daemon \
+          ./gradlew --no-daemon \
             :app:testDebugUnitTest \
             :app:lintDebug \
             :app:assembleDebug \
