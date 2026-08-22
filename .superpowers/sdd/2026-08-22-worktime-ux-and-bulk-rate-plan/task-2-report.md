@@ -53,3 +53,22 @@ Implemented the requested fix round in the uncommitted worktree after the origin
 
 - `operationEvents` is a single buffered channel intended for the root UI collector; multiple collectors compete for events, so Task 4 should collect it once at the app root.
 - Undo remains in-memory and is cleared on process death by design.
+
+## Scoped Review Fixes
+
+- Removed the test-only `CalendarOperationEvent` hierarchy; ViewModel tests now assert against the production event type from `CalendarUiState.kt`.
+- Made undo operation-scoped with a generation guard. Completion and failure from an in-flight older undo/delete/bulk operation can no longer clear or overwrite a newer snapshot or emit stale operation state.
+- Added deterministic coroutine-test coverage for a blocked restore followed by a newer bulk operation, plus root event/error assertions while `selectedDate` is null.
+- Kept `operationEvents` as the production root-collection contract using a buffered `Channel`/`receiveAsFlow`, with no replay.
+
+## Scoped Review Tests
+
+- `nix develop --command ./gradlew testDebugUnitTest --tests com.worktime.app.ui.calendar.CalendarViewModelTest`
+  - `BUILD SUCCESSFUL`; 12 tests passed.
+- `nix develop --command ./gradlew testDebugUnitTest`
+  - `BUILD SUCCESSFUL`; 57 tests passed.
+
+## Scoped Review Concerns
+
+- The repository fake does not inject a failure after a write inside `restore`; the atomicity guarantee remains covered by the Room `@Transaction` implementation and existing live Room test infrastructure. No artificial post-write failure was added.
+- `operationEvents` is a single root-consumer channel; Task 4 should collect it once at the app root.
