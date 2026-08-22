@@ -153,8 +153,15 @@ if "Crossfade(" in calendar_screen or "animateColorAsState" in calendar_screen:
     fail("Calendar month navigation must not crossfade/reuse animated day-cell state")
 if "formatWholeAmountMicros(totalMicros, locale)" not in calendar_screen:
     fail("Calendar day cells must display whole amounts without fractional digits")
-if ".padding(horizontal = 4.dp)" not in calendar_screen:
-    fail("Calendar outer horizontal padding must stay compact")
+for expected in (
+    "Modifier.align(Alignment.TopEnd)",
+    "Modifier.align(Alignment.BottomStart)",
+    "MaterialTheme.typography.titleMedium",
+    "fontWeight = FontWeight.Bold",
+    ".padding(horizontal = 0.5.dp, vertical = 1.dp)",
+):
+    if expected not in calendar_screen:
+        fail(f"Calendar compact cell layout invariant missing: {expected}")
 
 day_editor = (
     APP / "src/main/java/com/worktime/app/ui/dayeditor/DayEditorSheet.kt"
@@ -171,8 +178,12 @@ if 'if (workedMinutes == 0) ""' not in day_editor:
     fail("Empty/zero worked duration must start as an empty editor value")
 if 'if (micros == 0L) ""' not in day_editor:
     fail("Zero numeric adjustments/defaults must start empty instead of mutating on focus")
-if "contentWindowInsets = { WindowInsets(0, 0, 0, 0) }" not in day_editor:
-    fail("Day editor sheet must keep geometry independent from transient IME inset changes")
+if "contentWindowInsets = { WindowInsets(0, 0, 0, 0) }" in day_editor:
+    fail("Day editor must allow ModalBottomSheet to lift above the IME")
+if "val numericKeyboardOptions" not in day_editor:
+    fail("Day editor must share one keyboard configuration across numeric fields")
+if day_editor.count("keyboardOptions = numericKeyboardOptions") < 4:
+    fail("Every numeric editor field must use the same keyboard options to avoid IME rebuilds")
 
 calendar_view_model = (
     APP / "src/main/java/com/worktime/app/ui/calendar/CalendarViewModel.kt"
@@ -186,6 +197,8 @@ if 'testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"' not i
     fail("AndroidJUnitRunner is not configured")
 if 'androidx.test:runner' not in build_file and 'androidx.test:runner' not in catalog_file:
     fail("Explicit androidx.test:runner dependency is missing")
+if re.search(r'^material3\s*=\s*".*alpha', catalog_file, re.MULTILINE):
+    fail("Material3 must follow the stable Compose BOM; remove temporary alpha overrides")
 
 if failures:
     print("static-audit: FAILED", file=sys.stderr)
