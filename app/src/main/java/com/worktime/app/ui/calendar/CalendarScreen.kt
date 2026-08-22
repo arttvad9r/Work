@@ -1,7 +1,5 @@
 package com.worktime.app.ui.calendar
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
@@ -65,8 +63,8 @@ import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.components.PlainDragHandle
 import com.worktime.app.ui.format.formatAmountMicros
-import com.worktime.app.ui.format.formatCompactAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
+import com.worktime.app.ui.format.formatWholeAmountMicros
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -177,24 +175,18 @@ fun CalendarScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .padding(innerPadding)
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             CenterAlignedTopAppBar(
                 modifier = Modifier.height(52.dp),
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 title = {
-                    Crossfade(
-                        targetState = monthTitle,
-                        animationSpec = tween(durationMillis = 180),
-                        label = "monthTitle",
-                    ) { title ->
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
+                    Text(
+                        text = monthTitle,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = { closeSummaryBehind(onPreviousMonth) }) {
@@ -261,7 +253,7 @@ private fun CalendarCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
+                .padding(horizontal = 2.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             CalendarGrid(state = state, onDayClick = onDayClick, locale = locale)
@@ -451,17 +443,12 @@ private fun DayCell(
 ) {
     val visibleEntry = entry.takeIf { isInVisibleMonth }
     val shape = RoundedCornerShape(9.dp)
-    val targetBackground = when {
+    val background = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.surfaceContainerLowest
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         visibleEntry != null -> MaterialTheme.colorScheme.secondaryContainer
         else -> MaterialTheme.colorScheme.surfaceContainerLowest
     }
-    val background by animateColorAsState(
-        targetValue = targetBackground,
-        animationSpec = tween(durationMillis = 160),
-        label = "dayCellBackground",
-    )
     val foreground = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.32f)
         isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
@@ -540,7 +527,7 @@ private fun DayCell(
             }
             if (totalMicros != null) {
                 Text(
-                    text = formatCompactAmountMicros(totalMicros, locale),
+                    text = formatWholeAmountMicros(totalMicros, locale),
                     modifier = Modifier.align(Alignment.BottomCenter),
                     style = MaterialTheme.typography.labelSmall,
                     color = foreground.copy(alpha = 0.82f),
