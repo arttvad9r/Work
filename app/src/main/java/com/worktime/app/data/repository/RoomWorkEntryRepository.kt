@@ -28,6 +28,10 @@ class RoomWorkEntryRepository(
         dao.deleteByDate(date.toEpochDay())
     }
 
+    override suspend fun restore(entries: List<WorkEntry>) {
+        dao.restore(entries.map(WorkEntry::toEntity))
+    }
+
     override suspend fun updateHourlyRate(
         startDate: LocalDate,
         endDate: LocalDate,

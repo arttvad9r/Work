@@ -32,3 +32,24 @@ Implemented and committed the Calendar ViewModel undo state and bulk hourly-rate
 
 - Operation success results are retained in state until another calendar action clears them; Task 4 owns root Snackbar/event consumption.
 - Undo is intentionally one-shot and in-memory; process death clears it by design.
+
+## Reviewer Fixes
+
+Implemented the requested fix round in the uncommitted worktree after the original Task 2 commit:
+
+- Replaced sticky `operationResult` state with a buffered `Channel` exposed as `operationEvents`; consumers receive each root-level success/error once without replay.
+- Added `WorkEntryRepository.restore(entries)` and a Room `@Transaction` restore path for exact original records. ViewModel undo clears the snapshot only after restore succeeds, so failures retain a retryable snapshot and cannot partially restore through sequential writes.
+- Invalidated pending undo on save, settings update, delete start, and bulk-operation start. Successful empty bulk updates emit `NO_OP` and do not expose undo.
+- Added focused coverage for one-shot events, failed delete, empty bulk no-op, save supersession, and failed restore retry behavior while preserving `CancellationException` propagation.
+
+## Reviewer-Fix Tests
+
+- `nix develop --command ./gradlew testDebugUnitTest --tests com.worktime.app.ui.calendar.CalendarViewModelTest`
+  - `BUILD SUCCESSFUL`; 9 tests passed.
+- `nix develop --command ./gradlew testDebugUnitTest`
+  - `BUILD SUCCESSFUL`; 54 tests passed.
+
+## Reviewer-Fix Concerns
+
+- `operationEvents` is a single buffered channel intended for the root UI collector; multiple collectors compete for events, so Task 4 should collect it once at the app root.
+- Undo remains in-memory and is cleared on process death by design.

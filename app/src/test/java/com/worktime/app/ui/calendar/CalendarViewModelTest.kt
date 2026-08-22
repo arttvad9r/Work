@@ -12,9 +12,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -34,11 +37,12 @@ class CalendarViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.state.first { it.canUndo }.canUndo)
+        assertEquals(CalendarOperationEvent.Success.ENTRY_DELETED, viewModel.operationEvents.first())
         viewModel.undoLastOperation()
-        viewModel.state.first { it.operationResult == CalendarOperationResult.OPERATION_UNDONE }
+        assertEquals(CalendarOperationEvent.Success.OPERATION_UNDONE, viewModel.operationEvents.first())
 
-        assertEquals(listOf(entry), repository.savedEntries)
-        assertFalse(viewModel.state.value.canUndo)
+        assertEquals(listOf(entry), repository.restoredEntries)
+        assertFalse(viewModel.state.first { !it.canUndo }.canUndo)
         stateJob.cancel()
     }
 
@@ -63,11 +67,12 @@ class CalendarViewModelTest {
 
         assertTrue(viewModel.state.first { it.canUndo }.canUndo)
         assertEquals(entries.subList(1, 3), repository.bulkOriginals)
+        assertEquals(CalendarOperationEvent.Success.RATE_UPDATED, viewModel.operationEvents.first())
         viewModel.undoLastOperation()
-        viewModel.state.first { it.operationResult == CalendarOperationResult.OPERATION_UNDONE }
+        assertEquals(CalendarOperationEvent.Success.OPERATION_UNDONE, viewModel.operationEvents.first())
 
-        assertEquals(entries.subList(1, 3).toList(), repository.savedEntries.toList())
-        assertFalse(viewModel.state.value.canUndo)
+        assertEquals(entries.subList(1, 3).toList(), repository.restoredEntries.toList())
+        assertFalse(viewModel.state.first { !it.canUndo }.canUndo)
         stateJob.cancel()
     }
 
@@ -110,6 +115,93 @@ class CalendarViewModelTest {
         )
         stateJob.cancel()
     }
+
+    @Test
+    fun `successful delete emits one root event without replay`() = runTest {
+        val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val repository = FakeWorkEntryRepository(listOf(entry))
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.entries[entry.date] == entry }
+
+        viewModel.deleteEntry(entry.date)
+
+        assertEquals(CalendarOperationEvent.Success.ENTRY_DELETED, viewModel.operationEvents.first())
+        assertEquals(null, withTimeoutOrNull(50) { viewModel.operationEvents.first() })
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `failed delete emits root error and leaves undo unavailable`() = runTest {
+        val repository = FakeWorkEntryRepository(emptyList()).apply { deleteError = IllegalStateException() }
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.deleteEntry(LocalDate.of(2026, 8, 10))
+
+        assertEquals(CalendarOperationEvent.Error.DELETE_ENTRY, viewModel.operationEvents.first())
+        assertFalse(viewModel.state.value.canUndo)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `empty bulk update is a no-op without undo`() = runTest {
+        val repository = FakeWorkEntryRepository(emptyList())
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.changeRateForPeriod(LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10), 20_000_000)
+        assertEquals(CalendarOperationEvent.Success.NO_OP, viewModel.operationEvents.first())
+        assertFalse(viewModel.state.value.canUndo)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `new save supersedes undo snapshot`() = runTest {
+        val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val replacement = entry.copy(note = "replacement")
+        val repository = FakeWorkEntryRepository(listOf(entry))
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.entries[entry.date] == entry }
+
+        viewModel.deleteEntry(entry.date)
+        advanceUntilIdle()
+        viewModel.operationEvents.first()
+        viewModel.saveEntry(replacement)
+        advanceUntilIdle()
+        viewModel.undoLastOperation()
+        assertEquals(null, withTimeoutOrNull(50) { viewModel.operationEvents.first() })
+        assertFalse(viewModel.state.value.canUndo)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `bulk undo keeps snapshot when atomic restore fails and can retry`() = runTest {
+        val entries = listOf(
+            WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000),
+            WorkEntry(LocalDate.of(2026, 8, 11), 480, 11_000_000),
+        )
+        val repository = FakeWorkEntryRepository(entries)
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+        viewModel.changeRateForPeriod(entries.first().date, entries.last().date, 20_000_000)
+        withTimeout(100) { viewModel.operationEvents.first() }
+        repository.restoreError = IllegalStateException()
+
+        viewModel.undoLastOperation()
+        assertEquals(CalendarOperationEvent.Error.UNDO, viewModel.operationEvents.first())
+        assertTrue(viewModel.state.value.canUndo)
+        repository.restoreError = null
+        viewModel.undoLastOperation()
+        assertEquals(CalendarOperationEvent.Success.OPERATION_UNDONE, viewModel.operationEvents.first())
+        assertFalse(viewModel.state.first { !it.canUndo }.canUndo)
+        assertEquals(entries, repository.restoredEntries)
+        stateJob.cancel()
+    }
 }
 
 private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEntryRepository {
@@ -117,6 +209,9 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
     val savedEntries = mutableListOf<WorkEntry>()
     var bulkOriginals = emptyList<WorkEntry>()
     var bulkError: Exception? = null
+    var deleteError: Exception? = null
+    var restoreError: Exception? = null
+    var restoredEntries = emptyList<WorkEntry>()
     var bulkCalls = 0
 
     override fun observeMonth(month: YearMonth): Flow<List<WorkEntry>> = entries
@@ -125,7 +220,13 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
         entries.value = entries.value.filterNot { it.date == entry.date } + entry
     }
     override suspend fun delete(date: LocalDate) {
+        deleteError?.let { throw it }
         entries.value = entries.value.filterNot { it.date == date }
+    }
+    override suspend fun restore(entries: List<WorkEntry>) {
+        restoreError?.let { throw it }
+        restoredEntries = entries
+        entries.forEach { entry -> save(entry) }
     }
     override suspend fun updateHourlyRate(
         startDate: LocalDate,
@@ -141,6 +242,11 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
         }
         return originals
     }
+}
+
+private sealed interface CalendarOperationEvent {
+    enum class Success : CalendarOperationEvent { ENTRY_DELETED, RATE_UPDATED, OPERATION_UNDONE, NO_OP }
+    enum class Error : CalendarOperationEvent { DELETE_ENTRY, BULK_RATE, UNDO }
 }
 
 private class FakeUserPreferencesRepository : UserPreferencesRepository {

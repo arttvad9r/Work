@@ -33,6 +33,11 @@ interface WorkEntryDao {
     suspend fun upsert(entries: List<WorkEntryEntity>)
 
     @Transaction
+    suspend fun restore(entries: List<WorkEntryEntity>) {
+        upsert(entries)
+    }
+
+    @Transaction
     suspend fun updateHourlyRate(
         startEpochDay: Long,
         endEpochDay: Long,

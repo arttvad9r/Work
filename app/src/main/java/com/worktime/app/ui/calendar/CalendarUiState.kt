@@ -16,7 +16,6 @@ data class CalendarUiState(
     val isSettingsOpen: Boolean = false,
     val isReady: Boolean = false,
     val operationError: CalendarOperationError? = null,
-    val operationResult: CalendarOperationResult? = null,
     val canUndo: Boolean = false,
 ) {
     val summary: MonthSummary
@@ -31,8 +30,19 @@ enum class CalendarOperationError {
     UNDO,
 }
 
-enum class CalendarOperationResult {
-    ENTRY_DELETED,
-    RATE_UPDATED,
-    OPERATION_UNDONE,
+sealed interface CalendarOperationEvent {
+    enum class Success : CalendarOperationEvent {
+        ENTRY_DELETED,
+        RATE_UPDATED,
+        OPERATION_UNDONE,
+        NO_OP,
+    }
+
+    enum class Error : CalendarOperationEvent {
+        SAVE_ENTRY,
+        DELETE_ENTRY,
+        SAVE_SETTINGS,
+        BULK_RATE,
+        UNDO,
+    }
 }

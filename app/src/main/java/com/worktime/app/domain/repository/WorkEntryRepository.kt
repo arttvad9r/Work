@@ -9,6 +9,7 @@ interface WorkEntryRepository {
     fun observeMonth(month: YearMonth): Flow<List<WorkEntry>>
     suspend fun save(entry: WorkEntry)
     suspend fun delete(date: LocalDate)
+    suspend fun restore(entries: List<WorkEntry>)
     suspend fun updateHourlyRate(
         startDate: LocalDate,
         endDate: LocalDate,
