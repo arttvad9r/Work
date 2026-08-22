@@ -40,6 +40,14 @@ class DayEditorInputFormattingTest {
         assertEquals("3:55", typeDuration("355"))
     }
 
+    @Test
+    fun `leading zero cannot turn twelve hours into zero one colon two`() {
+        assertEquals("1", sanitizeDurationInput("01"))
+        assertEquals("12", sanitizeDurationInput("012"))
+        assertEquals("12:0", sanitizeDurationInput("0120"))
+        assertEquals("1:30", sanitizeDurationInput("01:30"))
+    }
+
     private fun typeDuration(digits: String): String {
         return digits.fold("") { current, digit ->
             sanitizeDurationInput(current + digit)
