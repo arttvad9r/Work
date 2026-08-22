@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -296,7 +295,7 @@ private fun DayEditorSheetContent(
                 )
 
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val primaryFieldWidth = (maxWidth - 8.dp) / 2
+                    val primaryFieldWidth = (maxWidth - 8.dp) / 2f
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
