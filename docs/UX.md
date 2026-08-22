@@ -20,7 +20,10 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 - Current-month cells remain large enough for date, duration and amount.
 - Every current-month date uses the same semi-bold weight, regardless of whether the day has an entry.
 - Date, duration and amount use fixed anchors: date at top, duration at the geometric center and amount at the bottom with matching outer padding.
+- Daily amounts inside calendar cells are rounded to a whole number with no fractional digits or grouping separators; full calculation precision is retained internally and richer amount displays elsewhere may show fractions.
 - Bonus/penalty icons are centered in equal circular markers.
+- Previous/next month navigation updates the requested month title and date grid immediately. The calendar does not crossfade the old and new month and does not animate day-cell colors across month boundaries.
+- If Room has not emitted the requested month's rows yet, rows from the previous month must never be displayed under the new title/grid.
 
 ## Fixed monthly summary
 
@@ -54,11 +57,11 @@ Normal closed-keyboard state should fit as one compact sheet.
 5. Save.
 6. Delete for an existing entry.
 
-The duration field is labeled `Время` and shows a faint `00:00` format hint only while empty. Duration and rate values stay centered in focused and unfocused states. An initial zero is selected on focus rather than removed from state, so focus changes do not cause layout or validation reflow. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`.
+The duration field is labeled `Время` and shows a faint `00:00` format hint while empty. Duration and rate values stay centered in focused and unfocused states. A new day may display duration `0` before focus; focusing that numeric field clears the zero before input, so typing `12` results in `12`, never `01:2`. Duration sanitization also removes accidental leading zeroes defensively. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`.
 
 Numeric validation is intentionally minimal: invalid duration/rate/bonus/penalty values are indicated by the field's red error outline only. Validation helper text is not shown and must not change sheet height.
 
-All numeric fields use the same decimal keyboard family and an explicit focus chain. `Next` moves directly to the next visible input. Expanding bonus or penalty while another numeric field is focused must transfer focus directly to the newly created field without an intermediate focus clear/frame delay, so the IME remains visible and the modal sheet does not jump.
+All day-editor numeric inputs use Material 3 state-based `TextFieldState` with synchronous `InputTransformation`. There is no duplicated parent `String` plus child `TextFieldValue` synchronization loop. The same decimal keyboard family is used across fields, and normal Compose `ImeAction.Next` focus traversal moves between stable input nodes without explicitly clearing focus. Expanding bonus or penalty while another numeric field is focused must transfer focus directly to the newly created field, so the IME remains visible and the modal sheet does not jump.
 
 Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The expansion buttons do not take keyboard focus.
 
@@ -69,8 +72,8 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 ## Amount formatting
 
 - Input accepts at most two fractional digits.
-- Display rounds to at most two fractional digits and omits a zero fractional part.
-- Calendar-cell amounts use the same formatter rules with grouping disabled to preserve compact geometry.
+- Normal amount display rounds to at most two fractional digits and omits a zero fractional part.
+- Calendar-cell daily totals are a deliberate exception: they are rounded to a whole number and omit grouping separators to fit compact cells.
 - Calculations keep deterministic micros precision internally; the UI precision limit applies only to entry and presentation.
 
 ## Settings
@@ -92,6 +95,6 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 - 24 dp major-card radius, 16-20 dp compact-card radius, 8-12 dp cell/input radius.
 - Regular body weight for comparable labels/values; medium/semi-bold only for titles, selected dates and totals.
 - Error red is reserved for invalid input, persistence feedback, delete and penalty semantics.
-- Month changes, day-cell state changes and report expansion use short 120-180 ms Material easing; editor controls never animate the sheet height or move it while focus changes.
+- Report expansion may use short Material easing. Month title/date-grid changes are immediate and must not crossfade; editor controls never animate sheet height or move it while focus changes.
 - Numeric input line height matches its text size so the caret does not visually exceed the entered value.
 - No information essential to calendar interpretation relies on color alone; labels and accessibility descriptions remain present where appropriate.
