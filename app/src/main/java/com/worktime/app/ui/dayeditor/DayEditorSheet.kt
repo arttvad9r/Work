@@ -1,5 +1,6 @@
 package com.worktime.app.ui.dayeditor
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -572,29 +573,14 @@ private fun PassiveDurationField(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(modifier = modifier) {
-        DurationField(
-            state = state,
-            inputTransformation = null,
-            label = label,
-            isError = isError,
-            keyboardOptions = KeyboardOptions.Default,
-            readOnly = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusProperties { canFocus = false },
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                ),
-        )
-    }
+    PassiveFieldShell(
+        value = state.text.toString(),
+        label = label,
+        isError = isError,
+        placeholder = stringResource(R.string.duration_placeholder),
+        onClick = onClick,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -605,28 +591,83 @@ private fun PassiveMoneyField(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    PassiveFieldShell(
+        value = state.text.toString(),
+        label = label,
+        isError = isError,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun PassiveFieldShell(
+    value: String,
+    label: String,
+    isError: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
+) {
     val interactionSource = remember { MutableInteractionSource() }
-    Box(modifier = modifier) {
-        MoneyField(
-            state = state,
-            inputTransformation = null,
-            label = label,
-            isError = isError,
-            keyboardOptions = KeyboardOptions.Default,
-            readOnly = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusProperties { canFocus = false },
-        )
-        Box(
+    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val outlineColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
+    val labelColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+    val displayText = value.ifEmpty { placeholder.orEmpty() }
+    val displayColor = if (value.isEmpty()) {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.46f)
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Box(
+        modifier = modifier
+            .heightIn(min = 56.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
+    ) {
+        // OutlinedTextField normally moves an empty unfocused label into the field.
+        // This shell is intentionally non-editable, so draw the outline and floating
+        // label independently: the label therefore remains on the border at all times.
+        Surface(
             modifier = Modifier
                 .matchParentSize()
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                ),
-        )
+                .padding(top = 8.dp),
+            shape = RoundedCornerShape(4.dp),
+            color = containerColor,
+            border = BorderStroke(1.dp, outlineColor),
+        ) {}
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 12.dp),
+            color = containerColor,
+        ) {
+            Text(
+                text = label,
+                modifier = Modifier.padding(horizontal = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = labelColor,
+                maxLines = 1,
+            )
+        }
+
+        if (displayText.isNotEmpty()) {
+            Text(
+                text = displayText,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 8.dp),
+                style = MaterialTheme.typography.titleMedium,
+                color = displayColor,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+        }
     }
 }
 
