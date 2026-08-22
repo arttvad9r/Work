@@ -20,9 +20,9 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 - The grid always has six rows; adjacent-month dates are faint and inactive.
 - Current-month cells remain large enough for date, duration and amount.
 - Day numbers use bold weight consistently, regardless of whether the day has an entry.
-- Date, duration and amount use fixed anchors: date at top, duration at the geometric center and amount at the bottom with matching outer padding.
+- Day-cell geometry follows the compact reference layout: date is anchored close to the top-right corner, daily income close to the bottom-left corner, and worked duration is centered geometrically with a larger `titleMedium` treatment.
+- Bonus/penalty markers stay in the free top-left corner so they never overlap the date.
 - Daily amounts inside calendar cells are rounded to a whole number with no fractional digits or grouping separators; full calculation precision is retained internally and richer amount displays elsewhere may show fractions.
-- Bonus/penalty icons are centered in equal circular markers.
 - Previous/next month navigation updates the requested month title and date grid immediately. The calendar does not crossfade the old and new month and does not animate day-cell colors across month boundaries.
 - If Room has not emitted the requested month's rows yet, rows from the previous month must never be displayed under the new title/grid.
 
@@ -62,9 +62,9 @@ The duration field is labeled `Время` and shows a faint `00:00` format hint
 
 Zero-valued numeric editor fields are represented as empty editor text and parsed as zero. Focus changes must not mutate field text. Numeric validation is intentionally minimal: invalid duration/rate/bonus/penalty values are indicated by the field's red error outline only. Validation helper text is not shown and must not change sheet height.
 
-All day-editor numeric inputs use Material 3 state-based `TextFieldState` with synchronous `InputTransformation`. There is no duplicated parent `String` plus child `TextFieldValue` synchronization loop. The same decimal keyboard family is used across fields, and normal Compose `ImeAction.Next` focus traversal moves between stable input nodes without explicitly clearing focus. Expanding bonus or penalty while another numeric field is focused must transfer focus directly to the newly created field, so the IME remains visible.
+All day-editor numeric inputs use Material 3 state-based `TextFieldState` with synchronous `InputTransformation`. There is no duplicated parent `String` plus child `TextFieldValue` synchronization loop. Every numeric field receives the exact same decimal `KeyboardOptions` and the same `ImeAction.Next`, so switching focus does not change the IME action-key configuration and should not force an OEM keyboard layout rebuild. Expanding bonus or penalty while another numeric field is focused transfers focus directly to the newly created field.
 
-The modal editor uses zero `contentWindowInsets` so its geometry is independent from transient IME inset changes. This depends on the Material 3 fix that makes `contentWindowInsets` authoritative instead of applying an unconditional outer `imePadding`; see `BUILD.md` for the targeted dependency override. The content remains vertically scrollable if the keyboard covers lower actions. Repeatedly switching focus between already visible numeric fields must not make the sheet jump up/down or visibly close and reopen the keyboard.
+The modal editor uses normal `ModalBottomSheet` window-inset handling so the sheet lifts above the software keyboard instead of remaining underneath it. The content stays vertically scrollable when required. Repeatedly switching focus between already visible numeric fields must keep the keyboard presentation stable and must not produce the previous hide/reopen jump.
 
 Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The expansion buttons do not take keyboard focus.
 
