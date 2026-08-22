@@ -1,62 +1,59 @@
-# Static audit - compact interface follow-up
+# Static audit - interaction stability cleanup
 
-Audit date: 21 August 2026  
-Scope: draft PR `feat/compact-modern-interface`  
-Current reviewed head: `105ab08d7461e04a556a6f9e87a2aa2c0a8a2ef3`
+Audit date: 22 August 2026  
+Scope: `fix/interaction-stability-cleanup`  
+Base: `main` at `009d3b18cd8502788a6821b3cec76918cf19ef71`
 
-## Findings fixed
+## Findings addressed
 
-### Product consistency
+### Monthly report handle
 
-- Currency is removed from preferences, repository contracts, UI state, settings, editor, calculations and localized copy.
-- Old persisted currency data is ignored without a destructive migration.
-- Notes and quick-duration controls remain intentionally absent.
-- Calculation terminology uses `At hourly rate` / `По ставке`.
-- Empty calculation no longer shows a dash.
-- Monthly summary uses `Отработано часов`.
+- Material 3 wraps every non-null `BottomSheetScaffold.sheetDragHandle` in its internal tooltip anchor, so clearing semantics inside a custom handle cannot remove the long-press tooltip.
+- The Material handle slot is now `null`; the visual handle is rendered inside the stable sheet content and owns tap-to-toggle behavior itself.
+- Unlike the earlier failed attempt, the full report remains composed and measured while collapsed. Only alpha/accessibility visibility changes, so the measured sheet height and swipe anchors are not rebuilt during expansion/collapse.
+- A static audit guard prevents reintroducing `sheetDragHandle = { PlainDragHandle() }`.
 
-### Layout and interaction
+### Day editor and IME
 
-- Calendar uses fixed six-row geometry and does not scroll vertically.
-- Calendar position is independent of entries, keyboard state and report content.
-- Adjacent-month dates are faint and inactive.
-- Filled-cell duration and amount are centered; adjustment markers use centered equal markers.
-- Fixed summary contains only work days, worked hours and monthly income.
-- Monthly report is a separate draggable bottom sheet with one handle, one concise breakdown and no report/export actions.
-- The report handle has a reserved bottom peek above system navigation.
-- Day-editor duration and rate share one row and remain centered in focused/unfocused states.
-- Duration input is labeled with the hours/minutes format and shows an example placeholder.
-- Expanding bonus or penalty focuses the newly shown input immediately and preserves bonus-before-penalty order.
-- Settings rate input remains compact and theme chips fit on one row.
-- Light/dark/system theme selection previews immediately; persistence occurs only through Save and dismissal restores the saved theme.
+- Removed frame-delayed focus transfer (`withFrameNanos`) from bonus/penalty expansion.
+- Duration, rate, bonus and penalty now use explicit `FocusRequester`/`ImeAction` transitions.
+- Bonus/penalty expansion buttons cannot take keyboard focus, allowing direct text-field-to-text-field transfer.
+- Numeric field state continues to preserve `TextFieldValue` selection so recomposition does not intentionally recreate the editing session.
+- Persistence failures are shown with an overlay Snackbar rather than inserting/removing a layout row.
 
-### Formatting
+### Settings
 
-- Duration output is `0`, whole hours, or `hours:minutes`; redundant `:00` is omitted.
-- Neutral amounts omit a zero fractional part and preserve explicitly entered non-zero precision.
-- Calendar and editor values contain no currency symbols.
+- Removed the extra `imePadding` layer from the settings sheet.
+- Focusing an initial zero selects the value instead of replacing it with an empty string.
+- Validation uses the intended red outline only; helper text is not inserted and cannot resize the sheet.
+- Persistence errors use the same transient Snackbar pattern as the day editor.
 
-## Checks completed
+### Domain/data consistency
 
-- EN and RU XML parse successfully.
-- EN/RU resources contain matching keys.
-- Changed UI `R.string` references resolve to localized keys.
-- Current source/resources contain no currency, `RUB`, `formatMoneyMicros` or `База` references.
-- Remote source inspection confirms the SettingsSheet callback and WorkTimeApp call site match.
-- Remote source inspection confirms fixed calendar dimensions, report peek reservation, duration placeholder and adjustment focus requesters.
+- `WorkEntry` now enforces the documented invariant that worked time requires a positive hourly rate.
+- Adjustment-only entries may still use a zero hourly rate.
+- Unit coverage was added for both cases.
 
-## CI status
+### Cleanup
 
-GitHub Actions run `32503347603` for the reviewed head completed with failure, but its only job returned `steps: null` and no logs. It ended before any workflow step executed. This is not evidence of a compile, test, lint or APK failure, and it is not a successful build.
+- Removed obsolete EN/RU validation-helper strings.
+- Centralized compact calendar amount formatting instead of duplicating a `NumberFormat` implementation in `CalendarScreen`.
+- Local verification and CI now use the checked-in Gradle Wrapper rather than an arbitrary system Gradle installation.
+- Static audit now checks portrait-only/IME manifest controls and known interaction-regression patterns.
+- QA/UX/build/release documentation was aligned with the actual portrait-only product, red-outline validation policy and hardware-verification status.
 
-## Release limitations
+## Existing strengths retained
 
-No Android SDK/Gradle runtime or physical device was available for this audit. The following still require a real Android environment:
+- Currency remains absent from current preferences/UI contracts.
+- Room preserves one entry per date and historical rate snapshots.
+- Money calculation continues to use checked integer micros rather than persisted binary floating point.
+- Backup/privacy exclusions and no-network/no-sensitive-permission constraints remain unchanged.
+- EN/RU resource-key parity remains required.
 
-1. clean compile, unit tests, lint and APK assembly;
-2. report-sheet tap/drag behavior above Android navigation;
-3. keyboard and increased-font-size layout;
-4. light/dark preview, cancel and persistence behavior on device;
-5. rotation, relaunch and process-death persistence checks.
+## Verification status
 
-The draft PR must remain unmerged until those checks produce actual logs/results.
+The `main` baseline has been exercised on physical hardware by the project owner. Exact device/build metadata for that run was not recorded in the repository.
+
+This cleanup branch modifies two device-sensitive paths (monthly-report gestures/long-press and IME focus transitions), so it still requires a focused physical-device pass before merge. The executable cases are listed in `ANDROID_QA.md` and `DEVICE_QA_REPORT.md`.
+
+GitHub Actions may currently be unable to start because of account usage limits. A workflow run with no executed steps is an infrastructure/account condition and must not be treated as either success or code failure. Local `./scripts/verify.sh` output plus recorded device QA is the fallback evidence while runners are unavailable.
