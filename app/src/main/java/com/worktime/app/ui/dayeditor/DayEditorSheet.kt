@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -45,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -101,16 +101,16 @@ private fun DayEditorSheetContent(
     onDelete: (LocalDate) -> Unit,
 ) {
     val durationState = rememberTextFieldState(
-        initialText = formatDurationInput(existing?.workedMinutes ?: 0),
+        initialText = formatDurationEditorInput(existing?.workedMinutes ?: 0),
     )
     val rateState = rememberTextFieldState(
-        initialText = formatDecimalMicros(existing?.hourlyRateMicros ?: defaultHourlyRateMicros),
+        initialText = formatMoneyEditorInput(existing?.hourlyRateMicros ?: defaultHourlyRateMicros),
     )
     val bonusState = rememberTextFieldState(
-        initialText = formatDecimalMicros(existing?.bonusMicros ?: 0L),
+        initialText = formatMoneyEditorInput(existing?.bonusMicros ?: 0L),
     )
     val penaltyState = rememberTextFieldState(
-        initialText = formatDecimalMicros(existing?.penaltyMicros ?: 0L),
+        initialText = formatMoneyEditorInput(existing?.penaltyMicros ?: 0L),
     )
     val durationInputTransformation = remember {
         InputTransformation.byValue { _, proposed -> sanitizeDurationInput(proposed.toString()) }
@@ -213,6 +213,9 @@ private fun DayEditorSheetContent(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = null,
+        // Keep sheet geometry independent from transient IME inset changes. The
+        // content itself remains scrollable if the keyboard covers lower actions.
+        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(
@@ -464,7 +467,11 @@ private fun CalculationRow(
 
 private data class DurationInput(val hours: Int, val minutes: Int)
 
-private fun formatDurationInput(workedMinutes: Int): String = formatDurationCompact(workedMinutes)
+private fun formatDurationEditorInput(workedMinutes: Int): String =
+    if (workedMinutes == 0) "" else formatDurationCompact(workedMinutes)
+
+private fun formatMoneyEditorInput(micros: Long): String =
+    if (micros == 0L) "" else formatDecimalMicros(micros)
 
 internal fun sanitizeDurationInput(value: String): String {
     val filtered = value.filter { it.isDigit() || it == ':' }
@@ -539,11 +546,7 @@ private fun DurationField(
             lineHeight = MaterialTheme.typography.titleMedium.fontSize,
         ),
         isError = isError,
-        modifier = modifier.onFocusChanged { focusState ->
-            if (focusState.isFocused && state.text.toString() == "0") {
-                state.clearText()
-            }
-        },
+        modifier = modifier,
         lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Decimal,
@@ -570,13 +573,7 @@ private fun MoneyField(
             lineHeight = MaterialTheme.typography.titleMedium.fontSize,
         ),
         isError = isError,
-        modifier = modifier
-            .fillMaxWidth()
-            .onFocusChanged { focusState ->
-                if (focusState.isFocused && state.text.toString() == "0") {
-                    state.clearText()
-                }
-            },
+        modifier = modifier.fillMaxWidth(),
         lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Decimal,
