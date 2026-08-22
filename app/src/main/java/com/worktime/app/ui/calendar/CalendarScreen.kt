@@ -3,9 +3,9 @@ package com.worktime.app.ui.calendar
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,9 +30,9 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,9 +43,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,22 +54,19 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.components.PlainDragHandle
 import com.worktime.app.ui.format.formatAmountMicros
+import com.worktime.app.ui.format.formatCompactAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
-import java.math.BigDecimal
-import java.math.RoundingMode
-import java.text.NumberFormat
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -138,9 +136,9 @@ fun CalendarScreen(
         modifier = modifier,
         scaffoldState = scaffoldState,
         sheetPeekHeight = 88.dp,
-        sheetDragHandle = { PlainDragHandle() },
-        // Keep the sheet draggable from its handle in both states. The custom
-        // handle itself has no click action, so a tap cannot flash or toggle it.
+        // Material wraps every non-null handle slot in DragHandleWithTooltip. Keep
+        // the slot null and render our handle as stable sheet content instead.
+        sheetDragHandle = null,
         sheetSwipeEnabled = true,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         sheetTonalElevation = 0.dp,
@@ -149,10 +147,27 @@ fun CalendarScreen(
             alpha = summaryContentAlpha,
         ),
         sheetContent = {
-            FullSummaryPanel(
-                state = state,
-                modifier = Modifier.alpha(summaryContentAlpha),
-            )
+            // The complete report stays composed in both states. Only visibility and
+            // semantics change, so the measured sheet height and swipe anchors never
+            // jump while a drag is in progress.
+            Column(modifier = Modifier.fillMaxWidth()) {
+                PlainDragHandle(
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    onClick = toggleSummary,
+                )
+                FullSummaryPanel(
+                    state = state,
+                    modifier = Modifier
+                        .alpha(summaryContentAlpha)
+                        .then(
+                            if (summaryTargetExpanded) {
+                                Modifier
+                            } else {
+                                Modifier.clearAndSetSemantics { }
+                            },
+                        ),
+                )
+            }
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
@@ -524,7 +539,7 @@ private fun DayCell(
             }
             if (totalMicros != null) {
                 Text(
-                    text = formatCellMoney(totalMicros, locale),
+                    text = formatCompactAmountMicros(totalMicros, locale),
                     modifier = Modifier.align(Alignment.BottomCenter),
                     style = MaterialTheme.typography.labelSmall,
                     color = foreground.copy(alpha = 0.82f),
@@ -603,15 +618,6 @@ private fun Marker(
             },
         )
     }
-}
-
-private fun formatCellMoney(micros: Long, locale: Locale): String {
-    return NumberFormat.getNumberInstance(locale).apply {
-        isGroupingUsed = false
-        minimumFractionDigits = 0
-        maximumFractionDigits = 2
-        roundingMode = RoundingMode.HALF_UP
-    }.format(BigDecimal.valueOf(micros, 6))
 }
 
 @Composable
