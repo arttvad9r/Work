@@ -6,10 +6,10 @@
 Calendar
 |- tap day -> Day editor sheet
 |- tap settings -> Settings sheet
-`- drag bottom handle -> Monthly report sheet
+`- drag/tap bottom handle -> Monthly report sheet
 ```
 
-Only one modal editor/settings surface may be open at a time. The monthly report belongs to the calendar scaffold and does not replace the fixed summary card.
+Only one modal editor/settings surface may be open at a time. The monthly report belongs to the calendar scaffold and does not replace the fixed summary card. The application is portrait-only by product decision.
 
 ## Calendar screen
 
@@ -30,15 +30,16 @@ Only one modal editor/settings surface may be open at a time. The monthly report
   - Hours worked / `Отработано часов`;
   - Monthly income.
 - Values use regular weight; the card must not compete visually with the calendar.
-- A single 48 x 5 dp handle is located below this card as the raised peek of the report sheet and remains above system navigation.
+- A single compact handle is located below this card as the raised peek of the report sheet and remains above system navigation.
 
 ## Monthly report sheet
 
 - In the collapsed state only the handle is visible; the report surface, text and shadow remain hidden.
-- Report content disappears immediately when collapse starts, without lingering behind the closing animation.
-- Opens by tapping the handle or dragging from it upward.
+- The complete report remains composed/measured in both states so the sheet height and swipe anchors do not change during a gesture.
+- Opens by tapping the handle or dragging upward.
 - Collapses by downward drag or a second handle tap. When month navigation, day editing or settings is opened, the destination appears immediately while the report collapses behind it without delaying the next surface.
-- Handle press feedback is confined to a small area around the handle and never triggers a tooltip or full-width flash.
+- The visual handle is rendered inside sheet content rather than through Material 3's `sheetDragHandle` slot because that slot adds a long-press tooltip. Holding the handle must never show `Drag handle` / `Маркер перемещения`.
+- Handle tap feedback is intentionally invisible; no full-width flash or tooltip is shown.
 - Contains one heading with a trailing colon, work days, hours worked, optional bonus, optional penalty, divider and total.
 - Does not duplicate the heading as a second total and does not contain report/export buttons.
 
@@ -53,33 +54,44 @@ Normal closed-keyboard state should fit as one compact sheet.
 5. Save.
 6. Delete for an existing entry.
 
-The duration field is labeled `Время` and shows a faint `00:00` format hint only while focused and empty. Duration and rate values stay centered in focused and unfocused states. Initial zero clears on focus. The hint and the entered value use the same typography and centered alignment. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`. Switching between duration and amount fields keeps the same numeric keyboard mode, uses zero content insets for the modal sheet and does not animate the editor's height, so the sheet remains stationary while the keyboard stays open.
+The duration field is labeled `Время` and shows a faint `00:00` format hint only while empty. Duration and rate values stay centered in focused and unfocused states. An initial zero is selected on focus rather than removed from state, so focus changes do not cause layout or validation reflow. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`.
 
-Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The newly expanded amount field receives focus immediately.
+Numeric validation is intentionally minimal: invalid duration/rate/bonus/penalty values are indicated by the field's red error outline only. Validation helper text is not shown and must not change sheet height.
+
+All numeric fields use the same decimal keyboard family and an explicit focus chain. `Next` moves directly to the next visible input. Expanding bonus or penalty while another numeric field is focused must transfer focus directly to the newly created field without an intermediate focus clear/frame delay, so the IME remains visible and the modal sheet does not jump.
+
+Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The expansion buttons do not take keyboard focus.
 
 The calculation card uses `At hourly rate` / `По ставке`, then optional bonus/penalty rows, then total. Before any value is entered it shows only the `Total` / `Итого` label; zero adjustment rows are omitted.
+
+Save/delete persistence failures keep the draft open and are shown as transient localized Snackbar feedback layered over the sheet. Error feedback must not insert/remove layout rows or resize the sheet.
 
 ## Amount formatting
 
 - Input accepts at most two fractional digits.
 - Display rounds to at most two fractional digits and omits a zero fractional part.
+- Calendar-cell amounts use the same formatter rules with grouping disabled to preserve compact geometry.
 - Calculations keep deterministic micros precision internally; the UI precision limit applies only to entry and presentation.
 
 ## Settings
 
 - Compact one-screen sheet.
 - Hourly-rate label and a centered 120 dp input share a row.
+- Initial zero is selected on focus instead of being replaced by an empty value.
+- Invalid input uses red outline only; no helper text is inserted below the field.
+- The sheet relies on the modal window/inset handling without an additional `imePadding` layer.
 - Theme choices fit in one row, including `Системная`.
 - Selecting light or dark immediately previews the theme.
 - Dismissing settings without saving restores the persisted theme; the selected theme is persisted only after pressing Save.
 - Save remains reachable without scrolling when the keyboard is closed.
+- Persistence failure is shown with an overlay Snackbar and does not resize the sheet.
 
 ## Visual system
 
 - Controlled calm blue-neutral palettes in light and dark modes. The expanded monthly report uses a distinct elevated surface color so its edge remains visible over the calendar.
 - 24 dp major-card radius, 16-20 dp compact-card radius, 8-12 dp cell/input radius.
 - Regular body weight for comparable labels/values; medium/semi-bold only for titles, selected dates and totals.
-- Error red is reserved for errors, delete and penalty semantics.
+- Error red is reserved for invalid input, persistence feedback, delete and penalty semantics.
 - Month changes, day-cell state changes and report expansion use short 120-180 ms Material easing; editor controls never animate the sheet height or move it while focus changes.
 - Numeric input line height matches its text size so the caret does not visually exceed the entered value.
-- No information relies on color alone; labels and accessibility descriptions remain present.
+- No information essential to calendar interpretation relies on color alone; labels and accessibility descriptions remain present where appropriate.
