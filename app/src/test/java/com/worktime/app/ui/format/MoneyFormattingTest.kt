@@ -37,4 +37,9 @@ class MoneyFormattingTest {
     fun `amount formatter omits zero fractional part`() {
         assertEquals("12", formatAmountMicros(12_000_000L, Locale.US))
     }
+
+    @Test
+    fun `compact amount formatter omits grouping separators`() {
+        assertEquals("1234.5", formatCompactAmountMicros(1_234_500_000L, Locale.US))
+    }
 }
