@@ -15,12 +15,12 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 
 - Header: previous month, localized month/year, next month, settings.
 - The calendar uses a fixed compact height above the fixed summary and report handle; no additional bottom padding may compete with the scaffold peek area.
-- The calendar card is edge-to-edge horizontally. Top-bar controls keep only a minimal 2 dp horizontal safety margin; the fixed summary keeps 4 dp. The calendar card itself has no horizontal content padding, and individual day cells use only a 0.5 dp horizontal gutter.
+- The calendar card keeps only a 1 dp horizontal safety margin. Top-bar controls keep 2 dp and the fixed summary keeps 4 dp. Individual day cells use a 0.25 dp inset on each side, yielding an approximately 0.5 dp visual gap between neighbors.
 - It never scrolls vertically and its position does not depend on entries or report content.
 - The grid always has six rows; adjacent-month dates are faint and inactive.
 - Current-month cells remain large enough for date, duration and amount.
 - Day numbers use bold weight consistently, regardless of whether the day has an entry.
-- Day-cell geometry follows the compact reference layout: date is anchored close to the top-right corner, daily income close to the bottom-left corner, and worked duration is centered geometrically with a larger `titleMedium` treatment.
+- Day-cell geometry follows the compact reference layout: date is anchored near the top-right corner with a small right inset, daily income near the bottom-left corner with a matching left inset, and worked duration is centered geometrically with a larger `titleMedium` treatment.
 - Bonus/penalty markers stay in the free top-left corner so they never overlap the date.
 - Daily amounts inside calendar cells are rounded to a whole number with no fractional digits or grouping separators; full calculation precision is retained internally and richer amount displays elsewhere may show fractions.
 - Previous/next month navigation updates the requested month title and date grid immediately. The calendar does not crossfade the old and new month and does not animate day-cell colors across month boundaries.
@@ -60,13 +60,19 @@ Normal closed-keyboard state should fit as one compact sheet.
 
 The duration field is labeled `Время` and shows a faint `00:00` format hint while empty. A new day starts with an empty duration field rather than a literal `0`, so typing `12` yields `12` immediately. Duration sanitization also removes accidental leading zeroes defensively, so input such as `012` cannot become `01:2`. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`.
 
-Zero-valued numeric editor fields are represented as empty editor text and parsed as zero. Focus changes must not mutate field text. Numeric validation is intentionally minimal: invalid duration/rate/bonus/penalty values are indicated by the field's red error outline only. Validation helper text is not shown and must not change sheet height.
+Zero-valued numeric editor fields are represented as empty editor text and parsed as zero. Focus changes must not clear or rewrite field text. Numeric validation is intentionally minimal: invalid duration/rate/bonus/penalty values are indicated by the field's red error outline only. Validation helper text is not shown and must not change sheet height.
 
-All day-editor numeric inputs use Material 3 state-based `TextFieldState` with synchronous `InputTransformation`. There is no duplicated parent `String` plus child `TextFieldValue` synchronization loop. Every numeric field receives the exact same decimal `KeyboardOptions` and the same `ImeAction.Next`, so switching focus does not change the IME action-key configuration and should not force an OEM keyboard layout rebuild. Expanding bonus or penalty while another numeric field is focused transfers focus directly to the newly created field.
+The primary pair `Время` / `Ставка за час` uses one persistent state-based editable `OutlinedTextField` and one platform text-input session. The same editable node moves between the left and right visual slots when the logical active field changes. The inactive slot is a read-only Material field shell. Switching between the two primary fields must therefore not blur/dispose one editable TextField and focus/start another. This architecture is required because physical-device ADB traces showed that a normal two-TextField focus handoff caused client-side IME hide, a temporary empty `EditorInfo`, `restartInput`, and a visible Gboard hide/show cycle.
 
-The modal editor uses normal `ModalBottomSheet` window-inset handling so the sheet lifts above the software keyboard instead of remaining underneath it. The content stays vertically scrollable when required. Repeatedly switching focus between already visible numeric fields must keep the keyboard presentation stable and must not produce the previous hide/reopen jump.
+The active primary slot is rendered exactly once. Its label, placeholder and value must never be duplicated by an underlying passive field. The passive slot has an invisible click indication: tapping it must not show a rectangular ripple/pressed overlay. If the persistent editor is not currently focused, the same first tap both activates the requested logical field and focuses/shows the numeric keyboard; a second tap must never be required.
 
-Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order. The expansion buttons do not take keyboard focus.
+Primary input sanitization remains synchronous through `InputTransformation`, and the duration/rate logical values are copied to and from the persistent editor without replacing its focus node. Both primary fields share the same decimal `KeyboardOptions`/`ImeAction.Next`; IME Next from duration activates rate without an editable-field focus handoff.
+
+Bonus and penalty currently remain separate state-based editable fields with the same decimal keyboard configuration. Expansion buttons do not take keyboard focus. If device testing shows the same IME session-handoff defect when moving to/from adjustment fields, the persistent-session pattern should be extended rather than reintroducing inset/focus timing workarounds.
+
+The modal editor uses normal `ModalBottomSheet` window-inset handling so the sheet lifts above the software keyboard instead of remaining underneath it. The content stays vertically scrollable when required. Repeatedly switching `Время ↔ Ставка` must keep the keyboard continuously presented and the sheet stationary after its initial IME lift.
+
+Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Expanding one replaces only its own slot and pushes the remaining control below in stable order.
 
 The calculation card uses `At hourly rate` / `По ставке`, then optional bonus/penalty rows, then total. Before any value is entered it shows only the `Total` / `Итого` label; zero adjustment rows are omitted.
 
@@ -98,6 +104,6 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 - 24 dp major-card radius, 16-20 dp compact-card radius, 8-12 dp cell/input radius.
 - Regular body weight for comparable labels/values; medium/semi-bold for titles/totals and bold for calendar day numbers.
 - Error red is reserved for invalid input, persistence feedback, delete and penalty semantics.
-- Report expansion may use short Material easing. Month title/date-grid changes are immediate and must not crossfade; editor controls never animate sheet height or move it while focus changes.
+- Report expansion may use short Material easing. Month title/date-grid changes are immediate and must not crossfade; editor controls never animate sheet height or move it while primary input changes logical field.
 - Numeric input line height matches its text size so the caret does not visually exceed the entered value.
 - No information essential to calendar interpretation relies on color alone; labels and accessibility descriptions remain present where appropriate.
