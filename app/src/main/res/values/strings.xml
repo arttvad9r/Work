@@ -43,7 +43,7 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="save_settings">Save settings</string>
-    <string name="delete_entry_confirmation">Delete this day entry? This cannot be undone.</string>
+    <string name="delete_entry_confirmation">Delete this day entry? You can undo this from the message that appears.</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
 

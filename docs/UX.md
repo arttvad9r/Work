@@ -114,7 +114,7 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 - Successful entry deletion and successful bulk rate changes surface one root Snackbar anchored above system navigation with an `Undo` action (`Entry deleted` / `Rate changed`).
 - Undo restores the exact previous records: a restored entry keeps its original duration, rate and adjustments; an undone bulk change restores every original per-record rate in the period, including records whose stored rate already equaled the new one.
 - Only the most recent delete/bulk-rate operation can be undone. The undo snapshot exists only in memory: starting any new delete, bulk-rate or settings-save operation supersedes it, and it is lost when the process dies.
-- Operation errors (save, delete, settings, bulk-rate and undo failures) do not use the root Snackbar; they keep their existing localized error surfaces near the sheet that owns them.
+- Operation errors (save, delete, settings and bulk-rate failures) do not use the root Snackbar; they keep their existing localized error surfaces near the sheet that owns them. Undo failures are the exception: they surface as an action-less root Snackbar (`Could not undo the operation. Try again.`) because every sheet is already dismissed when undo runs.
 
 ## Visual system
 

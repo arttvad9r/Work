@@ -48,15 +48,20 @@ fun WorkTimeApp(container: AppContainer) {
     val entryDeletedMessage = stringResource(R.string.entry_deleted)
     val rateChangedMessage = stringResource(R.string.rate_changed)
     val undoLabel = stringResource(R.string.undo)
+    val undoFailedMessage = stringResource(R.string.undo_failed)
     // Channel has no replay, so restarting this collector (e.g. on locale change)
     // cannot redisplay an already-consumed event.
-    LaunchedEffect(viewModel, entryDeletedMessage, rateChangedMessage, undoLabel) {
+    LaunchedEffect(viewModel, entryDeletedMessage, rateChangedMessage, undoLabel, undoFailedMessage) {
         viewModel.operationEvents.collect { event ->
             when (event) {
                 CalendarOperationEvent.Success.ENTRY_DELETED ->
                     showUndoSnackbar(snackbarHostState, entryDeletedMessage, undoLabel, viewModel)
                 CalendarOperationEvent.Success.RATE_UPDATED ->
                     showUndoSnackbar(snackbarHostState, rateChangedMessage, undoLabel, viewModel)
+                // Undo fires from a consumed root snackbar after every sheet is gone,
+                // so it is the only error with no owning surface to display it.
+                CalendarOperationEvent.Error.UNDO ->
+                    snackbarHostState.showSnackbar(undoFailedMessage, duration = SnackbarDuration.Long)
                 else -> Unit
             }
         }
