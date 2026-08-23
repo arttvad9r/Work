@@ -14,6 +14,9 @@
     <string name="day_selected">выбрано</string>
     <string name="has_bonus">есть премия</string>
     <string name="has_penalty">есть штраф</string>
+    <string name="has_entry">есть запись</string>
+    <string name="empty_month_prompt">В этом месяце нет записей</string>
+    <string name="open_today">Открыть сегодня</string>
 
     <string name="worked">Время</string>
     <string name="hourly_rate">Ставка за час</string>

@@ -14,6 +14,9 @@
     <string name="day_selected">selected</string>
     <string name="has_bonus">bonus added</string>
     <string name="has_penalty">penalty added</string>
+    <string name="has_entry">entry recorded</string>
+    <string name="empty_month_prompt">No entries this month</string>
+    <string name="open_today">Open today</string>
 
     <string name="worked">Time</string>
     <string name="hourly_rate">Rate per hour</string>
