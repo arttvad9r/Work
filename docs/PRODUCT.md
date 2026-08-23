@@ -21,10 +21,12 @@ It is a modern salary calendar, not a project tracker, shift planner, timer, HR 
 
 - Monday-first 6 x 7 layout with fixed geometry.
 - Previous/next month navigation updates the title and date grid immediately without crossfade or old/new month flashing.
+- Horizontal swipes across the calendar also switch months; vertical drags never do.
 - Adjacent-month dates remain visible but faint and inactive.
 - The calendar uses a minimal horizontal safety margin so the seven columns have as much usable width as practical on a portrait phone.
 - Filled cells show a centered compact duration and a rounded whole-number daily amount with no fractional digits.
 - Bonus and penalty have distinct centered markers.
+- An empty month offers a prompt that opens today's editor directly.
 - Application orientation remains locked to portrait.
 
 ### Day editor
@@ -60,10 +62,15 @@ The report opens by tap or drag. Holding its handle must not show Material's dra
 
 ### Settings
 
-- default hourly rate;
-- system, light or dark theme;
+The sheet is grouped into `Calculation`, `Appearance` and `Data and operations`:
+
+- default hourly rate (Calculation);
+- system, light or dark theme (Appearance);
+- change rate for period (Data and operations);
 - outline-only validation for an invalid rate;
 - persistence errors shown without changing sheet geometry.
+
+`Change rate for period` rewrites the hourly rate of every entry inside an inclusive date range. The range is the visible month or a custom start/end period picked with native date dialogs, the new value is confirmed in a dialog before anything is written, and only each record's hourly rate changes — durations, bonuses and penalties and the default rate stay untouched. Success shows a Snackbar with Undo; Undo restores every original per-record rate from before the operation.
 
 ## Business rules
 
@@ -72,6 +79,8 @@ The report opens by tap or drag. Holding its handle must not show Material's dra
 - Worked time requires a positive hourly rate.
 - Bonus/penalty-only records are valid and do not increase work-day count.
 - Historical records retain their saved hourly rate.
+- A bulk rate change affects every record in the inclusive period regardless of each record's current rate, and updates only the stored hourly rate; the default rate is never modified.
+- Entry deletion and bulk rate changes can be undone through the success Snackbar. Undo covers only the most recent such operation, lives in memory for the process lifetime and does not survive process death.
 - Numeric amounts are neutral values; there is no currency setting or exchange-rate behavior.
 - User-entered amounts accept at most two fractional digits.
 - Normal amount displays use at most two fractional digits and omit a zero fractional part; compact calendar day cells intentionally show only a rounded whole number.
@@ -95,5 +104,6 @@ The report opens by tap or drag. Holding its handle must not show Material's dra
 - Core create/edit/delete/relaunch flows pass on supported physical hardware.
 - Report tap/drag/long-press and editor IME transitions pass the focused device checklist.
 - Calendar month switching, wider grid geometry and compact whole-number daily totals pass the focused device checklist.
+- Rate-change-for-period with confirmation, Snackbar Undo restore and horizontal month swipe pass the focused device checklist.
 - Calendar, fixed summary and report sheet do not clip at supported portrait font scales.
 - No known data-loss or calculation defect remains.
