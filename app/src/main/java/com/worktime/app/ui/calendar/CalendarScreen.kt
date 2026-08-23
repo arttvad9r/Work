@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
@@ -39,16 +41,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -71,6 +77,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.abs
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -227,9 +234,17 @@ fun CalendarScreen(
                 CalendarCard(
                     state = state,
                     onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
+                    onSwipeToPrevious = { closeSummaryBehind(onPreviousMonth) },
+                    onSwipeToNext = { closeSummaryBehind(onNextMonth) },
                     locale = locale,
                     modifier = Modifier.height(392.dp),
                 )
+                if (state.entries.isEmpty()) {
+                    EmptyMonthPrompt(
+                        onOpenToday = { closeSummaryBehind { onDayClick(LocalDate.now()) } },
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    )
+                }
                 Spacer(modifier = Modifier.weight(1f))
                 CollapsedSummaryCard(
                     state = state,
@@ -241,17 +256,43 @@ fun CalendarScreen(
     }
 }
 
+// Horizontal distance a drag must cover before it counts as a month switch.
+private val MonthSwipeThreshold = 48.dp
+
 @Composable
 private fun CalendarCard(
     state: CalendarUiState,
     onDayClick: (LocalDate) -> Unit,
+    onSwipeToPrevious: () -> Unit,
+    onSwipeToNext: () -> Unit,
     locale: Locale,
     modifier: Modifier = Modifier,
 ) {
+    val currentOnSwipeToPrevious by rememberUpdatedState(onSwipeToPrevious)
+    val currentOnSwipeToNext by rememberUpdatedState(onSwipeToNext)
     Surface(
         modifier = modifier
             .padding(horizontal = 1.dp)
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                val swipeThresholdPx = MonthSwipeThreshold.toPx()
+                var totalDrag = Offset.Zero
+                detectDragGestures(
+                    onDragStart = { totalDrag = Offset.Zero },
+                    onDrag = { change, dragAmount ->
+                        totalDrag += dragAmount
+                        change.consume()
+                    },
+                    onDragEnd = {
+                        when (resolveMonthSwipe(totalDrag.x, totalDrag.y, swipeThresholdPx)) {
+                            MonthSwipe.TO_PREVIOUS -> currentOnSwipeToPrevious()
+                            MonthSwipe.TO_NEXT -> currentOnSwipeToNext()
+                            MonthSwipe.NONE -> Unit
+                        }
+                        totalDrag = Offset.Zero
+                    },
+                )
+            },
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
@@ -281,18 +322,43 @@ private fun CollapsedSummaryCard(
         shape = RoundedCornerShape(24.dp),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            SummaryRow(stringResource(R.string.shift_count_label), summary.shiftCount.toString())
-            SummaryRow(
-                stringResource(R.string.worked_duration),
-                formatDurationCompact(summary.workedMinutes),
-            )
-            SummaryRow(
-                stringResource(R.string.monthly_income),
-                formatAmountMicros(summary.totalPayMicros, locale),
-            )
+            Column {
+                Text(
+                    text = stringResource(R.string.monthly_income),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                    maxLines = 1,
+                )
+                Text(
+                    text = formatAmountMicros(summary.totalPayMicros, locale),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "${stringResource(R.string.shift_count_label)}: ${summary.shiftCount}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
+                    maxLines = 1,
+                )
+                Text(
+                    text = "${stringResource(R.string.worked_duration)}: ${formatDurationCompact(summary.workedMinutes)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -336,11 +402,29 @@ private fun FullSummaryPanel(
                 )
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            SummaryRow(
-                stringResource(R.string.calculation_total),
-                formatAmountMicros(summary.totalPayMicros, locale),
-                emphasized = true,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.calculation_total),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+                Text(
+                    text = formatAmountMicros(summary.totalPayMicros, locale),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (shouldUseErrorColorForTotal(summary.totalPayMicros)) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -466,19 +550,32 @@ private fun DayCell(
     val dateLabel = date.format(
         DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale),
     )
-    val a11yDescription = buildString {
-        append(dateLabel)
-        if (isToday) append(", ").append(stringResource(R.string.today))
-        if (isSelected) append(", ").append(stringResource(R.string.day_selected))
-        if (visibleEntry != null && visibleEntry.workedMinutes > 0) {
-            append(", ").append(formatDuration(visibleEntry.workedMinutes))
-        }
-        if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
-            append(", ").append(formatAmountMicros(totalMicros, locale))
-        }
-        if (visibleEntry?.bonusMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_bonus))
-        if (visibleEntry?.penaltyMicros ?: 0L > 0L) append(", ").append(stringResource(R.string.has_penalty))
-    }
+    val a11yDescription = buildDayCellDescription(
+        dateLabel = dateLabel,
+        todayLabel = if (isToday) stringResource(R.string.today) else null,
+        selectedLabel = if (isSelected) stringResource(R.string.day_selected) else null,
+        entryLabel = if (visibleEntry != null) stringResource(R.string.has_entry) else null,
+        durationText = if (visibleEntry != null && visibleEntry.workedMinutes > 0) {
+            formatDuration(visibleEntry.workedMinutes)
+        } else {
+            null
+        },
+        amountText = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
+            formatAmountMicros(totalMicros, locale)
+        } else {
+            null
+        },
+        bonusText = if ((visibleEntry?.bonusMicros ?: 0L) > 0L) {
+            stringResource(R.string.has_bonus)
+        } else {
+            null
+        },
+        penaltyText = if ((visibleEntry?.penaltyMicros ?: 0L) > 0L) {
+            stringResource(R.string.has_penalty)
+        } else {
+            null
+        },
+    )
 
     Box(
         modifier = Modifier
@@ -521,6 +618,7 @@ private fun DayCell(
                 hasPenalty = visibleEntry.penaltyMicros > 0L,
                 modifier = Modifier.align(Alignment.TopStart),
             )
+            EntryGlyph(modifier = Modifier.align(Alignment.BottomEnd))
             if (visibleEntry.workedMinutes > 0) {
                 Text(
                     text = formatDurationCompact(visibleEntry.workedMinutes),
@@ -550,6 +648,37 @@ private fun DayCell(
 }
 
 internal fun shouldShowDayAmount(totalMicros: Long?): Boolean = totalMicros != null && totalMicros != 0L
+
+internal fun shouldUseErrorColorForTotal(totalPayMicros: Long): Boolean = totalPayMicros < 0L
+
+internal enum class MonthSwipe { NONE, TO_PREVIOUS, TO_NEXT }
+
+internal fun resolveMonthSwipe(deltaX: Float, deltaY: Float, thresholdPx: Float): MonthSwipe = when {
+    abs(deltaY) >= abs(deltaX) -> MonthSwipe.NONE
+    deltaX <= -thresholdPx -> MonthSwipe.TO_NEXT
+    deltaX >= thresholdPx -> MonthSwipe.TO_PREVIOUS
+    else -> MonthSwipe.NONE
+}
+
+internal fun buildDayCellDescription(
+    dateLabel: String,
+    todayLabel: String?,
+    selectedLabel: String?,
+    entryLabel: String?,
+    durationText: String?,
+    amountText: String?,
+    bonusText: String?,
+    penaltyText: String?,
+): String = listOfNotNull(
+    dateLabel,
+    todayLabel,
+    selectedLabel,
+    entryLabel,
+    durationText,
+    amountText,
+    bonusText,
+    penaltyText,
+).joinToString(", ")
 
 @Composable
 private fun MarkerGroup(
@@ -625,6 +754,56 @@ private fun AdjustmentGlyph(isBonus: Boolean) {
                     .height(8.dp)
                     .background(tint),
             )
+        }
+    }
+}
+
+@Composable
+private fun EntryGlyph(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .padding(end = 2.dp)
+            .size(10.dp)
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Check,
+            contentDescription = null,
+            modifier = Modifier.size(7.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+@Composable
+private fun EmptyMonthPrompt(
+    onOpenToday: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.empty_month_prompt),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+            TextButton(onClick = onOpenToday) {
+                Text(stringResource(R.string.open_today))
+            }
         }
     }
 }

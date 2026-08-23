@@ -25,15 +25,16 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 - Daily amounts inside calendar cells are rounded to a whole number with no fractional digits or grouping separators; full calculation precision is retained internally and richer amount displays elsewhere may show fractions.
 - Previous/next month navigation updates the requested month title and date grid immediately. The calendar does not crossfade the old and new month and does not animate day-cell colors across month boundaries.
 - If Room has not emitted the requested month's rows yet, rows from the previous month must never be displayed under the new title/grid.
+- Dragging horizontally on the calendar card switches months once the horizontal drag passes a 48 dp threshold; vertical-dominant drags are ignored and never trigger a month switch.
+- Days with an entry show a small circular check glyph in the bottom-right corner of the cell, opposite the bonus/penalty markers in the top-left.
+- A month with no entries shows a compact prompt card between the grid and the summary (`No entries this month`) with an `Open today` action that opens today's day editor.
 
 ## Fixed monthly summary
 
 - Constant height and bottom-anchored position immediately above the report handle.
-- Three aligned rows with one typography hierarchy:
-  - Work days;
-  - Hours worked / `Отработано часов`;
-  - Monthly income.
-- Values use regular weight; the card must not compete visually with the calendar.
+- Monthly income is the primary value: its label uses small label type and the amount is bold `headlineSmall`.
+- Work days and hours worked share one compact secondary row beneath the monthly income.
+- The card must not compete visually with the calendar.
 - A single compact handle is located below this card as the raised peek of the report sheet and remains above system navigation.
 
 ## Monthly report sheet
@@ -45,6 +46,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 - The visual handle is rendered inside sheet content rather than through Material 3's `sheetDragHandle` slot because that slot adds a long-press tooltip. Holding the handle must never show `Drag handle` / `Маркер перемещения`.
 - Handle tap feedback is intentionally invisible; no full-width flash or tooltip is shown.
 - Contains one heading with a trailing colon, work days, hours worked, optional bonus, optional penalty, divider and total.
+- The total value is bold; error color is applied to it only when the total is negative and never otherwise.
 - Does not duplicate the heading as a second total and does not contain report/export buttons.
 
 ## Day editor
@@ -87,16 +89,32 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 ## Settings
 
-- Compact one-screen sheet.
-- Hourly-rate label and a centered 120 dp input share a row.
+- Compact one-screen sheet organized into three titled groups: `Calculation`, `Appearance`, `Data and operations`.
+- `Calculation`: hourly-rate label and a centered 120 dp input share a row.
 - Initial zero is selected on focus instead of being replaced by an empty value.
 - Invalid input uses red outline only; no helper text is inserted below the field.
-- The sheet relies on the modal window/inset handling without an additional `imePadding` layer.
-- Theme choices fit in one row, including `Системная`.
+- `Appearance`: theme choices fit in one row, including `System`.
 - Selecting light or dark immediately previews the theme.
 - Dismissing settings without saving restores the persisted theme; the selected theme is persisted only after pressing Save.
-- Save remains reachable without scrolling when the keyboard is closed.
+- `Data and operations`: contains the `Change rate for period` action that opens the change-rate sheet described below.
+- The sheet relies on the modal window/inset handling without an additional `imePadding` layer and scrolls vertically when content or keyboard height requires it.
 - Persistence failure is shown with an overlay Snackbar and does not resize the sheet.
+
+## Change rate for period
+
+- Opens from the settings `Data and operations` group as its own modal sheet.
+- Period choices: `Current month` pre-fills start/end from the visible month; `Custom period` exposes start/end date fields opened through native Material date picker dialogs.
+- One rate input drives the operation; invalid values use the red outline only.
+- `Change rate` asks for confirmation first: an alert dialog states that every entry in the selected period will be updated and that the default rate stays unchanged.
+- On success the sheet closes and a root Snackbar confirms `Rate changed`; a period containing no entries is a silent no-op (the sheet still closes) with nothing to undo.
+- Failure keeps the sheet open and shows localized error feedback without resizing it.
+
+## Operation feedback and undo
+
+- Successful entry deletion and successful bulk rate changes surface one root Snackbar anchored above system navigation with an `Undo` action (`Entry deleted` / `Rate changed`).
+- Undo restores the exact previous records: a restored entry keeps its original duration, rate and adjustments; an undone bulk change restores every original per-record rate in the period, including records whose stored rate already equaled the new one.
+- Only the most recent delete/bulk-rate operation can be undone. The undo snapshot exists only in memory: starting any new delete, bulk-rate or settings-save operation supersedes it, and it is lost when the process dies.
+- Operation errors (save, delete, settings and bulk-rate failures) do not use the root Snackbar; they keep their existing localized error surfaces near the sheet that owns them. Undo failures are the exception: they surface as an action-less root Snackbar (`Could not undo the operation. Try again.`) because every sheet is already dismissed when undo runs.
 
 ## Visual system
 

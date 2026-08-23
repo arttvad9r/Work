@@ -14,11 +14,14 @@ import java.time.YearMonth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -31,7 +34,12 @@ class CalendarViewModel(
     private val visibleMonth = MutableStateFlow(YearMonth.now())
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
     private val settingsOpen = MutableStateFlow(false)
+    private val changeRateSheetOpen = MutableStateFlow(false)
     private val operationError = MutableStateFlow<CalendarOperationError?>(null)
+    private val undoSnapshot = MutableStateFlow<UndoSnapshot?>(null)
+    private var operationGeneration = 0L
+    private val _operationEvents = Channel<CalendarOperationEvent>(Channel.BUFFERED)
+    val operationEvents: Flow<CalendarOperationEvent> = _operationEvents.receiveAsFlow()
 
     private val monthSnapshot = visibleMonth.flatMapLatest { month ->
         workEntryRepository.observeMonth(month).map { entries -> month to entries }
@@ -45,7 +53,7 @@ class CalendarViewModel(
         requestedMonth to if (loadedMonth == requestedMonth) loadedEntries else emptyList()
     }
 
-    val state: StateFlow<CalendarUiState> = combine(
+    private val baseState = combine(
         visibleMonthEntries,
         userPreferencesRepository.preferences,
         selectedDate,
@@ -64,6 +72,17 @@ class CalendarViewModel(
             isSettingsOpen = isSettingsOpen,
             isReady = true,
             operationError = error,
+        )
+    }
+
+    val state: StateFlow<CalendarUiState> = combine(
+        baseState,
+        changeRateSheetOpen,
+        undoSnapshot,
+    ) { base, isChangeRateSheetOpen, snapshot ->
+        base.copy(
+            isChangeRateSheetOpen = isChangeRateSheetOpen,
+            canUndo = snapshot != null,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -97,8 +116,21 @@ class CalendarViewModel(
         settingsOpen.value = false
     }
 
+    fun openChangeRateSheet() {
+        operationError.value = null
+        selectedDate.value = null
+        settingsOpen.value = false
+        changeRateSheetOpen.value = true
+    }
+
+    fun dismissChangeRateSheet() {
+        operationError.value = null
+        changeRateSheetOpen.value = false
+    }
+
     fun saveEntry(entry: WorkEntry) {
         operationError.value = null
+        supersedeOperation()
         viewModelScope.launch {
             try {
                 workEntryRepository.save(entry)
@@ -112,13 +144,78 @@ class CalendarViewModel(
 
     fun deleteEntry(date: LocalDate) {
         operationError.value = null
+        val deletedEntry = state.value.entries[date]
+        supersedeOperation()
+        val generation = operationGeneration
         viewModelScope.launch {
             try {
                 workEntryRepository.delete(date)
                 selectedDate.value = null
+                if (generation == operationGeneration) {
+                    if (deletedEntry != null) undoSnapshot.value = UndoSnapshot.Deleted(deletedEntry)
+                    _operationEvents.send(CalendarOperationEvent.Success.ENTRY_DELETED)
+                }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                operationError.value = CalendarOperationError.DELETE_ENTRY
+                if (generation == operationGeneration) {
+                    operationError.value = CalendarOperationError.DELETE_ENTRY
+                    _operationEvents.send(CalendarOperationEvent.Error.DELETE_ENTRY)
+                }
+            }
+        }
+    }
+
+    fun changeRateForPeriod(startDate: LocalDate, endDate: LocalDate, newRateMicros: Long) {
+        operationError.value = null
+        supersedeOperation()
+        if (startDate > endDate || newRateMicros <= 0L) {
+            operationError.value = CalendarOperationError.BULK_RATE
+            _operationEvents.trySend(CalendarOperationEvent.Error.BULK_RATE)
+            return
+        }
+        val generation = operationGeneration
+        viewModelScope.launch {
+            try {
+                val originals = workEntryRepository.updateHourlyRate(startDate, endDate, newRateMicros)
+                if (generation == operationGeneration) {
+                    if (originals.isEmpty()) {
+                        _operationEvents.send(CalendarOperationEvent.Success.NO_OP)
+                    } else {
+                        undoSnapshot.value = UndoSnapshot.Bulk(originals)
+                        _operationEvents.send(CalendarOperationEvent.Success.RATE_UPDATED)
+                    }
+                    changeRateSheetOpen.value = false
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == operationGeneration) {
+                    operationError.value = CalendarOperationError.BULK_RATE
+                    _operationEvents.send(CalendarOperationEvent.Error.BULK_RATE)
+                }
+            }
+        }
+    }
+
+    fun undoLastOperation() {
+        operationError.value = null
+        val snapshot = undoSnapshot.value ?: return
+        val generation = operationGeneration
+        viewModelScope.launch {
+            try {
+                when (snapshot) {
+                    is UndoSnapshot.Deleted -> workEntryRepository.restore(listOf(snapshot.entry))
+                    is UndoSnapshot.Bulk -> workEntryRepository.restore(snapshot.entries)
+                }
+                if (generation == operationGeneration) {
+                    undoSnapshot.value = null
+                    _operationEvents.send(CalendarOperationEvent.Success.OPERATION_UNDONE)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == operationGeneration) {
+                    operationError.value = CalendarOperationError.UNDO
+                    _operationEvents.send(CalendarOperationEvent.Error.UNDO)
+                }
             }
         }
     }
@@ -128,6 +225,7 @@ class CalendarViewModel(
         themeMode: ThemeMode,
     ) {
         operationError.value = null
+        supersedeOperation()
         viewModelScope.launch {
             try {
                 userPreferencesRepository.update(
@@ -142,6 +240,11 @@ class CalendarViewModel(
         }
     }
 
+    private fun supersedeOperation() {
+        operationGeneration++
+        undoSnapshot.value = null
+    }
+
     companion object {
         fun factory(
             workEntryRepository: WorkEntryRepository,
@@ -149,5 +252,10 @@ class CalendarViewModel(
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer { CalendarViewModel(workEntryRepository, userPreferencesRepository) }
         }
+    }
+
+    private sealed interface UndoSnapshot {
+        data class Deleted(val entry: WorkEntry) : UndoSnapshot
+        data class Bulk(val entries: List<WorkEntry>) : UndoSnapshot
     }
 }

@@ -14,6 +14,9 @@
     <string name="day_selected">selected</string>
     <string name="has_bonus">bonus added</string>
     <string name="has_penalty">penalty added</string>
+    <string name="has_entry">entry recorded</string>
+    <string name="empty_month_prompt">No entries this month</string>
+    <string name="open_today">Open today</string>
 
     <string name="worked">Time</string>
     <string name="hourly_rate">Rate per hour</string>
@@ -31,17 +34,34 @@
     <string name="save">Save</string>
     <string name="delete_entry">Delete entry</string>
 
+    <string name="appearance">Appearance</string>
+    <string name="data_and_operations">Data and operations</string>
+    <string name="change_rate_for_period">Change rate for period</string>
     <string name="default_hourly_rate">Hourly rate</string>
     <string name="theme">Theme</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="save_settings">Save settings</string>
-    <string name="delete_entry_confirmation">Delete this day entry? This cannot be undone.</string>
+    <string name="delete_entry_confirmation">Delete this day entry? You can undo this from the message that appears.</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
 
+    <string name="current_month">Current month</string>
+    <string name="custom_period">Custom period</string>
+    <string name="start_date">Start date</string>
+    <string name="end_date">End date</string>
+    <string name="ok">OK</string>
+    <string name="change_rate">Change rate</string>
+    <string name="change_rate_confirmation_title">Change the rate?</string>
+    <string name="change_rate_confirmation_text">The hourly rate will be updated for every entry in the selected period. The default rate stays unchanged.</string>
+    <string name="entry_deleted">Entry deleted</string>
+    <string name="rate_changed">Rate changed</string>
+    <string name="undo">Undo</string>
+
     <string name="save_entry_failed">Could not save the entry. Your draft is still open.</string>
     <string name="delete_entry_failed">Could not delete the entry. Try again.</string>
+    <string name="bulk_rate_failed">Could not update hourly rates. Try again.</string>
     <string name="save_settings_failed">Could not save settings. Your changes are still open.</string>
+    <string name="undo_failed">Could not undo the operation. Try again.</string>
 </resources>

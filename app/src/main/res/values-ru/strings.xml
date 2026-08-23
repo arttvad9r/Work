@@ -14,6 +14,9 @@
     <string name="day_selected">выбрано</string>
     <string name="has_bonus">есть премия</string>
     <string name="has_penalty">есть штраф</string>
+    <string name="has_entry">есть запись</string>
+    <string name="empty_month_prompt">В этом месяце нет записей</string>
+    <string name="open_today">Открыть сегодня</string>
 
     <string name="worked">Время</string>
     <string name="hourly_rate">Ставка за час</string>
@@ -31,17 +34,34 @@
     <string name="save">Сохранить</string>
     <string name="delete_entry">Удалить запись</string>
 
+    <string name="appearance">Внешний вид</string>
+    <string name="data_and_operations">Данные и операции</string>
+    <string name="change_rate_for_period">Изменить ставку за период</string>
     <string name="default_hourly_rate">Ставка за час</string>
     <string name="theme">Тема</string>
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
     <string name="save_settings">Сохранить настройки</string>
-    <string name="delete_entry_confirmation">Удалить запись за этот день? Это действие нельзя отменить.</string>
+    <string name="delete_entry_confirmation">Удалить запись за этот день? Это можно отменить в появившемся сообщении.</string>
     <string name="delete">Удалить</string>
     <string name="cancel">Отмена</string>
 
+    <string name="current_month">Текущий месяц</string>
+    <string name="custom_period">Свой период</string>
+    <string name="start_date">Дата начала</string>
+    <string name="end_date">Дата окончания</string>
+    <string name="ok">ОК</string>
+    <string name="change_rate">Изменить ставку</string>
+    <string name="change_rate_confirmation_title">Изменить ставку?</string>
+    <string name="change_rate_confirmation_text">Ставка за час будет обновлена для всех записей выбранного периода. Ставка по умолчанию не изменится.</string>
+    <string name="entry_deleted">Запись удалена</string>
+    <string name="rate_changed">Ставка изменена</string>
+    <string name="undo">Отменить</string>
+
     <string name="save_entry_failed">Не удалось сохранить запись. Введённые данные остались открыты.</string>
     <string name="delete_entry_failed">Не удалось удалить запись. Попробуйте ещё раз.</string>
+    <string name="bulk_rate_failed">Не удалось изменить ставки. Попробуйте ещё раз.</string>
     <string name="save_settings_failed">Не удалось сохранить настройки. Изменения остались открыты.</string>
+    <string name="undo_failed">Не удалось отменить операцию. Попробуйте ещё раз.</string>
 </resources>

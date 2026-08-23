@@ -14,8 +14,10 @@ data class CalendarUiState(
     val defaultHourlyRateMicros: Long = 0L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isSettingsOpen: Boolean = false,
+    val isChangeRateSheetOpen: Boolean = false,
     val isReady: Boolean = false,
     val operationError: CalendarOperationError? = null,
+    val canUndo: Boolean = false,
 ) {
     val summary: MonthSummary
         get() = SalaryCalculator.monthSummary(entries.values)
@@ -25,4 +27,23 @@ enum class CalendarOperationError {
     SAVE_ENTRY,
     DELETE_ENTRY,
     SAVE_SETTINGS,
+    BULK_RATE,
+    UNDO,
+}
+
+sealed interface CalendarOperationEvent {
+    enum class Success : CalendarOperationEvent {
+        ENTRY_DELETED,
+        RATE_UPDATED,
+        OPERATION_UNDONE,
+        NO_OP,
+    }
+
+    enum class Error : CalendarOperationEvent {
+        SAVE_ENTRY,
+        DELETE_ENTRY,
+        SAVE_SETTINGS,
+        BULK_RATE,
+        UNDO,
+    }
 }
