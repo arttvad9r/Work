@@ -48,4 +48,13 @@ interface WorkEntryDao {
 
     @Query("DELETE FROM work_entries WHERE dateEpochDay = :dateEpochDay")
     suspend fun deleteByDate(dateEpochDay: Long)
+
+    @Query("DELETE FROM work_entries")
+    suspend fun clearAll()
+
+    @Transaction
+    suspend fun replaceAll(entries: List<WorkEntryEntity>) {
+        clearAll()
+        upsert(entries)
+    }
 }

@@ -10,6 +10,7 @@ interface WorkEntryRepository {
     suspend fun save(entry: WorkEntry)
     suspend fun delete(date: LocalDate)
     suspend fun restore(entries: List<WorkEntry>)
+    suspend fun replaceAll(entries: List<WorkEntry>)
     suspend fun updateHourlyRate(
         startDate: LocalDate,
         endDate: LocalDate,

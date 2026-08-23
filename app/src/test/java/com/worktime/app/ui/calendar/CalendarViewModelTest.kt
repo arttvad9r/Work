@@ -344,6 +344,13 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
         restoredEntries = entries
         entries.forEach { entry -> save(entry) }
     }
+    var replaceAllCalls = 0
+    var replaceAllError: Exception? = null
+    override suspend fun replaceAll(entries: List<WorkEntry>) {
+        replaceAllCalls++
+        replaceAllError?.let { throw it }
+        this.entries.value = entries
+    }
     override suspend fun updateHourlyRate(
         startDate: LocalDate,
         endDate: LocalDate,

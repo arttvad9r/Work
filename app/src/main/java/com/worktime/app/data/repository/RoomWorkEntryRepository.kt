@@ -32,6 +32,10 @@ class RoomWorkEntryRepository(
         dao.restore(entries.map(WorkEntry::toEntity))
     }
 
+    override suspend fun replaceAll(entries: List<WorkEntry>) {
+        dao.replaceAll(entries.map(WorkEntry::toEntity))
+    }
+
     override suspend fun updateHourlyRate(
         startDate: LocalDate,
         endDate: LocalDate,
