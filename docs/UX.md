@@ -32,8 +32,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 ## Fixed monthly summary
 
 - Constant height and bottom-anchored position immediately above the report handle.
-- Monthly income is the primary value: its label uses small label type and the amount is bold `headlineSmall`.
-- Work days and hours worked share one compact secondary row beneath the monthly income.
+- Three equal label-value rows: shifts, worked time, monthly income.
 - The card must not compete visually with the calendar.
 - A single compact handle is located below this card as the raised peek of the report sheet and remains above system navigation.
 

@@ -60,8 +60,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
@@ -91,7 +94,8 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalLocale.current.platformLocale
-    val monthTitle = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+    val monthName = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL", locale))
+    val visibleYear = state.visibleMonth.year
     val summarySheetState = rememberStandardBottomSheetState(
         initialValue = SheetValue.PartiallyExpanded,
         skipHiddenState = true,
@@ -190,7 +194,17 @@ fun CalendarScreen(
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 title = {
                     Text(
-                        text = monthTitle,
+                        // ponytail: digits render taller than lowercase letters at the same sp;
+                        // shrink the year ~15% so month and year read the same height
+                        text = buildAnnotatedString {
+                            append(monthName)
+                            append(' ')
+                            withStyle(
+                                SpanStyle(
+                                    fontSize = MaterialTheme.typography.titleLarge.fontSize * 0.85f,
+                                ),
+                            ) { append(visibleYear.toString()) }
+                        },
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -325,40 +339,17 @@ private fun CollapsedSummaryCard(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
-            Column {
-                Text(
-                    text = stringResource(R.string.monthly_income),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
-                    maxLines = 1,
-                )
-                Text(
-                    text = formatAmountMicros(summary.totalPayMicros, locale),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = "${stringResource(R.string.shift_count_label)}: ${summary.shiftCount}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
-                    maxLines = 1,
-                )
-                Text(
-                    text = "${stringResource(R.string.worked_duration)}: ${formatDurationCompact(summary.workedMinutes)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f),
-                    maxLines = 1,
-                )
-            }
+            SummaryRow(stringResource(R.string.shift_count_label), summary.shiftCount.toString())
+            SummaryRow(
+                stringResource(R.string.worked_duration),
+                formatDurationCompact(summary.workedMinutes),
+            )
+            SummaryRow(
+                stringResource(R.string.monthly_income),
+                formatAmountMicros(summary.totalPayMicros, locale),
+            )
         }
     }
 }
