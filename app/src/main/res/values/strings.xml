@@ -31,6 +31,9 @@
     <string name="save">Save</string>
     <string name="delete_entry">Delete entry</string>
 
+    <string name="appearance">Appearance</string>
+    <string name="data_and_operations">Data and operations</string>
+    <string name="change_rate_for_period">Change rate for period</string>
     <string name="default_hourly_rate">Hourly rate</string>
     <string name="theme">Theme</string>
     <string name="theme_system">System</string>
@@ -40,6 +43,17 @@
     <string name="delete_entry_confirmation">Delete this day entry? This cannot be undone.</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
+
+    <string name="current_month">Current month</string>
+    <string name="custom_period">Custom period</string>
+    <string name="start_date">Start date</string>
+    <string name="end_date">End date</string>
+    <string name="ok">OK</string>
+    <string name="change_rate">Change rate</string>
+    <string name="change_rate_confirmation_title">Change the rate?</string>
+    <string name="change_rate_confirmation_text">The hourly rate will be updated for every entry in the selected period. The default rate stays unchanged.</string>
+    <string name="rate_changed">Rate changed</string>
+    <string name="undo">Undo</string>
 
     <string name="save_entry_failed">Could not save the entry. Your draft is still open.</string>
     <string name="delete_entry_failed">Could not delete the entry. Try again.</string>

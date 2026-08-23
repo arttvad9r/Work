@@ -14,6 +14,7 @@ data class CalendarUiState(
     val defaultHourlyRateMicros: Long = 0L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isSettingsOpen: Boolean = false,
+    val isChangeRateSheetOpen: Boolean = false,
     val isReady: Boolean = false,
     val operationError: CalendarOperationError? = null,
     val canUndo: Boolean = false,

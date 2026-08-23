@@ -34,6 +34,7 @@ class CalendarViewModel(
     private val visibleMonth = MutableStateFlow(YearMonth.now())
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
     private val settingsOpen = MutableStateFlow(false)
+    private val changeRateSheetOpen = MutableStateFlow(false)
     private val operationError = MutableStateFlow<CalendarOperationError?>(null)
     private val undoSnapshot = MutableStateFlow<UndoSnapshot?>(null)
     private var operationGeneration = 0L
@@ -74,8 +75,15 @@ class CalendarViewModel(
         )
     }
 
-    val state: StateFlow<CalendarUiState> = combine(baseState, undoSnapshot) { base, snapshot ->
-        base.copy(canUndo = snapshot != null)
+    val state: StateFlow<CalendarUiState> = combine(
+        baseState,
+        changeRateSheetOpen,
+        undoSnapshot,
+    ) { base, isChangeRateSheetOpen, snapshot ->
+        base.copy(
+            isChangeRateSheetOpen = isChangeRateSheetOpen,
+            canUndo = snapshot != null,
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
@@ -106,6 +114,18 @@ class CalendarViewModel(
     fun dismissSettings() {
         operationError.value = null
         settingsOpen.value = false
+    }
+
+    fun openChangeRateSheet() {
+        operationError.value = null
+        selectedDate.value = null
+        settingsOpen.value = false
+        changeRateSheetOpen.value = true
+    }
+
+    fun dismissChangeRateSheet() {
+        operationError.value = null
+        changeRateSheetOpen.value = false
     }
 
     fun saveEntry(entry: WorkEntry) {
@@ -164,6 +184,7 @@ class CalendarViewModel(
                         undoSnapshot.value = UndoSnapshot.Bulk(originals)
                         _operationEvents.send(CalendarOperationEvent.Success.RATE_UPDATED)
                     }
+                    changeRateSheetOpen.value = false
                 }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error

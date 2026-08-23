@@ -233,6 +233,58 @@ class CalendarViewModelTest {
     }
 
     @Test
+    fun `opening change rate sheet closes settings`() = runTest {
+        val repository = FakeWorkEntryRepository(emptyList())
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.openSettings()
+        viewModel.openChangeRateSheet()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.state.first { it.isChangeRateSheetOpen }.isSettingsOpen)
+        assertTrue(viewModel.state.value.isChangeRateSheetOpen)
+
+        viewModel.dismissChangeRateSheet()
+        assertFalse(viewModel.state.first { !it.isChangeRateSheetOpen }.isChangeRateSheetOpen)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `successful bulk rate update closes the change rate sheet`() = runTest {
+        val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val repository = FakeWorkEntryRepository(listOf(entry))
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+        viewModel.openChangeRateSheet()
+        advanceUntilIdle()
+
+        viewModel.changeRateForPeriod(entry.date, entry.date, 20_000_000)
+        assertEquals(CalendarOperationEvent.Success.RATE_UPDATED, viewModel.operationEvents.first())
+        assertFalse(viewModel.state.first { !it.isChangeRateSheetOpen }.isChangeRateSheetOpen)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `failed bulk rate update keeps the change rate sheet open`() = runTest {
+        val repository = FakeWorkEntryRepository(emptyList()).apply { bulkError = IllegalStateException() }
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+        viewModel.openChangeRateSheet()
+        advanceUntilIdle()
+
+        viewModel.changeRateForPeriod(LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10), 20_000_000)
+        advanceUntilIdle()
+
+        assertEquals(CalendarOperationEvent.Error.BULK_RATE, viewModel.operationEvents.first())
+        assertTrue(viewModel.state.first { it.isChangeRateSheetOpen }.isChangeRateSheetOpen)
+        stateJob.cancel()
+    }
+
+    @Test
     fun `in flight old undo cannot clear or replace newer undo snapshot`() = runTest {
         val first = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
         val second = WorkEntry(LocalDate.of(2026, 8, 11), 480, 11_000_000)

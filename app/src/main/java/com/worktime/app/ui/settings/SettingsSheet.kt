@@ -1,5 +1,6 @@
 package com.worktime.app.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,12 +10,17 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -61,6 +67,7 @@ fun SettingsSheet(
     onDismiss: () -> Unit,
     onSave: (Long, ThemeMode) -> Unit,
     onPreviewTheme: (ThemeMode) -> Unit,
+    onChangeRateForPeriod: () -> Unit,
 ) {
     var rate by rememberSaveable(defaultHourlyRateMicros) {
         mutableStateOf(formatDecimalMicros(defaultHourlyRateMicros))
@@ -98,6 +105,7 @@ fun SettingsSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .navigationBarsPadding()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp),
@@ -111,11 +119,7 @@ fun SettingsSheet(
                     fontWeight = FontWeight.SemiBold,
                 )
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                ) {
+                SettingsSection(title = stringResource(R.string.calculation)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -166,11 +170,7 @@ fun SettingsSheet(
                     }
                 }
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                ) {
+                SettingsSection(title = stringResource(R.string.appearance)) {
                     Column(
                         modifier = Modifier.padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -209,6 +209,13 @@ fun SettingsSheet(
                     }
                 }
 
+                SettingsSection(title = stringResource(R.string.data_and_operations)) {
+                    SettingsRow(
+                        label = stringResource(R.string.change_rate_for_period),
+                        onClick = onChangeRateForPeriod,
+                    )
+                }
+
                 Button(
                     onClick = {
                         val safeRate = parsedRate ?: return@Button
@@ -239,4 +246,51 @@ private fun themeLabel(themeMode: ThemeMode): String = when (themeMode) {
     ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
     ThemeMode.LIGHT -> stringResource(R.string.theme_light)
     ThemeMode.DARK -> stringResource(R.string.theme_dark)
+}
+
+@Composable
+private fun SettingsSection(
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun SettingsRow(
+    label: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }

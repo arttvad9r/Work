@@ -15,6 +15,7 @@ import com.worktime.app.ui.calendar.CalendarOperationError
 import com.worktime.app.ui.calendar.CalendarScreen
 import com.worktime.app.ui.calendar.CalendarViewModel
 import com.worktime.app.ui.dayeditor.DayEditorSheet
+import com.worktime.app.ui.settings.ChangeRateSheet
 import com.worktime.app.ui.settings.SettingsSheet
 import com.worktime.app.ui.theme.WorkTimeTheme
 
@@ -75,6 +76,20 @@ fun WorkTimeApp(container: AppContainer) {
                 onDismiss = viewModel::dismissSettings,
                 onSave = viewModel::updatePreferences,
                 onPreviewTheme = { previewTheme = it },
+                onChangeRateForPeriod = viewModel::openChangeRateSheet,
+            )
+        }
+
+        if (state.isChangeRateSheetOpen) {
+            val operationErrorMessage = when (state.operationError) {
+                CalendarOperationError.BULK_RATE -> stringResource(R.string.bulk_rate_failed)
+                else -> null
+            }
+            ChangeRateSheet(
+                visibleMonth = state.visibleMonth,
+                operationErrorMessage = operationErrorMessage,
+                onDismiss = viewModel::dismissChangeRateSheet,
+                onChangeRate = viewModel::changeRateForPeriod,
             )
         }
     }
