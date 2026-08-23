@@ -52,6 +52,7 @@
     <string name="change_rate">Change rate</string>
     <string name="change_rate_confirmation_title">Change the rate?</string>
     <string name="change_rate_confirmation_text">The hourly rate will be updated for every entry in the selected period. The default rate stays unchanged.</string>
+    <string name="entry_deleted">Entry deleted</string>
     <string name="rate_changed">Rate changed</string>
     <string name="undo">Undo</string>
 

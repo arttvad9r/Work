@@ -52,6 +52,7 @@
     <string name="change_rate">Изменить ставку</string>
     <string name="change_rate_confirmation_title">Изменить ставку?</string>
     <string name="change_rate_confirmation_text">Ставка за час будет обновлена для всех записей выбранного периода. Ставка по умолчанию не изменится.</string>
+    <string name="entry_deleted">Запись удалена</string>
     <string name="rate_changed">Ставка изменена</string>
     <string name="undo">Отменить</string>
 
