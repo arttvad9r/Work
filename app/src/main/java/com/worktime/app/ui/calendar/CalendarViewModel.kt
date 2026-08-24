@@ -144,11 +144,24 @@ class CalendarViewModel(
         viewModelScope.launch {
             try {
                 workEntryRepository.save(entry)
+                adoptDefaultRateFrom(entry)
                 selectedDate.value = null
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 operationError.value = CalendarOperationError.SAVE_ENTRY
             }
+        }
+    }
+
+    // First ever entry sets the default rate; an existing default is never overwritten.
+    private suspend fun adoptDefaultRateFrom(entry: WorkEntry) {
+        if (entry.hourlyRateMicros <= 0L) return
+        val preferences = userPreferencesRepository.preferences.first()
+        if (preferences.defaultHourlyRateMicros == 0L) {
+            userPreferencesRepository.update(
+                defaultHourlyRateMicros = entry.hourlyRateMicros,
+                themeMode = preferences.themeMode,
+            )
         }
     }
 

@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
@@ -290,6 +292,50 @@ class CalendarViewModelTest {
         viewModel.undoLastOperation()
         assertEquals(null, withTimeoutOrNull(50) { viewModel.operationEvents.first() })
         assertFalse(viewModel.state.value.canUndo)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `saving an entry with empty default rate adopts the entry rate as default`() = runTest {
+        val repository = FakeWorkEntryRepository(emptyList())
+        val preferencesRepository = FakeUserPreferencesRepository()
+        val viewModel = CalendarViewModel(repository, preferencesRepository)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 10), 720, 370_000_000L))
+
+        // viewModelScope does not run on the test scheduler, so await the outcome.
+        assertEquals(
+            UserPreferences(370_000_000L, ThemeMode.SYSTEM),
+            preferencesRepository.preferences.first { it.defaultHourlyRateMicros > 0L },
+        )
+        assertEquals(
+            listOf(UserPreferences(370_000_000L, ThemeMode.SYSTEM)),
+            preferencesRepository.updates,
+        )
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `saving an entry keeps an existing default rate untouched`() = runTest {
+        val repository = FakeWorkEntryRepository(emptyList())
+        val preferencesRepository = FakeUserPreferencesRepository()
+        preferencesRepository.update(defaultHourlyRateMicros = 300_000_000L, themeMode = ThemeMode.DARK)
+        val viewModel = CalendarViewModel(repository, preferencesRepository)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 10), 720, 370_000_000L))
+        // Wait for the entry itself; the rate guard runs right after it in the same job.
+        repository.observeMonth(YearMonth.now()).first { it.isNotEmpty() }
+
+        // Only the setup update exists; the entry's different rate must not replace it.
+        assertEquals(
+            listOf(UserPreferences(300_000_000L, ThemeMode.DARK)),
+            preferencesRepository.updates,
+        )
+        assertEquals(300_000_000L, preferencesRepository.preferences.first().defaultHourlyRateMicros)
         stateJob.cancel()
     }
 
