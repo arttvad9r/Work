@@ -95,8 +95,7 @@ The sheet is grouped into `Calculation`, `Appearance` and `Data and operations`:
 - taxes, exchange rates or multi-currency accounting;
 - notes or quick-duration templates;
 - validation helper text for numeric fields;
-- landscape layout support;
-- report export in the current release.
+- landscape layout support.
 
 ## Release criteria
 

@@ -68,6 +68,8 @@ fun SettingsSheet(
     onSave: (Long, ThemeMode) -> Unit,
     onPreviewTheme: (ThemeMode) -> Unit,
     onChangeRateForPeriod: () -> Unit,
+    onExportData: () -> Unit,
+    onImportData: () -> Unit,
 ) {
     var rate by rememberSaveable(defaultHourlyRateMicros) {
         mutableStateOf(formatDecimalMicros(defaultHourlyRateMicros))
@@ -213,6 +215,14 @@ fun SettingsSheet(
                     SettingsRow(
                         label = stringResource(R.string.change_rate_for_period),
                         onClick = onChangeRateForPeriod,
+                    )
+                    SettingsRow(
+                        label = stringResource(R.string.export_data),
+                        onClick = onExportData,
+                    )
+                    SettingsRow(
+                        label = stringResource(R.string.import_data),
+                        onClick = onImportData,
                     )
                 }
 

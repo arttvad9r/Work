@@ -64,4 +64,14 @@
     <string name="bulk_rate_failed">Не удалось изменить ставки. Попробуйте ещё раз.</string>
     <string name="save_settings_failed">Не удалось сохранить настройки. Изменения остались открыты.</string>
     <string name="undo_failed">Не удалось отменить операцию. Попробуйте ещё раз.</string>
+
+    <string name="export_data">Экспорт данных</string>
+    <string name="import_data">Импорт данных</string>
+    <string name="backup_exported">Данные экспортированы</string>
+    <string name="backup_imported">Данные восстановлены</string>
+    <string name="backup_export_failed">Не удалось экспортировать данные. Попробуйте ещё раз.</string>
+    <string name="backup_import_failed">Не удалось прочитать файл резервной копии. Попробуйте ещё раз.</string>
+    <string name="import_confirmation_title">Заменить все данные?</string>
+    <string name="import_confirmation_text">В файле %1$d записей. Текущие записи и настройки будут заменены.</string>
+    <string name="replace">Заменить</string>
 </resources>

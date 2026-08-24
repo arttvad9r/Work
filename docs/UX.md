@@ -95,7 +95,7 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 - `Appearance`: theme choices fit in one row, including `System`.
 - Selecting light or dark immediately previews the theme.
 - Dismissing settings without saving restores the persisted theme; the selected theme is persisted only after pressing Save.
-- `Data and operations`: contains the `Change rate for period` action that opens the change-rate sheet described below.
+- `Data and operations`: contains the `Change rate for period` action that opens the change-rate sheet described below, plus `Export data` and `Import data` actions.
 - The sheet relies on the modal window/inset handling without an additional `imePadding` layer and scrolls vertically when content or keyboard height requires it.
 - Persistence failure is shown with an overlay Snackbar and does not resize the sheet.
 
@@ -107,6 +107,14 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 - `Change rate` asks for confirmation first: an alert dialog states that every entry in the selected period will be updated and that the default rate stays unchanged.
 - On success the sheet closes and a root Snackbar confirms `Rate changed`; a period containing no entries is a silent no-op (the sheet still closes) with nothing to undo.
 - Failure keeps the sheet open and shows localized error feedback without resizing it.
+
+## Data export and import
+
+- `Export data` opens the system save dialog with a suggested `worktime-YYYY-MM-DD.json` name and writes a versioned JSON file containing every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme).
+- `Import data` opens the system file picker, parses and validates the file first, then asks for confirmation: the dialog states how many entries the file holds and that current entries and settings will be replaced.
+- Confirming an import replaces all entries and settings atomically in one transaction; a failed replace keeps the parsed file so the replace can be retried. Imports have no undo — the confirmation dialog is the safety gate.
+- A malformed or unsupported file shows a localized error in the settings sheet and writes nothing.
+- Export/import success confirms through the root Snackbar; failures surface in the settings sheet like other operation errors.
 
 ## Operation feedback and undo
 
