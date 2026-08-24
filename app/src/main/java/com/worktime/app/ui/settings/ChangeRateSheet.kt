@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -23,7 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -40,23 +36,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.ui.components.PlainDragHandle
+import com.worktime.app.ui.components.CompactMoneyField
 import com.worktime.app.ui.format.parseDecimalMicros
-import com.worktime.app.ui.format.sanitizeMoneyInput
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -79,17 +68,10 @@ fun ChangeRateSheet(
     var customStart by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     var customEnd by rememberSaveable { mutableStateOf<LocalDate?>(null) }
     var rate by rememberSaveable { mutableStateOf("") }
-    var rateFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     var pickingDate by rememberSaveable { mutableStateOf<DateField?>(null) }
     var confirmChange by rememberSaveable { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(rate) {
-        if (rate != rateFieldValue.text) {
-            rateFieldValue = TextFieldValue(rate, TextRange(rate.length))
-        }
-    }
     LaunchedEffect(operationErrorMessage) {
         if (!operationErrorMessage.isNullOrBlank()) {
             snackbarHostState.showSnackbar(operationErrorMessage)
@@ -204,7 +186,7 @@ fun ChangeRateSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -214,39 +196,11 @@ fun ChangeRateSheet(
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        OutlinedTextField(
-                            value = rateFieldValue,
-                            onValueChange = { updated ->
-                                val sanitized = sanitizeMoneyInput(updated.text)
-                                rateFieldValue = TextFieldValue(
-                                    text = sanitized,
-                                    selection = TextRange(sanitized.length),
-                                )
-                                rate = sanitized
-                            },
+                        CompactMoneyField(
+                            text = rate,
+                            onTextChange = { rate = it },
                             isError = rate.isNotEmpty() && !rateValid,
-                            modifier = Modifier
-                                .width(120.dp)
-                                .onFocusChanged { focusState ->
-                                    if (focusState.isFocused && rateFieldValue.text == "0") {
-                                        rateFieldValue = rateFieldValue.copy(
-                                            selection = TextRange(0, rateFieldValue.text.length),
-                                        )
-                                    }
-                                }
-                                .semantics { contentDescription = rateLabel },
-                            textStyle = MaterialTheme.typography.titleMedium.copy(
-                                textAlign = TextAlign.Center,
-                                lineHeight = MaterialTheme.typography.titleMedium.fontSize,
-                            ),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Decimal,
-                                imeAction = ImeAction.Done,
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = { focusManager.clearFocus() },
-                            ),
+                            contentDescription = rateLabel,
                         )
                     }
                 }
