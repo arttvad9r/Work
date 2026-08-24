@@ -68,7 +68,7 @@ The sheet is grouped into `Calculation`, `Statistics`, `Appearance` and `Data an
 - default hourly rate and change rate for period (Calculation);
 - year totals with a twelve-month breakdown (Statistics);
 - system, light or dark theme (Appearance);
-- export data as JSON backup, export CSV for spreadsheets, import JSON backup (Data and operations);
+- export data as JSON backup or CSV spreadsheet (format chosen in a dialog), import JSON backup (Data and operations);
 - outline-only validation for an invalid rate;
 - persistence errors shown without changing sheet geometry.
 

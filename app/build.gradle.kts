@@ -30,6 +30,9 @@ android {
 
     buildTypes {
         release {
+            // Local testing: debug-signed so `assembleRelease` installs over the
+            // debug build. Flip to a real signing config before any distribution.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

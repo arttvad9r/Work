@@ -24,7 +24,7 @@ All notable changes are documented here.
 ### Data export and import
 
 - Settings `Data and operations` gained `Export data` and `Import data`: a versioned JSON file covering every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme).
-- Added `Export CSV` for spreadsheets: one row per entry with `date,duration,hourly_rate,bonus,penalty,total` columns, dot-decimal amounts; export-only, import stays JSON.
+- `Export data` asks for the format first — JSON backup or a spreadsheet-friendly CSV (`date,duration,hourly_rate,bonus,penalty,total`, dot-decimal amounts); export-only, import stays JSON.
 - Import parses and validates the file first, then replaces all entries and settings atomically after an explicit confirmation dialog; malformed or unsupported files show a localized error without writing anything.
 - Export/import streams are owned by the view model so a slow write cannot race stream close and fail the operation.
 

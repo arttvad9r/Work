@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -65,6 +66,7 @@ fun SettingsSheet(
         mutableStateOf(formatDecimalMicros(defaultHourlyRateMicros))
     }
     var selectedTheme by rememberSaveable(themeMode) { mutableStateOf(themeMode) }
+    var exportFormatOpen by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(operationErrorMessage) {
@@ -170,11 +172,7 @@ fun SettingsSheet(
                 SettingsSection(title = stringResource(R.string.data_and_operations)) {
                     SettingsRow(
                         label = stringResource(R.string.export_data),
-                        onClick = onExportData,
-                    )
-                    SettingsRow(
-                        label = stringResource(R.string.export_data_csv),
-                        onClick = onExportCsv,
+                        onClick = { exportFormatOpen = true },
                     )
                     SettingsRow(
                         label = stringResource(R.string.import_data),
@@ -204,6 +202,80 @@ fun SettingsSheet(
                     .padding(16.dp),
             )
         }
+    }
+
+    if (exportFormatOpen) {
+        ExportFormatDialog(
+            onSelectJson = {
+                exportFormatOpen = false
+                onExportData()
+            },
+            onSelectCsv = {
+                exportFormatOpen = false
+                onExportCsv()
+            },
+            onDismiss = { exportFormatOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun ExportFormatDialog(
+    onSelectJson: () -> Unit,
+    onSelectCsv: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.export_format_title)) },
+        text = {
+            Column {
+                ExportFormatOption(
+                    title = stringResource(R.string.export_json_option),
+                    subtitle = stringResource(R.string.export_json_hint),
+                    onClick = onSelectJson,
+                )
+                ExportFormatOption(
+                    title = stringResource(R.string.export_csv_option),
+                    subtitle = stringResource(R.string.export_csv_hint),
+                    onClick = onSelectCsv,
+                )
+            }
+        },
+        confirmButton = {},
+    )
+}
+
+@Composable
+private fun ExportFormatOption(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

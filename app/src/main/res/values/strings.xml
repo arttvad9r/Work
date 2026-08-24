@@ -74,8 +74,12 @@
     <string name="undo_failed">Could not undo the operation. Try again.</string>
 
     <string name="export_data">Export data</string>
-    <string name="export_data_csv">Export CSV</string>
     <string name="import_data">Import data</string>
+    <string name="export_format_title">Export format</string>
+    <string name="export_json_option">JSON</string>
+    <string name="export_json_hint">Backup file, can be imported back</string>
+    <string name="export_csv_option">CSV</string>
+    <string name="export_csv_hint">Spreadsheet for Excel / Google Sheets</string>
     <string name="backup_exported">Data exported</string>
     <string name="backup_imported">Data restored</string>
     <string name="backup_export_failed">Could not export data. Try again.</string>

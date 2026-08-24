@@ -98,7 +98,7 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 - `Appearance`: theme chips fill the section directly; the redundant inner `Theme` caption is not used.
 - Selecting light or dark immediately previews the theme.
 - Dismissing settings without saving restores the persisted theme; the selected theme is persisted only after pressing Save.
-- `Data and operations`: contains `Export data` (JSON backup), `Export CSV` and `Import data` actions.
+- `Data and operations`: contains `Export data` and `Import data` actions. `Export data` first asks for the format in a dialog — `JSON` (backup that can be imported back) or `CSV` (spreadsheet).
 - The sheet relies on the modal window/inset handling without an additional `imePadding` layer and scrolls vertically when content or keyboard height requires it.
 - Persistence failure is shown with an overlay Snackbar and does not resize the sheet.
 
@@ -121,8 +121,7 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 ## Data export and import
 
-- `Export data` opens the system save dialog with a suggested `worktime-backup-YYYY-MM-DD.json` name and writes a versioned JSON file containing every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme).
-- `Export CSV` opens the same save dialog with a suggested `worktime-YYYY-MM-DD.csv` name and writes a spreadsheet-friendly table: `date,duration,hourly_rate,bonus,penalty,total`, one row per entry, dot-decimal amounts, `H:MM` durations. CSV is export-only; import stays JSON.
+- `Export data` asks for the format, then opens the system save dialog — `worktime-backup-YYYY-MM-DD.json` for JSON (a versioned file containing every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme)) or `worktime-YYYY-MM-DD.csv` for CSV (a spreadsheet-friendly table: `date,duration,hourly_rate,bonus,penalty,total`, one row per entry, dot-decimal amounts, `H:MM` durations). CSV is export-only; import stays JSON.
 - `Import data` opens the system file picker, parses and validates the file first, then asks for confirmation: the dialog states how many entries the file holds and that current entries and settings will be replaced.
 - Confirming an import replaces all entries and settings atomically in one transaction; a failed replace keeps the parsed file so the replace can be retried. Imports have no undo — the confirmation dialog is the safety gate.
 - A malformed or unsupported file shows a localized error in the settings sheet and writes nothing.
