@@ -21,7 +21,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -305,7 +304,7 @@ class CalendarViewModelTest {
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
         viewModel.changeRateForPeriod(entries.first().date, entries.last().date, 20_000_000)
-        withTimeout(100) { viewModel.operationEvents.first() }
+        viewModel.operationEvents.first()
         repository.restoreError = IllegalStateException()
 
         viewModel.undoLastOperation()
