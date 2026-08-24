@@ -432,7 +432,7 @@ private fun SummaryRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = label,
+            text = "$label:",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Normal,
