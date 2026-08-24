@@ -475,7 +475,7 @@ private fun CalendarGrid(
             }
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
 
         Column(
             modifier = Modifier.weight(1f),
@@ -523,16 +523,19 @@ private fun DayCell(
 ) {
     val visibleEntry = entry.takeIf { isInVisibleMonth }
     val shape = RoundedCornerShape(9.dp)
+    // Worked days use the deep container fill so a fully booked month keeps a
+    // clear figure-ground split against white free days; selection goes one step
+    // further to the full primary surface.
     val background = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.surfaceContainerLowest
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        visibleEntry != null -> MaterialTheme.colorScheme.secondaryContainer
+        isSelected -> MaterialTheme.colorScheme.primary
+        visibleEntry != null -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.surfaceContainerLowest
     }
     val foreground = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.32f)
-        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
-        visibleEntry != null -> MaterialTheme.colorScheme.onSecondaryContainer
+        isSelected -> MaterialTheme.colorScheme.onPrimary
+        visibleEntry != null -> MaterialTheme.colorScheme.onPrimaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val totalMicros = visibleEntry?.let {
@@ -577,7 +580,7 @@ private fun DayCell(
             .border(
                 width = 0.5.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(
-                    alpha = if (isInVisibleMonth) 0.42f else 0.18f,
+                    alpha = if (isInVisibleMonth) 0.62f else 0.18f,
                 ),
                 shape = shape,
             )
@@ -615,8 +618,8 @@ private fun DayCell(
                     text = formatDurationCompact(visibleEntry.workedMinutes),
                     modifier = Modifier.align(Alignment.Center),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
+                    color = foreground,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                 )
@@ -627,8 +630,8 @@ private fun DayCell(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 2.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = foreground.copy(alpha = 0.82f),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = foreground,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Start,
                     maxLines = 1,
@@ -756,14 +759,16 @@ private fun EntryGlyph(modifier: Modifier = Modifier) {
             .padding(end = 2.dp)
             .size(10.dp)
             .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+            // The glyph only ever sits on a filled (primaryContainer) day, so it
+            // keys off onPrimaryContainer instead of the low-contrast primary tint.
+            .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.24f)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = Icons.Filled.Check,
             contentDescription = null,
             modifier = Modifier.size(7.dp),
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }
 }
