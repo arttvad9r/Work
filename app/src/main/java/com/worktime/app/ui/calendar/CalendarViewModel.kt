@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.worktime.app.data.backup.BackupCodec
 import com.worktime.app.data.backup.BackupData
+import com.worktime.app.data.backup.WorkEntryCsv
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
@@ -276,6 +277,27 @@ class CalendarViewModel(
                     preferences = userPreferencesRepository.preferences.first(),
                 )
                 stream.use { it.write(BackupCodec.encode(data.entries, data.preferences).toByteArray()) }
+                if (generation == operationGeneration) {
+                    _operationEvents.send(CalendarOperationEvent.Success.BACKUP_EXPORTED)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == operationGeneration) {
+                    operationError.value = CalendarOperationError.BACKUP_EXPORT
+                    _operationEvents.send(CalendarOperationEvent.Error.BACKUP_EXPORT)
+                }
+            }
+        }
+    }
+
+    fun exportCsv(stream: OutputStream) {
+        operationError.value = null
+        supersedeOperation()
+        val generation = operationGeneration
+        viewModelScope.launch {
+            try {
+                val entries = workEntryRepository.getAll()
+                stream.use { it.write(WorkEntryCsv.encode(entries).toByteArray()) }
                 if (generation == operationGeneration) {
                     _operationEvents.send(CalendarOperationEvent.Success.BACKUP_EXPORTED)
                 }

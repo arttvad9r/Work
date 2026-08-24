@@ -69,6 +69,7 @@
     <string name="undo_failed">Не удалось отменить операцию. Попробуйте ещё раз.</string>
 
     <string name="export_data">Экспорт данных</string>
+    <string name="export_data_csv">Экспорт CSV</string>
     <string name="import_data">Импорт данных</string>
     <string name="backup_exported">Данные экспортированы</string>
     <string name="backup_imported">Данные восстановлены</string>

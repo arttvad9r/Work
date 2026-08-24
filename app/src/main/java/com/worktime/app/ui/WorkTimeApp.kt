@@ -101,6 +101,16 @@ fun WorkTimeApp(container: AppContainer) {
             )
         }
     }
+    val csvExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv"),
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportCsv(
+                context.contentResolver.openOutputStream(uri)
+                    ?: return@rememberLauncherForActivityResult,
+            )
+        }
+    }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
@@ -161,6 +171,9 @@ fun WorkTimeApp(container: AppContainer) {
                     onChangeRateForPeriod = viewModel::openChangeRateSheet,
                     onExportData = {
                         exportLauncher.launch("worktime-backup-" + LocalDate.now() + ".json")
+                    },
+                    onExportCsv = {
+                        csvExportLauncher.launch("worktime-" + LocalDate.now() + ".csv")
                     },
                     onImportData = {
                         importLauncher.launch(
