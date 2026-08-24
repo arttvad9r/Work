@@ -4,6 +4,12 @@ All notable changes are documented here.
 
 ## [Unreleased] - 2026-08-22
 
+### Calendar readability and navigation
+
+- Worked days now fill with `primaryContainer` and render their content in `onPrimaryContainer`, so a fully booked month keeps a clear figure-ground split against white free days; the selected day steps up to the full `primary` surface.
+- Day-cell duration is bold on-container instead of low-contrast blue-on-pale-blue; daily amounts use `labelMedium` at full opacity; cell borders and the weekday divider gained contrast; the entry glyph keys off `onPrimaryContainer`.
+- Tapping the month/year title opens a month picker dialog (year arrows plus a 3x4 month grid) that jumps directly to any month without repeated swiping.
+
 ### Home screen widget
 
 - Added an optional 3x2 home-screen widget mirroring the fixed monthly summary (`Work days`, `Hours worked`, `Monthly income` as label-colon-value rows).
@@ -13,8 +19,14 @@ All notable changes are documented here.
 ### Data export and import
 
 - Settings `Data and operations` gained `Export data` and `Import data`: a versioned JSON file covering every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme).
+- Added `Export CSV` for spreadsheets: one row per entry with `date,duration,hourly_rate,bonus,penalty,total` columns, dot-decimal amounts; export-only, import stays JSON.
 - Import parses and validates the file first, then replaces all entries and settings atomically after an explicit confirmation dialog; malformed or unsupported files show a localized error without writing anything.
 - Export/import streams are owned by the view model so a slow write cannot race stream close and fail the operation.
+
+### Settings layout
+
+- All settings rows share one visual recipe (~52 dp height, label left, value/control right); the oversized Material text fields were replaced by a compact 120x40 dp pill money input shared by the settings and change-rate sheets.
+- `Change rate for period` moved into the `Calculation` group next to the default rate; the theme chips fill their section directly without a redundant inner caption.
 
 ### Interaction stability
 

@@ -20,6 +20,7 @@ It is a modern salary calendar, not a project tracker, shift planner, timer, HR 
 ### Calendar
 
 - Monday-first 6 x 7 layout with fixed geometry.
+- Tapping the month/year title opens a month picker (year arrows plus month grid) that jumps directly to any month.
 - Previous/next month navigation updates the title and date grid immediately without crossfade or old/new month flashing.
 - Horizontal swipes across the calendar also switch months; vertical drags never do.
 - Adjacent-month dates remain visible but faint and inactive.
@@ -64,9 +65,9 @@ The report opens by tap or drag. Holding its handle must not show Material's dra
 
 The sheet is grouped into `Calculation`, `Appearance` and `Data and operations`:
 
-- default hourly rate (Calculation);
+- default hourly rate and change rate for period (Calculation);
 - system, light or dark theme (Appearance);
-- change rate for period (Data and operations);
+- export data as JSON backup, export CSV for spreadsheets, import JSON backup (Data and operations);
 - outline-only validation for an invalid rate;
 - persistence errors shown without changing sheet geometry.
 
