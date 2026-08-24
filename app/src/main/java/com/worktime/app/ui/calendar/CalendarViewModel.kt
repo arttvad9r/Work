@@ -104,6 +104,8 @@ class CalendarViewModel(
 
     fun nextMonth() = visibleMonth.update { it.plusMonths(1) }
 
+    fun showMonth(month: YearMonth) = visibleMonth.update { month }
+
     fun selectDate(date: LocalDate) {
         operationError.value = null
         settingsOpen.value = false

@@ -28,12 +28,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,8 +48,12 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -75,6 +81,7 @@ import com.worktime.app.ui.format.formatDurationCompact
 import com.worktime.app.ui.format.formatWholeAmountMicros
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.Month
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -89,6 +96,7 @@ fun CalendarScreen(
     state: CalendarUiState,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    onSelectMonth: (YearMonth) -> Unit,
     onDayClick: (LocalDate) -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -96,6 +104,7 @@ fun CalendarScreen(
     val locale = LocalLocale.current.platformLocale
     val monthName = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL", locale))
     val visibleYear = state.visibleMonth.year
+    var monthPickerOpen by rememberSaveable { mutableStateOf(false) }
     val summarySheetState = rememberStandardBottomSheetState(
         initialValue = SheetValue.PartiallyExpanded,
         skipHiddenState = true,
@@ -207,6 +216,10 @@ fun CalendarScreen(
                         },
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable(
+                            onClick = { monthPickerOpen = true },
+                            onClickLabel = stringResource(R.string.select_month),
+                        ),
                     )
                 },
                 navigationIcon = {
@@ -268,6 +281,92 @@ fun CalendarScreen(
             }
         }
     }
+
+    if (monthPickerOpen) {
+        MonthPickerDialog(
+            visibleMonth = state.visibleMonth,
+            locale = locale,
+            onSelect = { month ->
+                monthPickerOpen = false
+                closeSummaryBehind { onSelectMonth(month) }
+            },
+            onDismiss = { monthPickerOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun MonthPickerDialog(
+    visibleMonth: YearMonth,
+    locale: Locale,
+    onSelect: (YearMonth) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var shownYear by rememberSaveable(visibleMonth.year) { mutableStateOf(visibleMonth.year) }
+    val monthLabels = remember(locale) {
+        (1..12).map { month ->
+            month to Month.of(month).getDisplayName(TextStyle.SHORT, locale)
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { shownYear -= 1 },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.previous_year),
+                    )
+                }
+                Text(
+                    text = shownYear.toString(),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                IconButton(
+                    onClick = { shownYear += 1 },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = stringResource(R.string.next_year),
+                    )
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                monthLabels.chunked(3).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        row.forEach { (month, label) ->
+                            val selected = shownYear == visibleMonth.year &&
+                                month == visibleMonth.monthValue
+                            FilterChip(
+                                selected = selected,
+                                onClick = { onSelect(YearMonth.of(shownYear, month)) },
+                                label = {
+                                    Text(
+                                        text = label.replaceFirstChar { it.uppercase(locale) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        maxLines = 1,
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+    )
 }
 
 // Horizontal distance a drag must cover before it counts as a month switch.

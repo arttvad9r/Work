@@ -120,6 +120,7 @@ fun WorkTimeApp(container: AppContainer) {
                 state = state,
                 onPreviousMonth = viewModel::previousMonth,
                 onNextMonth = viewModel::nextMonth,
+                onSelectMonth = viewModel::showMonth,
                 onDayClick = viewModel::selectDate,
                 onSettingsClick = viewModel::openSettings,
             )
