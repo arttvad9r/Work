@@ -111,6 +111,19 @@ class RoomWorkEntryRepositoryTest {
         assertEquals(10_000_000, repository.observeMonth(YearMonth.of(2026, 8)).first().single().hourlyRateMicros)
     }
     @Test
+    fun `getAll returns every entry across months sorted by date`() = runTest {
+        val dao = FakeWorkEntryDao()
+        val repository = RoomWorkEntryRepository(dao)
+        val july = WorkEntry(LocalDate.of(2026, 7, 30), 300, 9_000_000)
+        val august = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+
+        repository.save(august)
+        repository.save(july)
+
+        assertEquals(listOf(july, august), repository.getAll())
+    }
+
+    @Test
     fun `replaceAll atomically swaps the full entry set`() = runTest {
         val dao = FakeWorkEntryDao()
         val repository = RoomWorkEntryRepository(dao)
@@ -154,6 +167,9 @@ private class FakeWorkEntryDao : WorkEntryDao {
         entries.value
             .filter { it.dateEpochDay in startEpochDay..endEpochDay }
             .sortedBy(WorkEntryEntity::dateEpochDay)
+
+    override suspend fun getAll(): List<WorkEntryEntity> =
+        entries.value.sortedBy(WorkEntryEntity::dateEpochDay)
 
     override suspend fun upsert(entry: WorkEntryEntity) {
         upsertCount++

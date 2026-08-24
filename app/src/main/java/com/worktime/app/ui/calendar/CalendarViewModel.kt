@@ -5,13 +5,18 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.worktime.app.data.backup.BackupCodec
+import com.worktime.app.data.backup.BackupData
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
+import java.io.InputStream
+import java.io.OutputStream
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.channels.Channel
@@ -19,12 +24,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarViewModel(
@@ -37,6 +44,7 @@ class CalendarViewModel(
     private val changeRateSheetOpen = MutableStateFlow(false)
     private val operationError = MutableStateFlow<CalendarOperationError?>(null)
     private val undoSnapshot = MutableStateFlow<UndoSnapshot?>(null)
+    private val pendingImport = MutableStateFlow<BackupData?>(null)
     private var operationGeneration = 0L
     private val _operationEvents = Channel<CalendarOperationEvent>(Channel.BUFFERED)
     val operationEvents: Flow<CalendarOperationEvent> = _operationEvents.receiveAsFlow()
@@ -79,10 +87,12 @@ class CalendarViewModel(
         baseState,
         changeRateSheetOpen,
         undoSnapshot,
-    ) { base, isChangeRateSheetOpen, snapshot ->
+        pendingImport,
+    ) { base, isChangeRateSheetOpen, snapshot, import ->
         base.copy(
             isChangeRateSheetOpen = isChangeRateSheetOpen,
             canUndo = snapshot != null,
+            pendingImportCount = import?.entries?.size,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -238,6 +248,82 @@ class CalendarViewModel(
                 operationError.value = CalendarOperationError.SAVE_SETTINGS
             }
         }
+    }
+
+    fun exportBackup(stream: OutputStream) {
+        operationError.value = null
+        supersedeOperation()
+        val generation = operationGeneration
+        viewModelScope.launch {
+            try {
+                val data = BackupData(
+                    entries = workEntryRepository.getAll(),
+                    preferences = userPreferencesRepository.preferences.first(),
+                )
+                stream.use { it.write(BackupCodec.encode(data.entries, data.preferences).toByteArray()) }
+                if (generation == operationGeneration) {
+                    _operationEvents.send(CalendarOperationEvent.Success.BACKUP_EXPORTED)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == operationGeneration) {
+                    operationError.value = CalendarOperationError.BACKUP_EXPORT
+                    _operationEvents.send(CalendarOperationEvent.Error.BACKUP_EXPORT)
+                }
+            }
+        }
+    }
+
+    fun importBackup(stream: InputStream) {
+        operationError.value = null
+        supersedeOperation()
+        val generation = operationGeneration
+        viewModelScope.launch {
+            try {
+                val data = BackupCodec.decode(stream.use { it.readBytes().decodeToString() })
+                if (generation == operationGeneration) {
+                    pendingImport.value = data
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == operationGeneration) {
+                    operationError.value = CalendarOperationError.BACKUP_IMPORT
+                    _operationEvents.send(CalendarOperationEvent.Error.BACKUP_IMPORT)
+                }
+            }
+        }
+    }
+
+    fun confirmImport() {
+        operationError.value = null
+        val data = pendingImport.value ?: return
+        supersedeOperation()
+        val generation = operationGeneration
+        viewModelScope.launch {
+            try {
+                workEntryRepository.replaceAll(data.entries)
+                userPreferencesRepository.update(
+                    defaultHourlyRateMicros = data.preferences.defaultHourlyRateMicros,
+                    themeMode = data.preferences.themeMode,
+                )
+                if (generation == operationGeneration) {
+                    pendingImport.value = null
+                    _operationEvents.send(CalendarOperationEvent.Success.BACKUP_IMPORTED)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == operationGeneration) {
+                    // Keep the parsed backup so the user can retry the replace.
+                    operationError.value = CalendarOperationError.BACKUP_IMPORT
+                    _operationEvents.send(CalendarOperationEvent.Error.BACKUP_IMPORT)
+                }
+            }
+        }
+    }
+
+    fun cancelImport() {
+        operationError.value = null
+        pendingImport.value = null
     }
 
     private fun supersedeOperation() {

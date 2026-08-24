@@ -20,6 +20,8 @@ class RoomWorkEntryRepository(
         return dao.observeRange(start, end).map { entities -> entities.map { it.toDomain() } }
     }
 
+    override suspend fun getAll(): List<WorkEntry> = dao.getAll().map { it.toDomain() }
+
     override suspend fun save(entry: WorkEntry) {
         dao.upsert(entry.toEntity())
     }

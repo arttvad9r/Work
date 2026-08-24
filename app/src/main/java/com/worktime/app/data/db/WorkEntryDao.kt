@@ -49,6 +49,9 @@ interface WorkEntryDao {
     @Query("DELETE FROM work_entries WHERE dateEpochDay = :dateEpochDay")
     suspend fun deleteByDate(dateEpochDay: Long)
 
+    @Query("SELECT * FROM work_entries ORDER BY dateEpochDay")
+    suspend fun getAll(): List<WorkEntryEntity>
+
     @Query("DELETE FROM work_entries")
     suspend fun clearAll()
 
