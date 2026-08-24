@@ -38,6 +38,7 @@
     <string name="delete_entry">Delete entry</string>
 
     <string name="appearance">Appearance</string>
+    <string name="statistics">Statistics</string>
     <string name="data_and_operations">Data and operations</string>
     <string name="change_rate_for_period">Change rate for period</string>
     <string name="default_hourly_rate">Hourly rate</string>
@@ -46,6 +47,10 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="save_settings">Save settings</string>
+    <string name="year_summary">Year summary</string>
+    <string name="by_month">By month</string>
+    <string name="average_monthly_income">Average monthly income</string>
+    <string name="average_shift">Average shift</string>
     <string name="delete_entry_confirmation">Delete this day entry? You can undo this from the message that appears.</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>

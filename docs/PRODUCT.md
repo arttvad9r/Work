@@ -63,13 +63,16 @@ The report opens by tap or drag. Holding its handle must not show Material's dra
 
 ### Settings
 
-The sheet is grouped into `Calculation`, `Appearance` and `Data and operations`:
+The sheet is grouped into `Calculation`, `Statistics`, `Appearance` and `Data and operations`:
 
 - default hourly rate and change rate for period (Calculation);
+- year totals with a twelve-month breakdown (Statistics);
 - system, light or dark theme (Appearance);
 - export data as JSON backup, export CSV for spreadsheets, import JSON backup (Data and operations);
 - outline-only validation for an invalid rate;
 - persistence errors shown without changing sheet geometry.
+
+The year summary is view-only: it aggregates one selected year (total income, work days, hours worked, averages over months that carry data, bonuses and penalties when non-zero) plus a fixed twelve-month breakdown, without offering any data modification.
 
 `Change rate for period` rewrites the hourly rate of every entry inside an inclusive date range. The range is the visible month or a custom start/end period picked with native date dialogs, the new value is confirmed in a dialog before anything is written, and only each record's hourly rate changes — durations, bonuses and penalties and the default rate stay untouched. Success shows a Snackbar with Undo; Undo restores every original per-record rate from before the operation.
 

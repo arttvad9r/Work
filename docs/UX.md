@@ -90,7 +90,7 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 ## Settings
 
-- Compact one-screen sheet organized into three titled groups: `Calculation`, `Appearance`, `Data and operations`.
+- Compact one-screen sheet organized into four titled groups: `Calculation`, `Statistics`, `Appearance`, `Data and operations`.
 - All rows share one recipe: ~52 dp touch height, label on the left, value or control on the right.
 - `Calculation`: hourly-rate row with a compact 120x40 dp pill input (`CompactMoneyField`), followed by the `Change rate for period` action row — every rate-related action lives in one group.
 - Initial zero is selected on focus instead of being replaced by an empty value.
@@ -110,6 +110,14 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 - `Change rate` asks for confirmation first: an alert dialog states that every entry in the selected period will be updated and that the default rate stays unchanged.
 - On success the sheet closes and a root Snackbar confirms `Rate changed`; a period containing no entries is a silent no-op (the sheet still closes) with nothing to undo.
 - Failure keeps the sheet open and shows localized error feedback without resizing it.
+
+## Year summary
+
+- Opens from the settings `Statistics` group as its own modal sheet; settings stay open behind it.
+- A year switcher (`previous/next year` arrows around the centered year) defaults to the current year.
+- The totals block shows yearly income as the primary bold value, then work days, hours worked, average monthly income and average shift (averages divide only by months that carry data), plus bonus/penalty rows when non-zero.
+- The fixed twelve-month breakdown lists every month with its day count, compact hours and income; months without data render dimmed with an em-dash detail.
+- Switching years reloads the breakdown immediately; the sheet is view-only and never mutates data.
 
 ## Data export and import
 

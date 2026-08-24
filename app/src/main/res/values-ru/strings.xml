@@ -38,6 +38,7 @@
     <string name="delete_entry">Удалить запись</string>
 
     <string name="appearance">Внешний вид</string>
+    <string name="statistics">Статистика</string>
     <string name="data_and_operations">Данные и операции</string>
     <string name="change_rate_for_period">Изменить ставку за период</string>
     <string name="default_hourly_rate">Ставка за час</string>
@@ -46,6 +47,10 @@
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
     <string name="save_settings">Сохранить настройки</string>
+    <string name="year_summary">Итоги за год</string>
+    <string name="by_month">По месяцам</string>
+    <string name="average_monthly_income">Средний доход в месяц</string>
+    <string name="average_shift">Средняя смена</string>
     <string name="delete_entry_confirmation">Удалить запись за этот день? Это можно отменить в появившемся сообщении.</string>
     <string name="delete">Удалить</string>
     <string name="cancel">Отмена</string>

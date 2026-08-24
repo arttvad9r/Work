@@ -15,6 +15,8 @@ data class CalendarUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isSettingsOpen: Boolean = false,
     val isChangeRateSheetOpen: Boolean = false,
+    val isYearSummaryOpen: Boolean = false,
+    val yearSummary: YearSummary? = null,
     val isReady: Boolean = false,
     val operationError: CalendarOperationError? = null,
     val canUndo: Boolean = false,
@@ -22,6 +24,18 @@ data class CalendarUiState(
 ) {
     val summary: MonthSummary
         get() = SalaryCalculator.monthSummary(entries.values)
+}
+
+/**
+ * Fixed 12-slot monthly breakdown for one year; `total` aggregates the same rows.
+ */
+data class YearSummary(
+    val year: Int,
+    val total: MonthSummary,
+    val months: List<MonthSummary>,
+) {
+    val monthsWithData: Int
+        get() = months.count { it.totalPayMicros != 0L || it.workedMinutes != 0 }
 }
 
 enum class CalendarOperationError {

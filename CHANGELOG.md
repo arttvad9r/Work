@@ -4,6 +4,11 @@ All notable changes are documented here.
 
 ## [Unreleased] - 2026-08-22
 
+### Year summary
+
+- Settings gained a `Statistics` group with `Year summary`: a view-only sheet showing yearly income, work days, hours worked, average monthly income and average shift (averages cover only months that carry data), plus bonus/penalty totals when non-zero.
+- A fixed twelve-month breakdown lists each month's day count, compact hours and income; empty months render dimmed. Years switch through arrows and default to the current year.
+
 ### Calendar readability and navigation
 
 - Worked days now fill with `primaryContainer` and render their content in `onPrimaryContainer`, so a fully booked month keeps a clear figure-ground split against white free days; the selected day steps up to the full `primary` surface.

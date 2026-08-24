@@ -56,6 +56,7 @@ fun SettingsSheet(
     onSave: (Long, ThemeMode) -> Unit,
     onPreviewTheme: (ThemeMode) -> Unit,
     onChangeRateForPeriod: () -> Unit,
+    onOpenYearSummary: () -> Unit,
     onExportData: () -> Unit,
     onExportCsv: () -> Unit,
     onImportData: () -> Unit,
@@ -125,6 +126,13 @@ fun SettingsSheet(
                     SettingsRow(
                         label = stringResource(R.string.change_rate_for_period),
                         onClick = onChangeRateForPeriod,
+                    )
+                }
+
+                SettingsSection(title = stringResource(R.string.statistics)) {
+                    SettingsRow(
+                        label = stringResource(R.string.year_summary),
+                        onClick = onOpenYearSummary,
                     )
                 }
 

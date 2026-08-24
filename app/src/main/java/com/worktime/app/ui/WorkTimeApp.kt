@@ -33,6 +33,7 @@ import com.worktime.app.ui.calendar.CalendarViewModel
 import com.worktime.app.ui.dayeditor.DayEditorSheet
 import com.worktime.app.ui.settings.ChangeRateSheet
 import com.worktime.app.ui.settings.SettingsSheet
+import com.worktime.app.ui.settings.YearSummarySheet
 import com.worktime.app.ui.theme.WorkTimeTheme
 import java.time.LocalDate
 
@@ -169,6 +170,7 @@ fun WorkTimeApp(container: AppContainer) {
                     onSave = viewModel::updatePreferences,
                     onPreviewTheme = { previewTheme = it },
                     onChangeRateForPeriod = viewModel::openChangeRateSheet,
+                    onOpenYearSummary = viewModel::openYearSummary,
                     onExportData = {
                         exportLauncher.launch("worktime-backup-" + LocalDate.now() + ".json")
                     },
@@ -180,6 +182,15 @@ fun WorkTimeApp(container: AppContainer) {
                             arrayOf("application/json", "application/octet-stream", "text/plain"),
                         )
                     },
+                )
+            }
+
+            if (state.isYearSummaryOpen) {
+                YearSummarySheet(
+                    summary = state.yearSummary,
+                    onDismiss = viewModel::dismissYearSummary,
+                    onPreviousYear = viewModel::showPreviousYear,
+                    onNextYear = viewModel::showNextYear,
                 )
             }
 

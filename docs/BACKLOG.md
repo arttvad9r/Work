@@ -16,7 +16,8 @@
 12. Export data to a JSON file, then import it back: confirm the replace dialog, verify entries and settings are restored, and confirm a malformed file shows an error without writing.
 13. Add the widget to the home screen, change an entry and confirm the values refresh; then force-stop the app, wait past the 30-minute tick or use the launcher widget picker refresh and confirm light/dark variants and tap-through.
 14. Complete the remaining calendar/editor/settings checklist in `ANDROID_QA.md`.
-14. Confirm no clipping in Russian locale, narrow portrait layout and increased font scale.
+15. Open `Итоги за год` from settings, switch years, and confirm totals, averages and the twelve-month breakdown match the calendar months; confirm empty months render dimmed.
+16. Confirm no clipping in Russian locale, narrow portrait layout and increased font scale.
 
 ## P1 - release hardening
 

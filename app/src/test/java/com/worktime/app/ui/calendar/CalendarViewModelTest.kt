@@ -17,9 +17,11 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import java.time.Month
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
@@ -340,6 +342,40 @@ class CalendarViewModelTest {
     }
 
     @Test
+    fun `year summary aggregates totals and keeps all twelve month slots`() = runTest {
+        val repository = FakeWorkEntryRepository(
+            listOf(
+                WorkEntry(LocalDate.of(2026, 1, 10), 480, 350_000_000L),
+                WorkEntry(LocalDate.of(2026, 2, 5), 840, 370_000_000L, bonusMicros = 1_500_000_000L),
+                WorkEntry(LocalDate.of(2025, 6, 20), 600, 300_000_000L),
+            ),
+        )
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.openYearSummary()
+        val summary = viewModel.state.first { it.isYearSummaryOpen && it.yearSummary != null }.yearSummary!!
+
+        assertEquals(2026, summary.year)
+        assertEquals(12, summary.months.size)
+        // Only the two 2026 entries count; the 2025 one stays out.
+        assertEquals(2, summary.total.shiftCount)
+        assertEquals(1320, summary.total.workedMinutes)
+        assertEquals(
+            480 * 350_000_000L / 60 + 840 * 370_000_000L / 60 + 1_500_000_000L,
+            summary.total.totalPayMicros,
+        )
+        assertEquals(1, summary.months[Month.JANUARY.value - 1].shiftCount)
+        assertEquals(0, summary.months[Month.MARCH.value - 1].shiftCount)
+        assertEquals(2, summary.monthsWithData)
+
+        viewModel.dismissYearSummary()
+        assertFalse(viewModel.state.first { !it.isYearSummaryOpen }.isYearSummaryOpen)
+        stateJob.cancel()
+    }
+
+    @Test
     fun `bulk undo keeps snapshot when atomic restore fails and can retry`() = runTest {
         val entries = listOf(
             WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000),
@@ -486,6 +522,14 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
     var bulkCalls = 0
 
     override fun observeMonth(month: YearMonth): Flow<List<WorkEntry>> = entries
+
+    override fun observeDateRange(
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ): Flow<List<WorkEntry>> = entries.map { list ->
+        list.filter { it.date in startDate..endDate }.sortedBy(WorkEntry::date)
+    }
+
     fun replaceEntries(updated: List<WorkEntry>) { entries.value = updated }
     var getAllError: Exception? = null
     override suspend fun getAll(): List<WorkEntry> {

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.worktime.app.data.backup.BackupCodec
 import com.worktime.app.data.backup.BackupData
 import com.worktime.app.data.backup.WorkEntryCsv
+import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
@@ -15,6 +16,7 @@ import com.worktime.app.domain.repository.WorkEntryRepository
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDate
+import java.time.Year
 import java.time.YearMonth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +29,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -43,6 +47,8 @@ class CalendarViewModel(
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
     private val settingsOpen = MutableStateFlow(false)
     private val changeRateSheetOpen = MutableStateFlow(false)
+    private val yearSummaryOpen = MutableStateFlow(false)
+    private val yearSummaryYear = MutableStateFlow(Year.now().value)
     private val operationError = MutableStateFlow<CalendarOperationError?>(null)
     private val undoSnapshot = MutableStateFlow<UndoSnapshot?>(null)
     private val pendingImport = MutableStateFlow<BackupData?>(null)
@@ -84,16 +90,34 @@ class CalendarViewModel(
         )
     }
 
+    private val yearSummaryData = combine(yearSummaryOpen, yearSummaryYear) { open, year ->
+        if (open) year else null
+    }.flatMapLatest { year ->
+        when (year) {
+            null -> flowOf(YearSummaryUi(isOpen = false, summary = null))
+            else -> workEntryRepository.observeDateRange(
+                LocalDate.of(year, 1, 1),
+                LocalDate.of(year, 12, 31),
+            )
+                .map { entries -> YearSummaryUi(isOpen = true, summary = buildYearSummary(year, entries)) }
+                // Show the open sheet immediately while Room loads the rows.
+                .onStart { emit(YearSummaryUi(isOpen = true, summary = null)) }
+        }
+    }
+
     val state: StateFlow<CalendarUiState> = combine(
         baseState,
         changeRateSheetOpen,
         undoSnapshot,
         pendingImport,
-    ) { base, isChangeRateSheetOpen, snapshot, import ->
+        yearSummaryData,
+    ) { base, isChangeRateSheetOpen, snapshot, import, yearUi ->
         base.copy(
             isChangeRateSheetOpen = isChangeRateSheetOpen,
             canUndo = snapshot != null,
             pendingImportCount = import?.entries?.size,
+            isYearSummaryOpen = yearUi.isOpen,
+            yearSummary = yearUi.summary,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -140,6 +164,21 @@ class CalendarViewModel(
         operationError.value = null
         changeRateSheetOpen.value = false
     }
+
+    fun openYearSummary() {
+        operationError.value = null
+        selectedDate.value = null
+        yearSummaryOpen.value = true
+    }
+
+    fun dismissYearSummary() {
+        operationError.value = null
+        yearSummaryOpen.value = false
+    }
+
+    fun showPreviousYear() = yearSummaryYear.update { it - 1 }
+
+    fun showNextYear() = yearSummaryYear.update { it + 1 }
 
     fun saveEntry(entry: WorkEntry) {
         operationError.value = null
@@ -381,4 +420,21 @@ class CalendarViewModel(
         data class Deleted(val entry: WorkEntry) : UndoSnapshot
         data class Bulk(val entries: List<WorkEntry>) : UndoSnapshot
     }
+}
+
+private data class YearSummaryUi(
+    val isOpen: Boolean,
+    val summary: YearSummary?,
+)
+
+internal fun buildYearSummary(year: Int, entries: List<WorkEntry>): YearSummary {
+    val byMonth = entries.groupBy { YearMonth.from(it.date) }
+    val months = (1..12).map { month ->
+        SalaryCalculator.monthSummary(byMonth[YearMonth.of(year, month)].orEmpty())
+    }
+    return YearSummary(
+        year = year,
+        total = SalaryCalculator.monthSummary(entries),
+        months = months,
+    )
 }

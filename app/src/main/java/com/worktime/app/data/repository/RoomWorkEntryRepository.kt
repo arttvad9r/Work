@@ -14,10 +14,12 @@ import kotlinx.coroutines.flow.map
 class RoomWorkEntryRepository(
     private val dao: WorkEntryDao,
 ) : WorkEntryRepository {
-    override fun observeMonth(month: YearMonth): Flow<List<WorkEntry>> {
-        val start = month.atDay(1).toEpochDay()
-        val end = month.atEndOfMonth().toEpochDay()
-        return dao.observeRange(start, end).map { entities -> entities.map { it.toDomain() } }
+    override fun observeMonth(month: YearMonth): Flow<List<WorkEntry>> =
+        observeDateRange(month.atDay(1), month.atEndOfMonth())
+
+    override fun observeDateRange(startDate: LocalDate, endDate: LocalDate): Flow<List<WorkEntry>> {
+        return dao.observeRange(startDate.toEpochDay(), endDate.toEpochDay())
+            .map { entities -> entities.map { it.toDomain() } }
     }
 
     override suspend fun getAll(): List<WorkEntry> = dao.getAll().map { it.toDomain() }
