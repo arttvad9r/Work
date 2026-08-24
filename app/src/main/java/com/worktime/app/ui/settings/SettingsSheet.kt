@@ -274,7 +274,14 @@ private fun SettingsSection(
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
-            content()
+            // Surface stacks children like a Box; group rows in a Column so
+            // sections with several rows lay out vertically instead of overlapping.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                content()
+            }
         }
     }
 }
