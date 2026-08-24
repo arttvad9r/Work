@@ -93,18 +93,22 @@ fun WorkTimeApp(container: AppContainer) {
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
         if (uri != null) {
-            context.contentResolver.openOutputStream(uri)?.use { stream ->
-                viewModel.exportBackup(stream)
-            }
+            // The view model closes the stream after writing. Closing it here would
+            // race the async write and fail the export with "stream closed".
+            viewModel.exportBackup(
+                context.contentResolver.openOutputStream(uri)
+                    ?: return@rememberLauncherForActivityResult,
+            )
         }
     }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri != null) {
-            context.contentResolver.openInputStream(uri)?.use { stream ->
-                viewModel.importBackup(stream)
-            }
+            viewModel.importBackup(
+                context.contentResolver.openInputStream(uri)
+                    ?: return@rememberLauncherForActivityResult,
+            )
         }
     }
 
