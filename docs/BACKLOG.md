@@ -14,7 +14,8 @@
 10. Swipe horizontally across the calendar with the report collapsed and expanded; confirm month switch at a comfortable threshold and no switch on vertical drags.
 11. Check calendar visual states: entry glyph in filled cells, three-row collapsed summary, bold report total with error color only when negative, empty-month prompt opening today's editor.
 12. Export data to a JSON file, then import it back: confirm the replace dialog, verify entries and settings are restored, and confirm a malformed file shows an error without writing.
-13. Complete the remaining calendar/editor/settings checklist in `ANDROID_QA.md`.
+13. Add the widget to the home screen, change an entry and confirm the values refresh; then force-stop the app, wait past the 30-minute tick or use the launcher widget picker refresh and confirm light/dark variants and tap-through.
+14. Complete the remaining calendar/editor/settings checklist in `ANDROID_QA.md`.
 14. Confirm no clipping in Russian locale, narrow portrait layout and increased font scale.
 
 ## P1 - release hardening

@@ -4,6 +4,18 @@ All notable changes are documented here.
 
 ## [Unreleased] - 2026-08-22
 
+### Home screen widget
+
+- Added an optional 3x2 home-screen widget mirroring the fixed monthly summary (`Work days`, `Hours worked`, `Monthly income` as label-colon-value rows).
+- The widget follows the app's light/dark primary-container palette and opens the main screen on tap.
+- While the app process is alive the widget updates on every entry change; with the process dead the 30-minute system update tick keeps it current.
+
+### Data export and import
+
+- Settings `Data and operations` gained `Export data` and `Import data`: a versioned JSON file covering every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme).
+- Import parses and validates the file first, then replaces all entries and settings atomically after an explicit confirmation dialog; malformed or unsupported files show a localized error without writing anything.
+- Export/import streams are owned by the view model so a slow write cannot race stream close and fail the operation.
+
 ### Interaction stability
 
 - Removed Material 3's tooltip-wrapped monthly-report handle slot and replaced it with a stable in-content handle that keeps tap and drag behavior without showing `Drag handle` / `Маркер перемещения` on long press.
@@ -28,6 +40,8 @@ All notable changes are documented here.
 - Day-cell layout now follows the compact reference geometry: bold date at top-right, daily income at bottom-left, larger worked-duration text in the center, and adjustment markers in the free top-left corner.
 - Kept full fractional precision in calculations and up to two fractional digits in non-calendar amount displays.
 - Confirmed portrait-only orientation as a product constraint and aligned QA documentation accordingly.
+- Saving the very first entry adopts its hourly rate as the settings default when no default exists; an existing default is never overwritten.
+- Summary label-value rows render their labels with a trailing colon, matching the home-screen widget typography.
 
 ### Build and maintenance
 

@@ -116,6 +116,12 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 - A malformed or unsupported file shows a localized error in the settings sheet and writes nothing.
 - Export/import success confirms through the root Snackbar; failures surface in the settings sheet like other operation errors.
 
+## Home screen widget
+
+- An optional 3x2 home-screen widget mirrors the fixed monthly summary: `Work days`, `Hours worked` and `Monthly income` as label-colon-value rows over the app's primary-container plaque in light and dark variants.
+- While the app process is alive the widget updates on every entry change; with the process dead the system refresh tick (30 minutes) keeps it current.
+- Tapping anywhere on the widget opens the main screen.
+
 ## Operation feedback and undo
 
 - Successful entry deletion and successful bulk rate changes surface one root Snackbar anchored above system navigation with an `Undo` action (`Entry deleted` / `Rate changed`).
