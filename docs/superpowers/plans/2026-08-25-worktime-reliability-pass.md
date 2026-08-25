@@ -101,7 +101,7 @@
 
 - [ ] Replace misleading continuous-period labels with sparse-record wording unless a real rate-period model is demonstrably required; do not add a database table.
 - [ ] Ensure Add/Edit actions describe and perform the existing sparse WorkEntry update behavior.
-- [ ] Convert `Settings` rate to the same row → editor interaction as day-editor rate/bonus/penalty and remove blue-only value styling.
+- [ ] Convert `Settings` rate to the same compact editor interaction as day-editor rate/bonus/penalty and remove blue-only value styling.
 - [ ] Use one neutral text color for rate history, theme selection, and summary arrows while retaining accessible secondary color for labels/chevrons.
 
 ### Task 7: Monthly sheet and font-scale/runtime UI safety

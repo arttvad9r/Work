@@ -57,7 +57,6 @@ class DataStoreUserPreferencesRepository(
     override suspend fun updateThemeMode(themeMode: ThemeMode) {
         context.userPreferencesDataStore.edit { preferences ->
             preferences[Keys.THEME_MODE] = themeMode.name
-            preferences[Keys.DEFAULT_RATE_INITIALIZED] = true
         }
     }
 

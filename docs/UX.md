@@ -55,7 +55,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 Normal closed-keyboard state should fit as one compact sheet.
 
 1. Localized date.
-2. One row: duration and hourly rate.
+2. Duration row, followed by a separate hourly-rate row.
 3. Bonus/penalty controls.
 4. Calculation card.
 5. Save.

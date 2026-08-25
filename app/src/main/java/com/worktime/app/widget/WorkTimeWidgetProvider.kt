@@ -22,13 +22,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -92,21 +94,22 @@ internal fun currentMonthFlow(
         delay(waitMillis)
     },
     invalidations: kotlinx.coroutines.flow.Flow<Unit> = widgetTimeInvalidations,
-) = merge(
-    flow {
-        var current = now()
-        emit(current)
-        while (true) {
-            waitUntilNextMonth(current)
-            val next = now()
-            if (next != current) {
-                current = next
-                emit(current)
+) = channelFlow {
+    val reschedules = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    var timer: Job? = null
+    launch {
+        merge(flowOf(Unit), invalidations, reschedules).collect {
+            timer?.cancelAndJoin()
+            val current = now()
+            send(current)
+            timer = launch {
+                waitUntilNextMonth(current)
+                reschedules.emit(Unit)
             }
         }
-    },
-    invalidations.map { now() },
-).distinctUntilChanged()
+    }
+    awaitCancellation()
+}.distinctUntilChanged()
 
 private fun push(context: Context, summary: MonthSummary) {
     val appContext = context.applicationContext

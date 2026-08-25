@@ -43,7 +43,7 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 ## Day editor
 
 - [ ] Closed-keyboard form fits without a required scroll in the normal state.
-- [ ] Duration and rate share one row and remain centered.
+- [ ] Duration is on the first editor row and rate is on the separate row below it.
 - [ ] Labels for `Время`, `Ставка за час`, `Премия` and `Штраф` always stay minimized on the field outline; an empty unfocused field never moves its label into the input area.
 - [ ] A new empty day starts with an empty duration field and shows the centered `00:00` hint rather than a literal `0`.
 - [ ] Typing `12` into a new duration field produces `12`, never `01:2` or another leading-zero variant.

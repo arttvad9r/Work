@@ -89,7 +89,7 @@ All notable changes are documented here.
 - Centered duration and amount inside filled calendar cells.
 - Replaced text markers with centered bonus/penalty markers.
 - Added a fixed three-row monthly summary and a separate draggable report sheet.
-- Made the day editor a compact one-screen form: duration and hourly rate share one row.
+- Made the day editor a compact one-screen form with duration and rate as separate stacked rows.
 - Kept bonus above penalty in every expanded/collapsed state.
 - Reduced the settings rate input to a compact field and made all theme labels fit.
 - Added controlled light and dark palettes; dynamic device colors are disabled by default.

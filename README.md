@@ -15,7 +15,7 @@ open month -> tap a day -> enter duration and hourly rate -> save
 - centered worked duration and daily amount inside filled cells;
 - compact fixed monthly card with work days, hours worked and monthly income;
 - a separate draggable bottom report with days, hours, optional bonus/penalty and total;
-- one day-editor sheet with duration and hourly rate on one row;
+- one day-editor sheet with duration first and hourly rate on a separate row;
 - optional bonus above optional penalty;
 - full-screen settings pages for hourly rate, statistics, rate history and system/light/dark theme;
 - controlled light/dark color palettes and consistent Material 3 shapes;

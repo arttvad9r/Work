@@ -34,7 +34,7 @@ It is a modern salary calendar, not a project tracker, shift planner, timer, HR 
 
 - One duration field accepting `H`, `HH`, `H:MM` or `HH:MM`.
 - A new day starts with an empty duration editor value and the `00:00` hint; leading zeroes are normalized defensively so typing `12` cannot become `01:2`.
-- Hourly rate beside duration on the same row.
+- Hourly rate is shown on its own row below duration.
 - Bonus is always above penalty when expanded.
 - Numeric fields use state-based Compose text input; focus changes do not mutate field text.
 - Numeric focus moves directly between visible fields without intentionally closing/reopening the IME, and transient IME insets do not reposition the whole editor sheet.

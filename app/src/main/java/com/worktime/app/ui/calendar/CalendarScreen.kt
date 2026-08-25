@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -579,9 +580,12 @@ private fun CalendarGrid(
 ) {
     val currentOnSwipeToPrevious by rememberUpdatedState(onSwipeToPrevious)
     val currentOnSwipeToNext by rememberUpdatedState(onSwipeToNext)
+    val largeFont = LocalDensity.current.fontScale >= 1.5f
+    val weekRowHeight = if (largeFont) 76.dp else WeekRowHeight
+    val weekdayRowHeight = if (largeFont) 36.dp else 28.dp
     Box(
         modifier = modifier
-            .height(CalendarGridHeight)
+            .height(weekRowHeight * CalendarWeekCount + weekdayRowHeight + 8.dp)
             .pointerInput(Unit) {
                 val swipeThresholdPx = MonthSwipeThreshold.toPx()
                 var totalDrag = Offset.Zero
@@ -616,7 +620,7 @@ private fun CalendarGrid(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(28.dp),
+                    .height(weekdayRowHeight),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 weekdays.forEach { day ->
@@ -637,7 +641,7 @@ private fun CalendarGrid(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(WeekRowHeight),
+                        .height(weekRowHeight),
                 ) {
                     week.forEach { date ->
                         val isInVisibleMonth = YearMonth.from(date) == state.visibleMonth
@@ -665,7 +669,6 @@ private fun CalendarGrid(
 
 private const val CalendarWeekCount = 6
 private val WeekRowHeight = 64.dp
-private val CalendarGridHeight = WeekRowHeight * CalendarWeekCount + 36.dp
 
 @Composable
 private fun DayCell(
@@ -678,6 +681,7 @@ private fun DayCell(
     locale: Locale,
 ) {
     val visibleEntry = entry.takeIf { isInVisibleMonth }
+    val largeFont = LocalDensity.current.fontScale >= 1.5f
     val totalMicros = visibleEntry?.let {
         runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull()
     }
@@ -758,7 +762,46 @@ private fun DayCell(
                     maxLines = 1,
                 )
             }
-            if (visibleEntry != null) {
+            if (visibleEntry != null && largeFont) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 28.dp, start = 2.dp, end = 2.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = if (visibleEntry.workedMinutes > 0) {
+                            formatDurationCompact(visibleEntry.workedMinutes)
+                        } else {
+                            ""
+                        },
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 10.sp,
+                            lineHeight = 11.sp,
+                        ),
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
+                            formatWholeAmountMicros(totalMicros, locale)
+                        } else {
+                            ""
+                        },
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 7.sp,
+                            lineHeight = 8.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            } else if (visibleEntry != null) {
                 Text(
                     modifier = Modifier
                         .align(Alignment.Center)

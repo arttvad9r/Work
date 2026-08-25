@@ -202,6 +202,30 @@ class CalendarViewModelTest {
     }
 
     @Test
+    fun `import with zero default rate disables future auto adoption`() = runTest {
+        val repository = FakeWorkEntryRepository(emptyList())
+        val preferences = FakeUserPreferencesRepository()
+        val viewModel = CalendarViewModel(repository, preferences)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+        val imported = WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)
+        val payload = BackupCodec.encode(listOf(imported), UserPreferences())
+
+        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.state.first { it.pendingImportCount != null }
+        viewModel.confirmImport()
+        assertEquals(CalendarOperationEvent.Success.BACKUP_IMPORTED, viewModel.operationEvents.first())
+        assertEquals(0L, preferences.preferences.first().defaultHourlyRateMicros)
+        assertTrue(preferences.initialized)
+
+        val later = imported.copy(date = LocalDate.of(2026, 7, 2), hourlyRateMicros = 370_000_000L)
+        viewModel.saveEntry(later)
+        repository.observeDateRange(LocalDate.MIN, LocalDate.MAX).first { it.size == 2 }
+        assertEquals(0L, preferences.preferences.first().defaultHourlyRateMicros)
+        stateJob.cancel()
+    }
+
+    @Test
     fun `preference failure after replaceAll restores old entries`() = runTest {
         val oldEntry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
         val importedEntry = WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)
@@ -476,6 +500,26 @@ class CalendarViewModelTest {
             listOf(UserPreferences(370_000_000L, ThemeMode.SYSTEM)),
             preferencesRepository.updates,
         )
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `theme change before first save does not prevent default rate adoption`() = runTest {
+        val repository = FakeWorkEntryRepository(emptyList())
+        val preferences = FakeUserPreferencesRepository()
+        val viewModel = CalendarViewModel(repository, preferences)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.updateThemeMode(ThemeMode.DARK)
+        preferences.preferences.first { it.themeMode == ThemeMode.DARK }
+        viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 10), 60, 370_000_000L))
+
+        assertEquals(
+            UserPreferences(370_000_000L, ThemeMode.DARK),
+            preferences.preferences.first { it.defaultHourlyRateMicros == 370_000_000L },
+        )
+        assertTrue(preferences.initialized)
         stateJob.cancel()
     }
 
@@ -854,7 +898,6 @@ private class FakeUserPreferencesRepository : UserPreferencesRepository {
         val value = _preferences.value.copy(themeMode = themeMode)
         updates += value
         _preferences.value = value
-        initialized = true
     }
 
     override suspend fun updateDefaultHourlyRate(defaultHourlyRateMicros: Long) {

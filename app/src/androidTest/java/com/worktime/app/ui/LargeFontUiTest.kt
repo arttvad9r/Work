@@ -12,12 +12,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.worktime.app.domain.model.MonthSummary
+import com.worktime.app.domain.model.WorkEntry
+import com.worktime.app.ui.calendar.CalendarScreen
+import com.worktime.app.ui.calendar.CalendarUiState
 import com.worktime.app.ui.calendar.RatePeriodUi
 import com.worktime.app.ui.calendar.YearSummary
 import com.worktime.app.ui.settings.RateHistoryScreen
 import com.worktime.app.ui.settings.YearSummaryScreen
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.LocalDate
+import java.time.YearMonth
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -73,6 +77,38 @@ class LargeFontUiTest {
 
         composeRule.onNodeWithText("Rates in recorded entries").assertIsDisplayed()
         composeRule.onNodeWithText("Change rate for period").assertIsDisplayed()
+    }
+
+    @Test
+    fun calendarKeepsNavigationAndPopulatedDayAtLargeFontInNarrowLayout() {
+        composeRule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
+                Box(Modifier.size(280.dp, 800.dp)) {
+                    CalendarScreen(
+                        state = CalendarUiState(
+                            visibleMonth = YearMonth.of(2026, 1),
+                            entries = mapOf(
+                                LocalDate.of(2026, 1, 15) to WorkEntry(
+                                    date = LocalDate.of(2026, 1, 15),
+                                    workedMinutes = 480,
+                                    hourlyRateMicros = 10_000_000L,
+                                ),
+                            ),
+                            isReady = true,
+                        ),
+                        onPreviousMonth = {},
+                        onNextMonth = {},
+                        onSelectMonth = {},
+                        onDayClick = {},
+                        onSettingsClick = {},
+                        onOpenYearSummary = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Previous month").assertIsDisplayed()
+        composeRule.onNodeWithText("15", useUnmergedTree = true).assertIsDisplayed()
     }
 
     private fun summary() = YearSummary(

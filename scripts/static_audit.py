@@ -151,9 +151,12 @@ if "distributionSha256Sum=" not in wrapper_file:
     fail("Gradle wrapper distributionSha256Sum is missing")
 if re.search(r"release\s*\{[^}]*signingConfig\s*=\s*signingConfigs\.getByName\(\"debug\"\)", build_file, re.DOTALL):
     fail("Release build must not use debug signing")
-for action, sha in re.findall(r"uses:\s*([^@\s]+)@([0-9a-fA-F]+)", workflow_file):
-    if len(sha) != 40:
-        fail(f"GitHub Action is not pinned to a full commit SHA: {action}@{sha}")
+action_ref_pattern = re.compile(r"^\s*(?:-\s*)?uses:\s*([^@\s]+)@([^\s#]+)", re.MULTILINE)
+for action, ref in action_ref_pattern.findall(workflow_file):
+    if action.startswith("./"):
+        continue
+    if re.fullmatch(r"[0-9a-fA-F]{40}", ref) is None:
+        fail(f"GitHub Action is not pinned to a full commit SHA: {action}@{ref}")
 if "x86_64-darwin" in flake_file or "aarch64-darwin" in flake_file:
     if "steam-run" in flake_file:
         fail("Darwin is declared while the flake unconditionally uses Linux-only steam-run")
