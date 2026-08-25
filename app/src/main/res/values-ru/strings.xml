@@ -3,13 +3,17 @@
     <string name="app_name">WorkTime</string>
     <string name="previous_month">Предыдущий месяц</string>
     <string name="next_month">Следующий месяц</string>
+    <string name="select_month">Выбор месяца</string>
+    <string name="previous_year">Предыдущий год</string>
+    <string name="next_year">Следующий год</string>
     <string name="settings">Настройки</string>
-    <string name="monthly_income">Доход за месяц</string>
     <string name="monthly_summary">Сводка за месяц</string>
+    <string name="monthly_income">Доход за месяц</string>
     <string name="worked_duration">Отработано часов</string>
     <string name="shift_count_label">Рабочих дней</string>
     <string name="duration_hours">%1$d ч</string>
     <string name="duration_hours_minutes">%1$d ч %2$d мин</string>
+    <string name="hours_short">%1$s ч</string>
     <string name="today">Сегодня</string>
     <string name="day_selected">выбрано</string>
     <string name="has_bonus">есть премия</string>
@@ -18,35 +22,38 @@
     <string name="empty_month_prompt">В этом месяце нет записей</string>
     <string name="open_today">Открыть сегодня</string>
 
-    <string name="worked">Время</string>
+    <string name="worked">Длительность</string>
     <string name="hourly_rate">Ставка за час</string>
+    <string name="at_rate">По ставке</string>
     <string name="bonus">Премия</string>
     <string name="penalty">Штраф</string>
     <string name="add_bonus">+ Премия</string>
-    <string name="add_penalty">+ Штраф</string>
-    <string name="total_unavailable">Итого</string>
-    <string name="calculation">Расчёт</string>
+    <string name="add_penalty">− Штраф</string>
     <string name="duration_placeholder">00:00</string>
+    <string name="calc_expression">%1$s ч × %2$s ₽</string>
     <string name="calculation_base">По ставке</string>
     <string name="calculation_bonus">Премия</string>
+    <string name="year_bonuses">Премии</string>
     <string name="calculation_penalty">Штраф</string>
     <string name="calculation_total">Итого</string>
     <string name="save">Сохранить</string>
     <string name="delete_entry">Удалить запись</string>
 
-    <string name="appearance">Внешний вид</string>
-    <string name="data_and_operations">Данные и операции</string>
-    <string name="change_rate_for_period">Изменить ставку за период</string>
-    <string name="default_hourly_rate">Ставка за час</string>
-    <string name="theme">Тема</string>
+    <string name="section_calculation">РАСЧЁТ</string>
+    <string name="settings_rate">Ставка</string>
+    <string name="rate_history">История ставок</string>
+    <string name="section_appearance">ВНЕШНИЙ ВИД</string>
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
-    <string name="save_settings">Сохранить настройки</string>
-    <string name="delete_entry_confirmation">Удалить запись за этот день? Это можно отменить в появившемся сообщении.</string>
-    <string name="delete">Удалить</string>
-    <string name="cancel">Отмена</string>
+    <string name="section_data">ДАННЫЕ</string>
+    <string name="export_data">Экспорт данных</string>
+    <string name="import_data">Импорт данных</string>
+    <string name="back">Назад</string>
 
+    <string name="rate_for_period">Ставка за период</string>
+    <string name="add_period">Добавить период</string>
+    <string name="rate_history_empty">Пока нет записей со ставками</string>
     <string name="current_month">Текущий месяц</string>
     <string name="custom_period">Свой период</string>
     <string name="start_date">Дата начала</string>
@@ -55,6 +62,21 @@
     <string name="change_rate">Изменить ставку</string>
     <string name="change_rate_confirmation_title">Изменить ставку?</string>
     <string name="change_rate_confirmation_text">Ставка за час будет обновлена для всех записей выбранного периода. Ставка по умолчанию не изменится.</string>
+    <string name="rate_period_since">с %1$s</string>
+    <string name="rate_period_until">до %1$s</string>
+    <string name="rate_period_range">%1$s — %2$s</string>
+
+    <string name="year_summary">Итоги за год</string>
+    <string name="year_income">Доход за год</string>
+    <string name="year_stats_title">Сводка за год</string>
+    <string name="by_month">По месяцам</string>
+    <string name="average_working_month">Среднее за рабочий месяц</string>
+    <string name="average_shift">Средняя смена</string>
+    <string name="average_shift_income">Средний доход за смену</string>
+    <string name="delete_entry_confirmation">Удалить запись за этот день? Это можно отменить в появившемся сообщении.</string>
+    <string name="delete">Удалить</string>
+    <string name="cancel">Отмена</string>
+
     <string name="entry_deleted">Запись удалена</string>
     <string name="rate_changed">Ставка изменена</string>
     <string name="undo">Отменить</string>
@@ -62,6 +84,29 @@
     <string name="save_entry_failed">Не удалось сохранить запись. Введённые данные остались открыты.</string>
     <string name="delete_entry_failed">Не удалось удалить запись. Попробуйте ещё раз.</string>
     <string name="bulk_rate_failed">Не удалось изменить ставки. Попробуйте ещё раз.</string>
-    <string name="save_settings_failed">Не удалось сохранить настройки. Изменения остались открыты.</string>
+    <string name="save_settings_failed">Не удалось сохранить настройку. Попробуйте ещё раз.</string>
     <string name="undo_failed">Не удалось отменить операцию. Попробуйте ещё раз.</string>
+
+    <string name="export_format_title">Формат экспорта</string>
+    <string name="export_json_option">JSON</string>
+    <string name="export_json_hint">Резервная копия, можно импортировать обратно</string>
+    <string name="export_csv_option">CSV</string>
+    <string name="export_csv_hint">Таблица для Excel / Google Sheets</string>
+    <string name="backup_exported">Данные экспортированы</string>
+    <string name="backup_imported">Данные восстановлены</string>
+    <string name="backup_export_failed">Не удалось экспортировать данные. Попробуйте ещё раз.</string>
+    <string name="backup_import_failed">Не удалось прочитать файл резервной копии. Попробуйте ещё раз.</string>
+    <string name="import_confirmation_title">Заменить все данные?</string>
+    <string name="import_confirmation_text">В файле %1$d записей. Текущие записи и настройки будут заменены.</string>
+    <string name="replace">Заменить</string>
+
+    <string name="amount_with_currency">%1$s ₽</string>
+    <string name="rate_with_currency">%1$s ₽/ч</string>
+
+    <plurals name="shifts_short">
+        <item quantity="one">%1$d смена</item>
+        <item quantity="few">%1$d смены</item>
+        <item quantity="many">%1$d смен</item>
+        <item quantity="other">%1$d смены</item>
+    </plurals>
 </resources>

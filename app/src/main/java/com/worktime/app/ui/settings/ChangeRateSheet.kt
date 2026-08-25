@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -22,15 +19,12 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,23 +34,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.width
 import com.worktime.app.R
 import com.worktime.app.domain.model.MoneyLimits
-import com.worktime.app.ui.components.PlainDragHandle
+import com.worktime.app.ui.components.AppModalBottomSheet
+import com.worktime.app.ui.components.CompactMoneyField
 import com.worktime.app.ui.format.parseDecimalMicros
-import com.worktime.app.ui.format.sanitizeMoneyInput
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -71,25 +62,25 @@ private enum class DateField { Start, End }
 @Composable
 fun ChangeRateSheet(
     visibleMonth: YearMonth,
+    initialRange: ClosedRange<LocalDate>?,
     operationErrorMessage: String?,
     onDismiss: () -> Unit,
     onChangeRate: (LocalDate, LocalDate, Long) -> Unit,
 ) {
-    var period by rememberSaveable { mutableStateOf(RatePeriod.CURRENT_MONTH) }
-    var customStart by rememberSaveable { mutableStateOf<LocalDate?>(null) }
-    var customEnd by rememberSaveable { mutableStateOf<LocalDate?>(null) }
+    var period by rememberSaveable(initialRange) {
+        mutableStateOf(if (initialRange != null) RatePeriod.CUSTOM else RatePeriod.CURRENT_MONTH)
+    }
+    var customStart by rememberSaveable(initialRange) {
+        mutableStateOf(initialRange?.start)
+    }
+    var customEnd by rememberSaveable(initialRange) {
+        mutableStateOf(initialRange?.endInclusive)
+    }
     var rate by rememberSaveable { mutableStateOf("") }
-    var rateFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     var pickingDate by rememberSaveable { mutableStateOf<DateField?>(null) }
     var confirmChange by rememberSaveable { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(rate) {
-        if (rate != rateFieldValue.text) {
-            rateFieldValue = TextFieldValue(rate, TextRange(rate.length))
-        }
-    }
     LaunchedEffect(operationErrorMessage) {
         if (!operationErrorMessage.isNullOrBlank()) {
             snackbarHostState.showSnackbar(operationErrorMessage)
@@ -111,30 +102,23 @@ fun ChangeRateSheet(
     val rangeValid = startDate != null && endDate != null && startDate <= endDate
     val canChange = rateValid && rangeValid
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val dateFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy")
+    val dateFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", LocalLocale.current.platformLocale)
     val rateLabel = stringResource(R.string.hourly_rate)
 
-    ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = null,
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                    .padding(bottom = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PlainDragHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
-
                 Text(
-                    text = stringResource(R.string.change_rate_for_period),
-                    style = MaterialTheme.typography.titleLarge,
+                    text = stringResource(R.string.rate_for_period),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp),
                     fontWeight = FontWeight.SemiBold,
                 )
 
@@ -150,7 +134,8 @@ fun ChangeRateSheet(
                                 text = stringResource(R.string.current_month),
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelMedium,
+                                 style = MaterialTheme.typography.labelMedium,
+                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                             )
                         },
@@ -164,7 +149,8 @@ fun ChangeRateSheet(
                                 text = stringResource(R.string.custom_period),
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelMedium,
+                                 style = MaterialTheme.typography.labelMedium,
+                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                             )
                         },
@@ -179,7 +165,7 @@ fun ChangeRateSheet(
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(10.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             DateRow(
@@ -204,7 +190,7 @@ fun ChangeRateSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -214,39 +200,11 @@ fun ChangeRateSheet(
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        OutlinedTextField(
-                            value = rateFieldValue,
-                            onValueChange = { updated ->
-                                val sanitized = sanitizeMoneyInput(updated.text)
-                                rateFieldValue = TextFieldValue(
-                                    text = sanitized,
-                                    selection = TextRange(sanitized.length),
-                                )
-                                rate = sanitized
-                            },
+                        CompactMoneyField(
+                            text = rate,
+                            onTextChange = { rate = it },
                             isError = rate.isNotEmpty() && !rateValid,
-                            modifier = Modifier
-                                .width(120.dp)
-                                .onFocusChanged { focusState ->
-                                    if (focusState.isFocused && rateFieldValue.text == "0") {
-                                        rateFieldValue = rateFieldValue.copy(
-                                            selection = TextRange(0, rateFieldValue.text.length),
-                                        )
-                                    }
-                                }
-                                .semantics { contentDescription = rateLabel },
-                            textStyle = MaterialTheme.typography.titleMedium.copy(
-                                textAlign = TextAlign.Center,
-                                lineHeight = MaterialTheme.typography.titleMedium.fontSize,
-                            ),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Decimal,
-                                imeAction = ImeAction.Done,
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = { focusManager.clearFocus() },
-                            ),
+                            contentDescription = rateLabel,
                         )
                     }
                 }
@@ -256,7 +214,7 @@ fun ChangeRateSheet(
                     enabled = canChange,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 50.dp),
+                        .heightIn(min = 52.dp),
                 ) {
                     Text(stringResource(R.string.change_rate))
                 }
@@ -332,7 +290,7 @@ private fun DateRow(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .semantics(mergeDescendants = true) {}
-            .padding(horizontal = 4.dp, vertical = 10.dp),
+            .padding(horizontal = 4.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -343,12 +301,17 @@ private fun DateRow(
         )
         Text(
             text = value ?: "—",
+            modifier = Modifier.width(120.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = if (value == null) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             } else {
                 MaterialTheme.colorScheme.onSurface
             },
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip,
         )
     }
 }

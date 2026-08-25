@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget mirrors the in-app summary plaque (primaryContainer palette). -->
+    <color name="widget_surface">#21395F</color>
+    <color name="widget_text">#D7E3FF</color>
+    <color name="widget_text_secondary">#C4C7D0</color>
+</resources>

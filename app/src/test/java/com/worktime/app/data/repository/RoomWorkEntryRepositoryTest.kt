@@ -110,6 +110,34 @@ class RoomWorkEntryRepositoryTest {
         assertEquals(1, dao.upsertCount)
         assertEquals(10_000_000, repository.observeMonth(YearMonth.of(2026, 8)).first().single().hourlyRateMicros)
     }
+    @Test
+    fun `getAll returns every entry across months sorted by date`() = runTest {
+        val dao = FakeWorkEntryDao()
+        val repository = RoomWorkEntryRepository(dao)
+        val july = WorkEntry(LocalDate.of(2026, 7, 30), 300, 9_000_000)
+        val august = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+
+        repository.save(august)
+        repository.save(july)
+
+        assertEquals(listOf(july, august), repository.getAll())
+    }
+
+    @Test
+    fun `replaceAll atomically swaps the full entry set`() = runTest {
+        val dao = FakeWorkEntryDao()
+        val repository = RoomWorkEntryRepository(dao)
+        repository.save(WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000))
+        repository.save(WorkEntry(LocalDate.of(2026, 8, 11), 420, 11_000_000, bonusMicros = 2_000_000))
+        val julyEntry = WorkEntry(LocalDate.of(2026, 7, 30), 300, 9_000_000, penaltyMicros = 500_000, note = "restored")
+        val augustEntry = WorkEntry(LocalDate.of(2026, 8, 10), 540, 15_000_000)
+
+        repository.replaceAll(listOf(julyEntry, augustEntry))
+
+        assertEquals(listOf(julyEntry), repository.observeMonth(YearMonth.of(2026, 7)).first())
+        assertEquals(listOf(augustEntry), repository.observeMonth(YearMonth.of(2026, 8)).first())
+        assertEquals(1, dao.clearAllCount)
+    }
 }
 
 private suspend fun assertIllegalArgument(block: suspend () -> Unit) {
@@ -125,6 +153,8 @@ private class FakeWorkEntryDao : WorkEntryDao {
     private val entries = MutableStateFlow<List<WorkEntryEntity>>(emptyList())
     var upsertCount = 0
         private set
+    var clearAllCount = 0
+        private set
 
     override fun observeRange(startEpochDay: Long, endEpochDay: Long): Flow<List<WorkEntryEntity>> =
         entries.map { current ->
@@ -138,6 +168,9 @@ private class FakeWorkEntryDao : WorkEntryDao {
             .filter { it.dateEpochDay in startEpochDay..endEpochDay }
             .sortedBy(WorkEntryEntity::dateEpochDay)
 
+    override suspend fun getAll(): List<WorkEntryEntity> =
+        entries.value.sortedBy(WorkEntryEntity::dateEpochDay)
+
     override suspend fun upsert(entry: WorkEntryEntity) {
         upsertCount++
         entries.value = entries.value
@@ -150,5 +183,10 @@ private class FakeWorkEntryDao : WorkEntryDao {
 
     override suspend fun deleteByDate(dateEpochDay: Long) {
         entries.value = entries.value.filterNot { it.dateEpochDay == dateEpochDay }
+    }
+
+    override suspend fun clearAll() {
+        clearAllCount++
+        entries.value = emptyList()
     }
 }

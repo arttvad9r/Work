@@ -5,11 +5,18 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.worktime.app.data.backup.BackupCodec
+import com.worktime.app.data.backup.BackupData
+import com.worktime.app.data.backup.WorkEntryCsv
+import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
+import java.io.InputStream
+import java.io.OutputStream
 import java.time.LocalDate
+import java.time.Year
 import java.time.YearMonth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,8 +26,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -34,9 +44,14 @@ class CalendarViewModel(
     private val visibleMonth = MutableStateFlow(YearMonth.now())
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
     private val settingsOpen = MutableStateFlow(false)
+    private val rateHistoryOpen = MutableStateFlow(false)
     private val changeRateSheetOpen = MutableStateFlow(false)
+    private val changeRateInitialRange = MutableStateFlow<ClosedRange<LocalDate>?>(null)
+    private val yearSummaryOpen = MutableStateFlow(false)
+    private val yearSummaryYear = MutableStateFlow(Year.now().value)
     private val operationError = MutableStateFlow<CalendarOperationError?>(null)
     private val undoSnapshot = MutableStateFlow<UndoSnapshot?>(null)
+    private val pendingImport = MutableStateFlow<BackupData?>(null)
     private var operationGeneration = 0L
     private val _operationEvents = Channel<CalendarOperationEvent>(Channel.BUFFERED)
     val operationEvents: Flow<CalendarOperationEvent> = _operationEvents.receiveAsFlow()
@@ -75,14 +90,84 @@ class CalendarViewModel(
         )
     }
 
+    private val yearSummaryData = combine(yearSummaryOpen, yearSummaryYear) { open, year ->
+        if (open) year else null
+    }.flatMapLatest { year ->
+        when (year) {
+            null -> flowOf(YearSummaryUi(isOpen = false, summary = null))
+            else -> workEntryRepository.observeDateRange(
+                LocalDate.of(year, 1, 1),
+                LocalDate.of(year, 12, 31),
+            )
+                .map { entries -> YearSummaryUi(isOpen = true, summary = buildYearSummary(year, entries)) }
+                // Show the open sheet immediately while Room loads the rows.
+                .onStart { emit(YearSummaryUi(isOpen = true, summary = null)) }
+        }
+    }
+
+    private val rateHistoryData = rateHistoryOpen.flatMapLatest { open ->
+        when (open) {
+            false -> flowOf(RateHistoryUi(isOpen = false, periods = emptyList()))
+            true -> workEntryRepository.observeDateRange(LocalDate.MIN, LocalDate.MAX)
+                .map { entries ->
+                    RateHistoryUi(isOpen = true, periods = buildRatePeriods(entries))
+                }
+        }
+    }
+
+    private data class ChangeRateUi(
+        val open: Boolean,
+        val initialRange: ClosedRange<LocalDate>?,
+    )
+
+    private val changeRateUi = combine(
+        changeRateSheetOpen,
+        changeRateInitialRange,
+    ) { open, range -> ChangeRateUi(open, range) }
+
+    private val overlayState = combine(
+        changeRateUi,
+        undoSnapshot,
+        pendingImport,
+        yearSummaryData,
+        rateHistoryData,
+    ) { changeRate, snapshot, import, yearUi, historyUi ->
+        OverlayState(
+            isChangeRateSheetOpen = changeRate.open,
+            changeRateInitialRange = changeRate.initialRange,
+            canUndo = snapshot != null,
+            pendingImportCount = import?.entries?.size,
+            isYearSummaryOpen = yearUi.isOpen,
+            yearSummary = yearUi.summary,
+            isRateHistoryOpen = historyUi.isOpen,
+            ratePeriods = historyUi.periods,
+        )
+    }
+
+    private data class OverlayState(
+        val isChangeRateSheetOpen: Boolean,
+        val changeRateInitialRange: ClosedRange<LocalDate>?,
+        val canUndo: Boolean,
+        val pendingImportCount: Int?,
+        val isYearSummaryOpen: Boolean,
+        val yearSummary: YearSummary?,
+        val isRateHistoryOpen: Boolean,
+        val ratePeriods: List<RatePeriodUi>,
+    )
+
     val state: StateFlow<CalendarUiState> = combine(
         baseState,
-        changeRateSheetOpen,
-        undoSnapshot,
-    ) { base, isChangeRateSheetOpen, snapshot ->
+        overlayState,
+    ) { base, overlay ->
         base.copy(
-            isChangeRateSheetOpen = isChangeRateSheetOpen,
-            canUndo = snapshot != null,
+            isChangeRateSheetOpen = overlay.isChangeRateSheetOpen,
+            changeRateInitialRange = overlay.changeRateInitialRange,
+            canUndo = overlay.canUndo,
+            pendingImportCount = overlay.pendingImportCount,
+            isYearSummaryOpen = overlay.isYearSummaryOpen,
+            yearSummary = overlay.yearSummary,
+            isRateHistoryOpen = overlay.isRateHistoryOpen,
+            ratePeriods = overlay.ratePeriods,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -94,9 +179,12 @@ class CalendarViewModel(
 
     fun nextMonth() = visibleMonth.update { it.plusMonths(1) }
 
+    fun showMonth(month: YearMonth) = visibleMonth.update { month }
+
     fun selectDate(date: LocalDate) {
         operationError.value = null
         settingsOpen.value = false
+        rateHistoryOpen.value = false
         selectedDate.value = date
     }
 
@@ -116,128 +204,217 @@ class CalendarViewModel(
         settingsOpen.value = false
     }
 
-    fun openChangeRateSheet() {
+    fun openRateHistory() {
         operationError.value = null
         selectedDate.value = null
-        settingsOpen.value = false
+        rateHistoryOpen.value = true
+    }
+
+    fun dismissRateHistory() {
+        operationError.value = null
+        rateHistoryOpen.value = false
+    }
+
+    fun openRatePeriodEditor(range: ClosedRange<LocalDate>?) {
+        operationError.value = null
+        selectedDate.value = null
+        changeRateInitialRange.value = range
         changeRateSheetOpen.value = true
     }
 
     fun dismissChangeRateSheet() {
         operationError.value = null
         changeRateSheetOpen.value = false
+        changeRateInitialRange.value = null
     }
 
-    fun saveEntry(entry: WorkEntry) {
+    fun openYearSummary() {
         operationError.value = null
-        supersedeOperation()
-        viewModelScope.launch {
-            try {
-                workEntryRepository.save(entry)
-                selectedDate.value = null
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                operationError.value = CalendarOperationError.SAVE_ENTRY
-            }
+        selectedDate.value = null
+        yearSummaryOpen.value = true
+    }
+
+    fun dismissYearSummary() {
+        operationError.value = null
+        yearSummaryOpen.value = false
+    }
+
+    fun showPreviousYear() = yearSummaryYear.update { it - 1 }
+
+    fun showNextYear() = yearSummaryYear.update { it + 1 }
+
+    fun saveEntry(entry: WorkEntry) {
+        runOperation(CalendarOperationError.SAVE_ENTRY, body = {
+            workEntryRepository.save(entry)
+            adoptDefaultRateFrom(entry)
+            selectedDate.value = null
+        })
+    }
+
+    // First ever entry sets the default rate; an existing default is never overwritten.
+    private suspend fun adoptDefaultRateFrom(entry: WorkEntry) {
+        if (entry.hourlyRateMicros <= 0L) return
+        val preferences = userPreferencesRepository.preferences.first()
+        if (preferences.defaultHourlyRateMicros == 0L) {
+            userPreferencesRepository.update(
+                defaultHourlyRateMicros = entry.hourlyRateMicros,
+                themeMode = preferences.themeMode,
+            )
         }
     }
 
     fun deleteEntry(date: LocalDate) {
-        operationError.value = null
         val deletedEntry = state.value.entries[date]
-        supersedeOperation()
-        val generation = operationGeneration
-        viewModelScope.launch {
-            try {
-                workEntryRepository.delete(date)
-                selectedDate.value = null
-                if (generation == operationGeneration) {
-                    if (deletedEntry != null) undoSnapshot.value = UndoSnapshot.Deleted(deletedEntry)
-                    _operationEvents.send(CalendarOperationEvent.Success.ENTRY_DELETED)
-                }
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                if (generation == operationGeneration) {
-                    operationError.value = CalendarOperationError.DELETE_ENTRY
-                    _operationEvents.send(CalendarOperationEvent.Error.DELETE_ENTRY)
-                }
-            }
-        }
+        runOperation(CalendarOperationError.DELETE_ENTRY, body = {
+            workEntryRepository.delete(date)
+            selectedDate.value = null
+        }, onSuccess = {
+            if (deletedEntry != null) undoSnapshot.value = UndoSnapshot.Deleted(deletedEntry)
+            _operationEvents.send(CalendarOperationEvent.Success.ENTRY_DELETED)
+        })
     }
 
     fun changeRateForPeriod(startDate: LocalDate, endDate: LocalDate, newRateMicros: Long) {
         operationError.value = null
-        supersedeOperation()
         if (startDate > endDate || newRateMicros <= 0L) {
             operationError.value = CalendarOperationError.BULK_RATE
-            _operationEvents.trySend(CalendarOperationEvent.Error.BULK_RATE)
+            _operationEvents.trySend(CalendarOperationEvent.Error(CalendarOperationError.BULK_RATE))
             return
         }
-        val generation = operationGeneration
-        viewModelScope.launch {
-            try {
-                val originals = workEntryRepository.updateHourlyRate(startDate, endDate, newRateMicros)
-                if (generation == operationGeneration) {
-                    if (originals.isEmpty()) {
-                        _operationEvents.send(CalendarOperationEvent.Success.NO_OP)
-                    } else {
-                        undoSnapshot.value = UndoSnapshot.Bulk(originals)
-                        _operationEvents.send(CalendarOperationEvent.Success.RATE_UPDATED)
-                    }
-                    changeRateSheetOpen.value = false
-                }
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                if (generation == operationGeneration) {
-                    operationError.value = CalendarOperationError.BULK_RATE
-                    _operationEvents.send(CalendarOperationEvent.Error.BULK_RATE)
-                }
+        var originals: List<WorkEntry> = emptyList()
+        runOperation(CalendarOperationError.BULK_RATE, body = {
+            originals = workEntryRepository.updateHourlyRate(startDate, endDate, newRateMicros)
+        }, onSuccess = {
+            if (originals.isEmpty()) {
+                _operationEvents.send(CalendarOperationEvent.Success.NO_OP)
+            } else {
+                undoSnapshot.value = UndoSnapshot.Bulk(originals)
+                _operationEvents.send(CalendarOperationEvent.Success.RATE_UPDATED)
             }
-        }
+            changeRateSheetOpen.value = false
+            changeRateInitialRange.value = null
+        })
     }
 
     fun undoLastOperation() {
-        operationError.value = null
         val snapshot = undoSnapshot.value ?: return
-        val generation = operationGeneration
-        viewModelScope.launch {
-            try {
-                when (snapshot) {
-                    is UndoSnapshot.Deleted -> workEntryRepository.restore(listOf(snapshot.entry))
-                    is UndoSnapshot.Bulk -> workEntryRepository.restore(snapshot.entries)
-                }
-                if (generation == operationGeneration) {
-                    undoSnapshot.value = null
-                    _operationEvents.send(CalendarOperationEvent.Success.OPERATION_UNDONE)
-                }
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                if (generation == operationGeneration) {
-                    operationError.value = CalendarOperationError.UNDO
-                    _operationEvents.send(CalendarOperationEvent.Error.UNDO)
-                }
+        runOperation(CalendarOperationError.UNDO, body = {
+            when (snapshot) {
+                is UndoSnapshot.Deleted -> workEntryRepository.restore(listOf(snapshot.entry))
+                is UndoSnapshot.Bulk -> workEntryRepository.restore(snapshot.entries)
             }
-        }
+        }, onSuccess = {
+            undoSnapshot.value = null
+            _operationEvents.send(CalendarOperationEvent.Success.OPERATION_UNDONE)
+        }, invalidateUndo = false)
     }
 
-    fun updatePreferences(
-        defaultHourlyRateMicros: Long,
-        themeMode: ThemeMode,
-    ) {
+    /** Autosaves the theme as soon as the user picks it; settings stay open. */
+    fun updateThemeMode(themeMode: ThemeMode) {
         operationError.value = null
-        supersedeOperation()
         viewModelScope.launch {
             try {
+                val preferences = userPreferencesRepository.preferences.first()
                 userPreferencesRepository.update(
-                    defaultHourlyRateMicros = defaultHourlyRateMicros,
+                    defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
                     themeMode = themeMode,
                 )
-                settingsOpen.value = false
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 operationError.value = CalendarOperationError.SAVE_SETTINGS
             }
         }
+    }
+
+    /** Autosaves a valid default rate as soon as it is entered; settings stay open. */
+    fun updateDefaultRate(defaultHourlyRateMicros: Long) {
+        operationError.value = null
+        viewModelScope.launch {
+            try {
+                val preferences = userPreferencesRepository.preferences.first()
+                userPreferencesRepository.update(
+                    defaultHourlyRateMicros = defaultHourlyRateMicros,
+                    themeMode = preferences.themeMode,
+                )
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                operationError.value = CalendarOperationError.SAVE_SETTINGS
+            }
+        }
+    }
+
+    fun exportBackup(stream: OutputStream) {
+        runOperation(CalendarOperationError.BACKUP_EXPORT, body = {
+            val data = BackupData(
+                entries = workEntryRepository.getAll(),
+                preferences = userPreferencesRepository.preferences.first(),
+            )
+            stream.use { it.write(BackupCodec.encode(data.entries, data.preferences).toByteArray()) }
+        }, onSuccess = {
+            _operationEvents.send(CalendarOperationEvent.Success.BACKUP_EXPORTED)
+        })
+    }
+
+    fun exportCsv(stream: OutputStream) {
+        runOperation(CalendarOperationError.BACKUP_EXPORT, body = {
+            stream.use { it.write(WorkEntryCsv.encode(workEntryRepository.getAll()).toByteArray()) }
+        }, onSuccess = {
+            _operationEvents.send(CalendarOperationEvent.Success.BACKUP_EXPORTED)
+        })
+    }
+
+    fun importBackup(stream: InputStream) {
+        runOperation(CalendarOperationError.BACKUP_IMPORT, body = {
+            pendingImport.value = BackupCodec.decode(stream.use { it.readBytes().decodeToString() })
+        })
+    }
+
+    fun confirmImport() {
+        val data = pendingImport.value ?: return
+        runOperation(CalendarOperationError.BACKUP_IMPORT, body = {
+            workEntryRepository.replaceAll(data.entries)
+            userPreferencesRepository.update(
+                defaultHourlyRateMicros = data.preferences.defaultHourlyRateMicros,
+                themeMode = data.preferences.themeMode,
+            )
+        }, onSuccess = {
+            // Cleared only on success so a failed replace can be retried.
+            pendingImport.value = null
+            _operationEvents.send(CalendarOperationEvent.Success.BACKUP_IMPORTED)
+        })
+    }
+
+    /**
+     * Runs one repository operation: clears stale errors, invalidates prior undo state,
+     * and reports failure as [errorKind] unless a newer operation superseded this one.
+     * Undo opts out of invalidating: a failed undo must stay retryable.
+     */
+    private fun runOperation(
+        errorKind: CalendarOperationError,
+        body: suspend () -> Unit,
+        onSuccess: suspend () -> Unit = {},
+        invalidateUndo: Boolean = true,
+    ) {
+        operationError.value = null
+        if (invalidateUndo) supersedeOperation()
+        val generation = operationGeneration
+        viewModelScope.launch {
+            try {
+                body()
+                if (generation == operationGeneration) onSuccess()
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == operationGeneration) {
+                    operationError.value = errorKind
+                    _operationEvents.send(CalendarOperationEvent.Error(errorKind))
+                }
+            }
+        }
+    }
+
+    fun cancelImport() {
+        operationError.value = null
+        pendingImport.value = null
     }
 
     private fun supersedeOperation() {
@@ -258,4 +435,26 @@ class CalendarViewModel(
         data class Deleted(val entry: WorkEntry) : UndoSnapshot
         data class Bulk(val entries: List<WorkEntry>) : UndoSnapshot
     }
+}
+
+private data class YearSummaryUi(
+    val isOpen: Boolean,
+    val summary: YearSummary?,
+)
+
+private data class RateHistoryUi(
+    val isOpen: Boolean,
+    val periods: List<RatePeriodUi>,
+)
+
+internal fun buildYearSummary(year: Int, entries: List<WorkEntry>): YearSummary {
+    val byMonth = entries.groupBy { YearMonth.from(it.date) }
+    val months = (1..12).map { month ->
+        SalaryCalculator.monthSummary(byMonth[YearMonth.of(year, month)].orEmpty())
+    }
+    return YearSummary(
+        year = year,
+        total = SalaryCalculator.monthSummary(entries),
+        months = months,
+    )
 }

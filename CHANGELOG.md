@@ -4,6 +4,39 @@ All notable changes are documented here.
 
 ## [Unreleased] - 2026-08-22
 
+### Maintenance
+
+- Over-engineering audit cleanup: removed source-text pinning from `scripts/static_audit.py` (behavior is covered by unit/UI tests), deleted eight point-in-time QA/baseline/research docs and the committed plan artifact, merged the duplicate `CalendarOperationEvent.Error` enum into `CalendarOperationError`, collapsed the seven copy-pasted operation scaffolds in `CalendarViewModel` into one `runOperation` helper, replaced the hand-rolled CSV decimal truncation with `BigDecimal`, unified four identical label/value row composables into `LabelValueRow`, swapped the hand-built top bar for Material 3's `CenterAlignedTopAppBar`, dropped the single-property `WorkTimeThemeDefaults` wrapper and ignored `.opencode/`.
+
+### Year summary
+
+- Settings gained a `Statistics` group with `Year summary`: a view-only sheet showing yearly income, work days, hours worked, average monthly income and average shift (averages cover only months that carry data), plus bonus/penalty totals when non-zero.
+- A fixed twelve-month breakdown lists each month's day count, compact hours and income; empty months render dimmed. Years switch through arrows and default to the current year.
+
+### Calendar readability and navigation
+
+- Worked days now fill with `primaryContainer` and render their content in `onPrimaryContainer`, so a fully booked month keeps a clear figure-ground split against white free days; the selected day steps up to the full `primary` surface.
+- Day-cell duration is bold on-container instead of low-contrast blue-on-pale-blue; daily amounts use `labelMedium` at full opacity; cell borders and the weekday divider gained contrast; the entry glyph keys off `onPrimaryContainer`.
+- Tapping the month/year title opens a month picker dialog (year arrows plus a 3x4 month grid) that jumps directly to any month without repeated swiping.
+
+### Home screen widget
+
+- Added an optional 3x2 home-screen widget mirroring the fixed monthly summary (`Work days`, `Hours worked`, `Monthly income` as label-colon-value rows).
+- The widget follows the app's light/dark primary-container palette and opens the main screen on tap.
+- While the app process is alive the widget updates on every entry change; with the process dead the 30-minute system update tick keeps it current.
+
+### Data export and import
+
+- Settings `Data and operations` gained `Export data` and `Import data`: a versioned JSON file covering every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme).
+- `Export data` asks for the format first — JSON backup or a spreadsheet-friendly CSV (`date,duration,hourly_rate,bonus,penalty,total`, dot-decimal amounts); export-only, import stays JSON.
+- Import parses and validates the file first, then replaces all entries and settings atomically after an explicit confirmation dialog; malformed or unsupported files show a localized error without writing anything.
+- Export/import streams are owned by the view model so a slow write cannot race stream close and fail the operation.
+
+### Settings layout
+
+- All settings rows share one visual recipe (~52 dp height, label left, value/control right); the oversized Material text fields were replaced by a compact 120x40 dp pill money input shared by the settings and change-rate sheets.
+- `Change rate for period` moved into the `Calculation` group next to the default rate; the theme chips fill their section directly without a redundant inner caption.
+
 ### Interaction stability
 
 - Removed Material 3's tooltip-wrapped monthly-report handle slot and replaced it with a stable in-content handle that keeps tap and drag behavior without showing `Drag handle` / `Маркер перемещения` on long press.
@@ -28,6 +61,8 @@ All notable changes are documented here.
 - Day-cell layout now follows the compact reference geometry: bold date at top-right, daily income at bottom-left, larger worked-duration text in the center, and adjustment markers in the free top-left corner.
 - Kept full fractional precision in calculations and up to two fractional digits in non-calendar amount displays.
 - Confirmed portrait-only orientation as a product constraint and aligned QA documentation accordingly.
+- Saving the very first entry adopts its hourly rate as the settings default when no default exists; an existing default is never overwritten.
+- Summary label-value rows render their labels with a trailing colon, matching the home-screen widget typography.
 
 ### Build and maintenance
 

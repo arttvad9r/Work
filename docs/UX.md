@@ -24,6 +24,8 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 - Bonus/penalty markers stay in the free top-left corner so they never overlap the date.
 - Daily amounts inside calendar cells are rounded to a whole number with no fractional digits or grouping separators; full calculation precision is retained internally and richer amount displays elsewhere may show fractions.
 - Previous/next month navigation updates the requested month title and date grid immediately. The calendar does not crossfade the old and new month and does not animate day-cell colors across month boundaries.
+- Tapping the month/year title opens a month picker dialog: a year row with previous/next arrows and a 3x4 grid of localized short month names. Selecting a month jumps straight to it and collapses the report behind the grid, like the arrows do.
+- Worked days fill with `primaryContainer` and render all their content in `onPrimaryContainer`; free days stay on the white surface so a fully booked month keeps a clear figure-ground split. The selected day steps up to the full `primary` surface with `onPrimary` content, which stays distinct from the worked-day fill.
 - If Room has not emitted the requested month's rows yet, rows from the previous month must never be displayed under the new title/grid.
 - Dragging horizontally on the calendar card switches months once the horizontal drag passes a 48 dp threshold; vertical-dominant drags are ignored and never trigger a month switch.
 - Days with an entry show a small circular check glyph in the bottom-right corner of the cell, opposite the bonus/penalty markers in the top-left.
@@ -32,8 +34,7 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 ## Fixed monthly summary
 
 - Constant height and bottom-anchored position immediately above the report handle.
-- Monthly income is the primary value: its label uses small label type and the amount is bold `headlineSmall`.
-- Work days and hours worked share one compact secondary row beneath the monthly income.
+- Three equal label-value rows: shifts, worked time, monthly income.
 - The card must not compete visually with the calendar.
 - A single compact handle is located below this card as the raised peek of the report sheet and remains above system navigation.
 
@@ -89,25 +90,48 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 ## Settings
 
-- Compact one-screen sheet organized into three titled groups: `Calculation`, `Appearance`, `Data and operations`.
-- `Calculation`: hourly-rate label and a centered 120 dp input share a row.
+- Compact one-screen sheet organized into four titled groups: `Calculation`, `Statistics`, `Appearance`, `Data and operations`.
+- All rows share one recipe: ~52 dp touch height, label on the left, value or control on the right.
+- `Calculation`: hourly-rate row with a compact 120x40 dp pill input (`CompactMoneyField`), followed by the `Change rate for period` action row — every rate-related action lives in one group.
 - Initial zero is selected on focus instead of being replaced by an empty value.
 - Invalid input uses red outline only; no helper text is inserted below the field.
-- `Appearance`: theme choices fit in one row, including `System`.
+- `Appearance`: theme chips fill the section directly; the redundant inner `Theme` caption is not used.
 - Selecting light or dark immediately previews the theme.
 - Dismissing settings without saving restores the persisted theme; the selected theme is persisted only after pressing Save.
-- `Data and operations`: contains the `Change rate for period` action that opens the change-rate sheet described below.
+- `Data and operations`: contains `Export data` and `Import data` actions. `Export data` first asks for the format in a dialog — `JSON` (backup that can be imported back) or `CSV` (spreadsheet).
 - The sheet relies on the modal window/inset handling without an additional `imePadding` layer and scrolls vertically when content or keyboard height requires it.
 - Persistence failure is shown with an overlay Snackbar and does not resize the sheet.
 
 ## Change rate for period
 
-- Opens from the settings `Data and operations` group as its own modal sheet.
+- Opens from the settings `Calculation` group as its own modal sheet.
 - Period choices: `Current month` pre-fills start/end from the visible month; `Custom period` exposes start/end date fields opened through native Material date picker dialogs.
 - One rate input drives the operation; invalid values use the red outline only.
 - `Change rate` asks for confirmation first: an alert dialog states that every entry in the selected period will be updated and that the default rate stays unchanged.
 - On success the sheet closes and a root Snackbar confirms `Rate changed`; a period containing no entries is a silent no-op (the sheet still closes) with nothing to undo.
 - Failure keeps the sheet open and shows localized error feedback without resizing it.
+
+## Year summary
+
+- Opens from the settings `Statistics` group as its own modal sheet; settings stay open behind it.
+- A year switcher (`previous/next year` arrows around the centered year) defaults to the current year.
+- The totals block shows yearly income as the primary bold value, then work days, hours worked, average monthly income and average shift (averages divide only by months that carry data), plus bonus/penalty rows when non-zero.
+- The fixed twelve-month breakdown lists every month with its day count, compact hours and income; months without data render dimmed with an em-dash detail.
+- Switching years reloads the breakdown immediately; the sheet is view-only and never mutates data.
+
+## Data export and import
+
+- `Export data` asks for the format, then opens the system save dialog — `worktime-backup-YYYY-MM-DD.json` for JSON (a versioned file containing every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme)) or `worktime-YYYY-MM-DD.csv` for CSV (a spreadsheet-friendly table: `date,duration,hourly_rate,bonus,penalty,total`, one row per entry, dot-decimal amounts, `H:MM` durations). CSV is export-only; import stays JSON.
+- `Import data` opens the system file picker, parses and validates the file first, then asks for confirmation: the dialog states how many entries the file holds and that current entries and settings will be replaced.
+- Confirming an import replaces all entries and settings atomically in one transaction; a failed replace keeps the parsed file so the replace can be retried. Imports have no undo — the confirmation dialog is the safety gate.
+- A malformed or unsupported file shows a localized error in the settings sheet and writes nothing.
+- Export/import success confirms through the root Snackbar; failures surface in the settings sheet like other operation errors.
+
+## Home screen widget
+
+- An optional 3x2 home-screen widget mirrors the fixed monthly summary: `Work days`, `Hours worked` and `Monthly income` as label-colon-value rows over the app's primary-container plaque in light and dark variants.
+- While the app process is alive the widget updates on every entry change; with the process dead the system refresh tick (30 minutes) keeps it current.
+- Tapping anywhere on the widget opens the main screen.
 
 ## Operation feedback and undo
 

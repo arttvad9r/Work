@@ -63,9 +63,9 @@ Preferred command:
 
 It uses the repository Gradle Wrapper and runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. Device execution remains a separate release gate.
 
-The `main` baseline has been exercised on physical hardware by the project owner. The interaction-stability changes to report-sheet handling and IME focus require a fresh focused device pass before merge. GitHub Actions may be unavailable while the account's Actions usage limit prevents runners from starting; that infrastructure condition is tracked separately from application correctness.
+The `main` baseline has been exercised on physical hardware by the project owner. Interaction changes that affect IME focus, bottom-sheet drag/tap behavior or insets require a fresh focused device pass before merge.
 
-See [the current audit](docs/STATIC_AUDIT.md), [Android QA checklist](docs/ANDROID_QA.md) and [device QA report](docs/DEVICE_QA_REPORT.md).
+See the [Android QA checklist](docs/ANDROID_QA.md).
 
 ## Documentation
 
@@ -75,7 +75,6 @@ See [the current audit](docs/STATIC_AUDIT.md), [Android QA checklist](docs/ANDRO
 - [Decisions](docs/DECISIONS.md)
 - [Testing](docs/TESTING.md)
 - [Build and CI](docs/BUILD.md)
-- [Current audit](docs/STATIC_AUDIT.md)
 - [Android QA](docs/ANDROID_QA.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
 - [Privacy](docs/PRIVACY.md)

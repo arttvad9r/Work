@@ -7,9 +7,13 @@ import kotlinx.coroutines.flow.Flow
 
 interface WorkEntryRepository {
     fun observeMonth(month: YearMonth): Flow<List<WorkEntry>>
+
+    fun observeDateRange(startDate: LocalDate, endDate: LocalDate): Flow<List<WorkEntry>>
+    suspend fun getAll(): List<WorkEntry>
     suspend fun save(entry: WorkEntry)
     suspend fun delete(date: LocalDate)
     suspend fun restore(entries: List<WorkEntry>)
+    suspend fun replaceAll(entries: List<WorkEntry>)
     suspend fun updateHourlyRate(
         startDate: LocalDate,
         endDate: LocalDate,

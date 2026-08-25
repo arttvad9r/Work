@@ -5,56 +5,62 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import com.worktime.app.domain.preferences.ThemeMode
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF315DA8),
+    primary = Color(0xFF3568B5),
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFDCE7FF),
-    onPrimaryContainer = Color(0xFF102A56),
-    secondary = Color(0xFF526582),
+    primaryContainer = Color(0xFFE3EBFA),
+    onPrimaryContainer = Color(0xFF16335F),
+    secondary = Color(0xFF555A63),
     onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFE6ECF7),
-    onSecondaryContainer = Color(0xFF26364D),
-    tertiary = Color(0xFF6B5B95),
-    tertiaryContainer = Color(0xFFEDE5FF),
-    onTertiaryContainer = Color(0xFF392C62),
-    background = Color(0xFFF7F8FC),
-    onBackground = Color(0xFF1A1C20),
-    surface = Color(0xFFF7F8FC),
-    onSurface = Color(0xFF1A1C20),
+    secondaryContainer = Color(0xFFE8EFFB),
+    onSecondaryContainer = Color(0xFF1D2B45),
+    tertiary = Color(0xFF3568B5),
+    tertiaryContainer = Color(0xFFE3EBFA),
+    onTertiaryContainer = Color(0xFF16335F),
+    background = Color(0xFFF8F9FC),
+    onBackground = Color(0xFF1D1F23),
+    surface = Color(0xFFF8F9FC),
+    onSurface = Color(0xFF1D1F23),
     surfaceContainerLowest = Color(0xFFFFFFFF),
     surfaceContainerLow = Color(0xFFFFFFFF),
-    surfaceContainer = Color(0xFFF1F2F7),
-    surfaceContainerHigh = Color(0xFFEBEDF3),
-    surfaceContainerHighest = Color(0xFFE5E7EE),
+    surfaceContainer = Color(0xFFF2F3F8),
+    surfaceContainerHigh = Color(0xFFECEDF3),
+    surfaceContainerHighest = Color(0xFFE6E8EF),
     surfaceVariant = Color(0xFFE1E4EC),
-    onSurfaceVariant = Color(0xFF44474F),
-    outline = Color(0xFF74777F),
-    outlineVariant = Color(0xFFC4C7D0),
+    onSurfaceVariant = Color(0xFF555A63),
+    outline = Color(0xFF969AA3),
+    outlineVariant = Color(0xFFE4E7EE),
     error = Color(0xFFBA1A1A),
+    errorContainer = Color(0xFFFFDAD6),
+    onErrorContainer = Color(0xFF410002),
 )
 
 private val DarkColors = darkColorScheme(
     primary = Color(0xFFABC7FF),
-    onPrimary = Color(0xFF002F66),
-    primaryContainer = Color(0xFF17467F),
+    onPrimary = Color(0xFF0A305F),
+    primaryContainer = Color(0xFF21395F),
     onPrimaryContainer = Color(0xFFD7E3FF),
     secondary = Color(0xFFBAC8E0),
     onSecondary = Color(0xFF243044),
-    secondaryContainer = Color(0xFF354157),
+    secondaryContainer = Color(0xFF2C3A50),
     onSecondaryContainer = Color(0xFFD6E4FC),
-    tertiary = Color(0xFFD1BCFF),
-    tertiaryContainer = Color(0xFF504377),
-    onTertiaryContainer = Color(0xFFEADDFF),
+    tertiary = Color(0xFFABC7FF),
+    tertiaryContainer = Color(0xFF21395F),
+    onTertiaryContainer = Color(0xFFD7E3FF),
     background = Color(0xFF111318),
     onBackground = Color(0xFFE2E2E9),
     surface = Color(0xFF111318),
@@ -67,9 +73,50 @@ private val DarkColors = darkColorScheme(
     surfaceVariant = Color(0xFF44474F),
     onSurfaceVariant = Color(0xFFC4C7D0),
     outline = Color(0xFF8E9099),
-    outlineVariant = Color(0xFF44474F),
+    outlineVariant = Color(0xFF3A3E46),
     error = Color(0xFFFFB4AB),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
 )
+
+/**
+ * App-specific color tokens that have no Material slot. The calendar's worked-day
+ * fill must stay a faint blue tint in both themes, one step lighter than the
+ * summary strip's primaryContainer.
+ */
+@Immutable
+data class WorkTimeColors(
+    val workedDayContainer: Color,
+)
+
+private val LightWorkTimeColors = WorkTimeColors(workedDayContainer = Color(0xFFEDF3FD))
+private val DarkWorkTimeColors = WorkTimeColors(workedDayContainer = Color(0xFF232F47))
+
+val LocalWorkTimeColors = staticCompositionLocalOf { LightWorkTimeColors }
+
+private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
+
+/** Default Material typography with tabular numerals so money/time values never jitter. */
+private val WorkTimeTypography: Typography = run {
+    val base = Typography()
+    base.copy(
+        displayLarge = base.displayLarge.tabular(),
+        displayMedium = base.displayMedium.tabular(),
+        displaySmall = base.displaySmall.tabular(),
+        headlineLarge = base.headlineLarge.tabular(),
+        headlineMedium = base.headlineMedium.tabular(),
+        headlineSmall = base.headlineSmall.tabular(),
+        titleLarge = base.titleLarge.tabular(),
+        titleMedium = base.titleMedium.tabular(),
+        titleSmall = base.titleSmall.tabular(),
+        bodyLarge = base.bodyLarge.tabular(),
+        bodyMedium = base.bodyMedium.tabular(),
+        bodySmall = base.bodySmall.tabular(),
+        labelLarge = base.labelLarge.tabular(),
+        labelMedium = base.labelMedium.tabular(),
+        labelSmall = base.labelSmall.tabular(),
+    )
+}
 
 private val WorkTimeShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
@@ -102,9 +149,14 @@ fun WorkTimeTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        shapes = WorkTimeShapes,
-        content = content,
-    )
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalWorkTimeColors provides if (darkTheme) DarkWorkTimeColors else LightWorkTimeColors,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = WorkTimeTypography,
+            shapes = WorkTimeShapes,
+            content = content,
+        )
+    }
 }

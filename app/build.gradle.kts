@@ -30,6 +30,9 @@ android {
 
     buildTypes {
         release {
+            // Local testing: debug-signed so `assembleRelease` installs over the
+            // debug build. Flip to a real signing config before any distribution.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -77,6 +80,7 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.json)
 
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.runner)

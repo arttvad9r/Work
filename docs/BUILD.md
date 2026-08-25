@@ -45,7 +45,7 @@ When runner capacity becomes available, rerun the workflow from the current bran
 
 ## Device verification
 
-The `main` baseline has been exercised on physical hardware by the project owner. Interaction changes that affect IME focus, bottom-sheet drag/tap behavior or insets still require a focused device rerun before merge. Record exact device model, Android version and commit in `DEVICE_QA_REPORT.md` when available.
+The `main` baseline has been exercised on physical hardware by the project owner. Interaction changes that affect IME focus, bottom-sheet drag/tap behavior or insets still require a focused device rerun before merge. Record exact device model, Android version and commit in the release PR description.
 
 ## NixOS note
 

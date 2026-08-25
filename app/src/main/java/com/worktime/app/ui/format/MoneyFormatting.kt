@@ -45,10 +45,11 @@ fun formatCompactAmountMicros(
 ): String = amountFormatter(locale, grouping = false, maximumFractionDigits = 2)
     .format(BigDecimal.valueOf(micros, 6))
 
+/** Whole amounts with locale thousands grouping: 4810 -> "4 810". */
 fun formatWholeAmountMicros(
     micros: Long,
     locale: Locale = Locale.getDefault(),
-): String = amountFormatter(locale, grouping = false, maximumFractionDigits = 0)
+): String = amountFormatter(locale, grouping = true, maximumFractionDigits = 0)
     .format(BigDecimal.valueOf(micros, 6))
 
 private fun amountFormatter(
