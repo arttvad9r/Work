@@ -8,6 +8,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -108,7 +109,13 @@ class LargeFontUiTest {
         }
 
         composeRule.onNodeWithContentDescription("Previous month").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Next month").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
+        composeRule.onNodeWithTag("calendar-month-title").assertIsDisplayed()
         composeRule.onNodeWithText("15", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("entry recorded", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("8 h", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("80", substring = true).assertIsDisplayed()
     }
 
     private fun summary() = YearSummary(

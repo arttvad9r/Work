@@ -26,8 +26,31 @@ def parse_xml(path: Path) -> ET.Element:
 
 
 manifest_path = APP / "src/main/AndroidManifest.xml"
-parse_xml(manifest_path)
+manifest_root = parse_xml(manifest_path)
 manifest_text = manifest_path.read_text(encoding="utf-8")
+android_name = "{http://schemas.android.com/apk/res/android}name"
+widget_receiver = next(
+    (
+        node
+        for node in manifest_root.findall(".//receiver")
+        if node.attrib.get(android_name) == ".widget.WorkTimeWidgetProvider"
+    ),
+    None,
+)
+widget_actions = {
+    action.attrib.get("{http://schemas.android.com/apk/res/android}name")
+    for action in (widget_receiver.findall("./intent-filter/action") if widget_receiver is not None else [])
+}
+for required_action in (
+    "android.appwidget.action.APPWIDGET_UPDATE",
+    "android.intent.action.DATE_CHANGED",
+    "android.intent.action.TIME_SET",
+    "android.intent.action.TIMEZONE_CHANGED",
+):
+    if required_action not in widget_actions:
+        fail(f"Widget receiver is missing manifest action: {required_action}")
+if "android.intent.action.TIME_CHANGED" in widget_actions:
+    fail("Widget uses invalid TIME_CHANGED manifest action; Android ACTION_TIME_CHANGED is TIME_SET")
 
 for permission in (
     "android.permission.INTERNET",

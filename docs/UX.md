@@ -5,11 +5,14 @@
 ```text
 Calendar
 |- tap day -> Day editor sheet
-|- tap settings -> Settings sheet
-`- drag/tap bottom handle -> Monthly report sheet
+|- tap settings -> full-screen SettingsScreen
+|  |- rate history -> full-screen RateHistoryScreen
+|  |- year summary -> full-screen YearSummaryScreen
+|  `- change rate for period -> ChangeRateSheet
+`- drag/tap summary area -> monthly report inside BottomSheetScaffold
 ```
 
-Only one modal editor/settings surface may be open at a time. The monthly report belongs to the calendar scaffold and does not replace the fixed summary card. The application is portrait-only by product decision.
+The day editor and change-rate flow are modal sheets. Settings, rate history and year summary are full-screen surfaces. The monthly report belongs to the calendar scaffold and does not replace the fixed summary card. The application is portrait-only by product decision.
 
 ## Calendar screen
 
@@ -29,7 +32,6 @@ Only one modal editor/settings surface may be open at a time. The monthly report
 - If Room has not emitted the requested month's rows yet, rows from the previous month must never be displayed under the new title/grid.
 - Dragging horizontally on the calendar card switches months once the horizontal drag passes a 48 dp threshold; vertical-dominant drags are ignored and never trigger a month switch.
 - Days with an entry show a small circular check glyph in the bottom-right corner of the cell, opposite the bonus/penalty markers in the top-left.
-- A month with no entries shows a compact prompt card between the grid and the summary (`No entries this month`) with an `Open today` action that opens today's day editor.
 
 ## Fixed monthly summary
 
@@ -90,21 +92,21 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 ## Settings
 
-- Compact one-screen sheet organized into four titled groups: `Calculation`, `Statistics`, `Appearance`, `Data and operations`.
+- Full-screen `SettingsScreen` organized into four titled groups: `Calculation`, `Statistics`, `Appearance`, `Data and operations`.
 - All rows share one recipe: ~52 dp touch height, label on the left, value or control on the right.
 - `Calculation`: hourly-rate row with a compact 120x40 dp pill input (`CompactMoneyField`), followed by the `Change rate for period` action row — every rate-related action lives in one group.
 - Initial zero is selected on focus instead of being replaced by an empty value.
 - Invalid input uses red outline only; no helper text is inserted below the field.
 - `Appearance`: theme chips fill the section directly; the redundant inner `Theme` caption is not used.
-- Selecting light or dark immediately previews the theme.
-- Dismissing settings without saving restores the persisted theme; the selected theme is persisted only after pressing Save.
+- Selecting light or dark immediately previews and persists the theme; there is no separate settings Save action.
+- A valid default rate is autosaved as it is entered.
 - `Data and operations`: contains `Export data` and `Import data` actions. `Export data` first asks for the format in a dialog — `JSON` (backup that can be imported back) or `CSV` (spreadsheet).
-- The sheet relies on the modal window/inset handling without an additional `imePadding` layer and scrolls vertically when content or keyboard height requires it.
-- Persistence failure is shown with an overlay Snackbar and does not resize the sheet.
+- The screen relies on normal window/inset handling and scrolls vertically when content or keyboard height requires it.
+- Persistence failure is shown with an overlay Snackbar and does not resize the screen.
 
 ## Change rate for period
 
-- Opens from the settings `Calculation` group as its own modal sheet.
+- Opens from the settings `Calculation` group or the rate-history flow as its own modal sheet.
 - Period choices: `Current month` pre-fills start/end from the visible month; `Custom period` exposes start/end date fields opened through native Material date picker dialogs.
 - One rate input drives the operation; invalid values use the red outline only.
 - `Change rate` asks for confirmation first: an alert dialog states that every entry in the selected period will be updated and that the default rate stays unchanged.
@@ -113,7 +115,7 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 ## Year summary
 
-- Opens from the settings `Statistics` group as its own modal sheet; settings stay open behind it.
+- Opens from the settings `Statistics` group as a full-screen view-only surface.
 - A year switcher (`previous/next year` arrows around the centered year) defaults to the current year.
 - The totals block shows yearly income as the primary bold value, then work days, hours worked, average monthly income and average shift (averages divide only by months that carry data), plus bonus/penalty rows when non-zero.
 - The fixed twelve-month breakdown lists every month with its day count, compact hours and income; months without data render dimmed with an em-dash detail.
@@ -124,8 +126,8 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 - `Export data` asks for the format, then opens the system save dialog — `worktime-backup-YYYY-MM-DD.json` for JSON (a versioned file containing every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme)) or `worktime-YYYY-MM-DD.csv` for CSV (a spreadsheet-friendly table: `date,duration,hourly_rate,bonus,penalty,total`, one row per entry, dot-decimal amounts, `H:MM` durations). CSV is export-only; import stays JSON.
 - `Import data` opens the system file picker, parses and validates the file first, then asks for confirmation: the dialog states how many entries the file holds and that current entries and settings will be replaced.
 - Confirming an import validates the full file first, then replaces Room/DataStore state with compensation snapshots. If the second store fails or the operation is cancelled after replacement, the previous state is restored where possible; rollback failure is reported separately. The parsed file remains available for retry until import succeeds or is cancelled. Imports have no undo — the confirmation dialog is the safety gate.
-- A malformed or unsupported file shows a localized error in the settings sheet and writes nothing.
-- Export/import success confirms through the root Snackbar; failures surface in the settings sheet like other operation errors.
+- A malformed or unsupported file shows a localized error in SettingsScreen and writes nothing.
+- Export/import success confirms through the root Snackbar; failures surface in SettingsScreen like other operation errors.
 
 ## Home screen widget
 

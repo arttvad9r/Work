@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -62,9 +63,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.worktime.app.R
@@ -239,10 +242,13 @@ private fun CalendarHeader(
     onSettingsClick: () -> Unit,
 ) {
     val monthTitle = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+    val largeFont = LocalDensity.current.fontScale >= 1.5f
+    val headerHeight = if (largeFont) 64.dp else 48.dp
+    val titleFontSize = if (largeFont) 18.sp else 22.sp
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .heightIn(min = headerHeight)
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -259,10 +265,13 @@ private fun CalendarHeader(
                 text = monthTitle,
                 modifier = Modifier
                     .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
-                    .padding(horizontal = 4.dp),
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
+                    .padding(horizontal = 4.dp)
+                    .testTag("calendar-month-title")
+                    .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             IconButton(onClick = onNextMonth) {
                 Icon(
@@ -583,6 +592,7 @@ private fun CalendarGrid(
     val largeFont = LocalDensity.current.fontScale >= 1.5f
     val weekRowHeight = if (largeFont) 76.dp else WeekRowHeight
     val weekdayRowHeight = if (largeFont) 36.dp else 28.dp
+    val dateAreaHeight = if (largeFont) 36.dp else 28.dp
     Box(
         modifier = modifier
             .height(weekRowHeight * CalendarWeekCount + weekdayRowHeight + 8.dp)
@@ -658,6 +668,7 @@ private fun CalendarGrid(
                                 isSelected = date == state.selectedDate,
                                 onClick = { onDayClick(date) },
                                 locale = locale,
+                                dateAreaHeight = dateAreaHeight,
                             )
                         }
                     }
@@ -679,6 +690,7 @@ private fun DayCell(
     isSelected: Boolean,
     onClick: () -> Unit,
     locale: Locale,
+    dateAreaHeight: Dp,
 ) {
     val visibleEntry = entry.takeIf { isInVisibleMonth }
     val largeFont = LocalDensity.current.fontScale >= 1.5f
@@ -750,7 +762,7 @@ private fun DayCell(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(28.dp)
+                    .height(dateAreaHeight)
                     .padding(top = 3.dp, end = 4.dp),
                 contentAlignment = Alignment.TopEnd,
             ) {
@@ -766,7 +778,7 @@ private fun DayCell(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 28.dp, start = 2.dp, end = 2.dp),
+                        .padding(top = dateAreaHeight, start = 2.dp, end = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
