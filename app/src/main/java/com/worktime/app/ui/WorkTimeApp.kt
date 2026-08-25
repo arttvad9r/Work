@@ -79,8 +79,6 @@ fun WorkTimeApp(container: AppContainer) {
                 is CalendarOperationEvent.Error ->
                     if (event.kind == CalendarOperationError.UNDO) {
                         snackbarHostState.showSnackbar(undoFailedMessage, duration = SnackbarDuration.Long)
-                    } else {
-                        Unit
                     }
                 else -> Unit
             }
@@ -92,32 +90,30 @@ fun WorkTimeApp(container: AppContainer) {
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
         if (uri != null) {
-            // The view model closes the stream after writing. Closing it here would
-            // race the async write and fail the export with "stream closed".
-            viewModel.exportBackup(
-                context.contentResolver.openOutputStream(uri)
-                    ?: return@rememberLauncherForActivityResult,
-            )
+            runCatching { context.contentResolver.openOutputStream(uri) }
+                .getOrNull()
+                ?.let(viewModel::exportBackup)
+                ?: viewModel.reportOperationError(CalendarOperationError.BACKUP_EXPORT)
         }
     }
     val csvExportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv"),
     ) { uri ->
         if (uri != null) {
-            viewModel.exportCsv(
-                context.contentResolver.openOutputStream(uri)
-                    ?: return@rememberLauncherForActivityResult,
-            )
+            runCatching { context.contentResolver.openOutputStream(uri) }
+                .getOrNull()
+                ?.let(viewModel::exportCsv)
+                ?: viewModel.reportOperationError(CalendarOperationError.BACKUP_EXPORT)
         }
     }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri != null) {
-            viewModel.importBackup(
-                context.contentResolver.openInputStream(uri)
-                    ?: return@rememberLauncherForActivityResult,
-            )
+            runCatching { context.contentResolver.openInputStream(uri) }
+                .getOrNull()
+                ?.let(viewModel::importBackup)
+                ?: viewModel.reportOperationError(CalendarOperationError.BACKUP_IMPORT)
         }
     }
 
@@ -136,6 +132,8 @@ fun WorkTimeApp(container: AppContainer) {
             state.selectedDate?.let { date ->
                 val operationErrorMessage = when (state.operationError) {
                     CalendarOperationError.SAVE_ENTRY -> stringResource(R.string.save_entry_failed)
+                    CalendarOperationError.DEFAULT_RATE_ADOPTION ->
+                        stringResource(R.string.default_rate_adoption_failed)
                     CalendarOperationError.DELETE_ENTRY -> stringResource(R.string.delete_entry_failed)
                     CalendarOperationError.BULK_RATE -> stringResource(R.string.bulk_rate_failed)
                     CalendarOperationError.UNDO -> stringResource(R.string.undo_failed)
@@ -157,6 +155,8 @@ fun WorkTimeApp(container: AppContainer) {
                     CalendarOperationError.SAVE_SETTINGS -> stringResource(R.string.save_settings_failed)
                     CalendarOperationError.BACKUP_EXPORT -> stringResource(R.string.backup_export_failed)
                     CalendarOperationError.BACKUP_IMPORT -> stringResource(R.string.backup_import_failed)
+                    CalendarOperationError.BACKUP_IMPORT_ROLLBACK ->
+                        stringResource(R.string.backup_import_rollback_failed)
                     else -> null
                 }
                 SettingsScreen(

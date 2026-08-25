@@ -36,9 +36,10 @@ data class YearSummary(
     val year: Int,
     val total: MonthSummary,
     val months: List<MonthSummary>,
+    val monthHasData: List<Boolean> = emptyList(),
 ) {
     val monthsWithData: Int
-        get() = months.count { it.totalPayMicros != 0L || it.workedMinutes != 0 }
+        get() = monthHasData.count { it }
 }
 
 /**
@@ -59,6 +60,8 @@ enum class CalendarOperationError {
     UNDO,
     BACKUP_EXPORT,
     BACKUP_IMPORT,
+    BACKUP_IMPORT_ROLLBACK,
+    DEFAULT_RATE_ADOPTION,
 }
 
 sealed interface CalendarOperationEvent {

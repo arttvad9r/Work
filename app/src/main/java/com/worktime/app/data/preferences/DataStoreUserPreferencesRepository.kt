@@ -43,6 +43,31 @@ class DataStoreUserPreferencesRepository(
         }
     }
 
+    override suspend fun updateThemeMode(themeMode: ThemeMode) {
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[Keys.THEME_MODE] = themeMode.name
+        }
+    }
+
+    override suspend fun updateDefaultHourlyRate(defaultHourlyRateMicros: Long) {
+        require(defaultHourlyRateMicros in 0..MoneyLimits.MAX_COMPONENT_MICROS)
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] = defaultHourlyRateMicros
+        }
+    }
+
+    override suspend fun adoptDefaultHourlyRateIfUnset(defaultHourlyRateMicros: Long): Boolean {
+        require(defaultHourlyRateMicros in 1..MoneyLimits.MAX_COMPONENT_MICROS)
+        var adopted = false
+        context.userPreferencesDataStore.edit { preferences ->
+            if ((preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] ?: 0L) == 0L) {
+                preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] = defaultHourlyRateMicros
+                adopted = true
+            }
+        }
+        return adopted
+    }
+
     private fun toUserPreferences(preferences: Preferences): UserPreferences {
         val themeMode = preferences[Keys.THEME_MODE]
             ?.let { stored -> ThemeMode.entries.firstOrNull { it.name == stored } }

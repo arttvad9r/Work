@@ -5,6 +5,7 @@ import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.preferences.UserPreferences
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import java.nio.charset.StandardCharsets
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -20,6 +21,7 @@ data class BackupData(
  */
 object BackupCodec {
     const val VERSION = 1
+    const val MAX_BACKUP_SIZE_BYTES = 4 * 1024 * 1024
 
     fun encode(entries: List<WorkEntry>, preferences: UserPreferences): String {
         val root = JSONObject()
@@ -47,6 +49,10 @@ object BackupCodec {
     }
 
     fun decode(text: String): BackupData = try {
+        require(text.isNotBlank()) { "Malformed backup file" }
+        require(text.toByteArray(StandardCharsets.UTF_8).size <= MAX_BACKUP_SIZE_BYTES) {
+            "Backup file is too large"
+        }
         val root = JSONObject(text)
         val version = root.getInt("version")
         require(version == VERSION) { "Unsupported backup version: $version" }
@@ -58,9 +64,10 @@ object BackupCodec {
         )
 
         val jsonEntries = root.getJSONArray("entries")
+        val dates = HashSet<LocalDate>(jsonEntries.length())
         val entries = List(jsonEntries.length()) { index ->
             val jsonEntry = jsonEntries.getJSONObject(index)
-            WorkEntry(
+            val entry = WorkEntry(
                 date = LocalDate.parse(jsonEntry.getString("date")),
                 workedMinutes = jsonEntry.getInt("workedMinutes"),
                 hourlyRateMicros = jsonEntry.getLong("hourlyRateMicros"),
@@ -68,11 +75,15 @@ object BackupCodec {
                 penaltyMicros = jsonEntry.getLong("penaltyMicros"),
                 note = jsonEntry.getString("note"),
             )
+            require(dates.add(entry.date)) { "Duplicate entry date: ${entry.date}" }
+            entry
         }
         BackupData(entries = entries, preferences = preferences)
     } catch (error: JSONException) {
         throw IllegalArgumentException("Malformed backup file", error)
     } catch (error: DateTimeParseException) {
+        throw IllegalArgumentException("Malformed backup file", error)
+    } catch (error: IllegalArgumentException) {
         throw IllegalArgumentException("Malformed backup file", error)
     }
 }

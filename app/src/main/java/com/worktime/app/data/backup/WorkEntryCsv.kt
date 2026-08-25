@@ -31,9 +31,8 @@ object WorkEntryCsv {
         "%d:%02d".format(workedMinutes / 60, workedMinutes % 60)
 
     private fun money(micros: Long): String =
-        // Truncate to hundredths toward zero; matches the hand-rolled format it replaces.
         BigDecimal.valueOf(micros, 6)
-            .setScale(2, RoundingMode.DOWN)
+            .setScale(2, RoundingMode.HALF_UP)
             .stripTrailingZeros()
             .toPlainString()
 }

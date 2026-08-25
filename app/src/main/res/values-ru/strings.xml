@@ -19,8 +19,6 @@
     <string name="has_bonus">есть премия</string>
     <string name="has_penalty">есть штраф</string>
     <string name="has_entry">есть запись</string>
-    <string name="empty_month_prompt">В этом месяце нет записей</string>
-    <string name="open_today">Открыть сегодня</string>
 
     <string name="worked">Длительность</string>
     <string name="hourly_rate">Ставка за час</string>
@@ -96,6 +94,8 @@
     <string name="backup_imported">Данные восстановлены</string>
     <string name="backup_export_failed">Не удалось экспортировать данные. Попробуйте ещё раз.</string>
     <string name="backup_import_failed">Не удалось прочитать файл резервной копии. Попробуйте ещё раз.</string>
+    <string name="backup_import_rollback_failed">Импорт не завершён: не удалось восстановить прежние данные.</string>
+    <string name="default_rate_adoption_failed">Смена сохранена, но ставку по умолчанию не удалось обновить.</string>
     <string name="import_confirmation_title">Заменить все данные?</string>
     <string name="import_confirmation_text">В файле %1$d записей. Текущие записи и настройки будут заменены.</string>
     <string name="replace">Заменить</string>

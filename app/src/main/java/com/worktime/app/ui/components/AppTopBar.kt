@@ -35,7 +35,7 @@ fun AppTopBar(
         },
         // Parent screens own the status-bar padding.
         windowInsets = WindowInsets(0),
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         modifier = modifier,
     )
 }

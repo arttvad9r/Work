@@ -23,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import java.time.Month
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -33,6 +34,64 @@ import org.junit.jupiter.api.Test
 
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 class CalendarViewModelTest {
+    @Test
+    fun `serialized mutations leave the newer same-date save last`() = runTest {
+        val first = WorkEntry(LocalDate.of(2026, 8, 10), 60, 10_000_000)
+        val second = first.copy(workedMinutes = 120)
+        val repository = FakeWorkEntryRepository(emptyList()).apply {
+            saveStarted = CompletableDeferred()
+            releaseFirstSave = CompletableDeferred()
+        }
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.saveEntry(first)
+        repository.saveStarted!!.await()
+        viewModel.saveEntry(second)
+        runCurrent()
+        assertTrue(repository.entries.value.isEmpty())
+
+        repository.releaseFirstSave!!.complete(Unit)
+        runCurrent()
+        advanceUntilIdle()
+        val finalState = withTimeoutOrNull(1_000) {
+            while (repository.entries.value != listOf(second)) kotlinx.coroutines.yield()
+            repository.entries.value
+        }
+        assertEquals(listOf(second), finalState)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `year summary keeps a zero net bonus and penalty month as populated`() {
+        val entry = WorkEntry(
+            date = LocalDate.of(2026, 8, 10),
+            workedMinutes = 0,
+            hourlyRateMicros = 0,
+            bonusMicros = 100_000_000,
+            penaltyMicros = 100_000_000,
+        )
+
+        val summary = buildYearSummary(2026, listOf(entry))
+
+        assertEquals(1, summary.monthsWithData)
+        assertTrue(summary.monthHasData[7])
+    }
+
+    @Test
+    fun `year summary opens on the visible month year`() = runTest {
+        val viewModel = CalendarViewModel(FakeWorkEntryRepository(emptyList()), FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.showMonth(YearMonth.of(2024, 3))
+        viewModel.openYearSummary()
+
+        assertEquals(2024, viewModel.state.first { it.yearSummary?.year == 2024 }.yearSummary?.year)
+        stateJob.cancel()
+    }
+
     @Test
     fun `export backup writes all entries and preferences and reports success`() = runTest {
         val entries = listOf(
@@ -139,6 +198,29 @@ class CalendarViewModelTest {
         assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BACKUP_IMPORT), viewModel.operationEvents.first())
 
         assertEquals(backupEntries.size, viewModel.state.value.pendingImportCount)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `preference failure after replaceAll restores old entries`() = runTest {
+        val oldEntry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val importedEntry = WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)
+        val repository = FakeWorkEntryRepository(listOf(oldEntry))
+        val preferences = FakeUserPreferencesRepository().apply {
+            updateFailuresRemaining = 1
+        }
+        val viewModel = CalendarViewModel(repository, preferences)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+        val payload = BackupCodec.encode(listOf(importedEntry), UserPreferences())
+
+        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.state.first { it.pendingImportCount != null }
+        viewModel.confirmImport()
+        advanceUntilIdle()
+
+        assertEquals(listOf(oldEntry), repository.entries.value)
+        assertEquals(1, viewModel.state.value.pendingImportCount)
         stateJob.cancel()
     }
 
@@ -516,7 +598,7 @@ class CalendarViewModelTest {
 }
 
 private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEntryRepository {
-    private val entries = MutableStateFlow(initialEntries)
+    val entries = MutableStateFlow(initialEntries)
     val savedEntries = mutableListOf<WorkEntry>()
     var bulkOriginals = emptyList<WorkEntry>()
     var bulkError: Exception? = null
@@ -526,6 +608,9 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
     var restoreStarted: CompletableDeferred<Unit>? = null
     var releaseRestore: CompletableDeferred<Unit>? = null
     var bulkCalls = 0
+    var saveStarted: CompletableDeferred<Unit>? = null
+    var releaseFirstSave: CompletableDeferred<Unit>? = null
+    var saveCalls = 0
 
     override fun observeMonth(month: YearMonth): Flow<List<WorkEntry>> = entries
 
@@ -543,6 +628,11 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
         return entries.value.sortedBy(WorkEntry::date)
     }
     override suspend fun save(entry: WorkEntry) {
+        saveCalls++
+        if (saveCalls == 1) {
+            saveStarted?.complete(Unit)
+            releaseFirstSave?.await()
+        }
         savedEntries += entry
         entries.value = entries.value.filterNot { it.date == entry.date } + entry
     }
@@ -584,9 +674,34 @@ private class FakeUserPreferencesRepository : UserPreferencesRepository {
     private val _preferences = MutableStateFlow(UserPreferences())
     override val preferences: Flow<UserPreferences> = _preferences
     val updates = mutableListOf<UserPreferences>()
+    var updateError: Exception? = null
+    var updateFailuresRemaining = 0
     override suspend fun update(defaultHourlyRateMicros: Long, themeMode: ThemeMode) {
+        updateError?.let { throw it }
+        if (updateFailuresRemaining > 0) {
+            updateFailuresRemaining--
+            throw IllegalStateException("datastore")
+        }
         val value = UserPreferences(defaultHourlyRateMicros, themeMode)
         updates += value
         _preferences.value = value
+    }
+
+    override suspend fun updateThemeMode(themeMode: ThemeMode) {
+        val value = _preferences.value.copy(themeMode = themeMode)
+        updates += value
+        _preferences.value = value
+    }
+
+    override suspend fun updateDefaultHourlyRate(defaultHourlyRateMicros: Long) {
+        val value = _preferences.value.copy(defaultHourlyRateMicros = defaultHourlyRateMicros)
+        updates += value
+        _preferences.value = value
+    }
+
+    override suspend fun adoptDefaultHourlyRateIfUnset(defaultHourlyRateMicros: Long): Boolean {
+        if (_preferences.value.defaultHourlyRateMicros != 0L) return false
+        updateDefaultHourlyRate(defaultHourlyRateMicros)
+        return true
     }
 }

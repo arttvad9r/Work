@@ -11,4 +11,10 @@ interface UserPreferencesRepository {
         defaultHourlyRateMicros: Long,
         themeMode: ThemeMode,
     )
+
+    suspend fun updateThemeMode(themeMode: ThemeMode)
+
+    suspend fun updateDefaultHourlyRate(defaultHourlyRateMicros: Long)
+
+    suspend fun adoptDefaultHourlyRateIfUnset(defaultHourlyRateMicros: Long): Boolean
 }

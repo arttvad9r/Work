@@ -19,8 +19,6 @@
     <string name="has_bonus">bonus added</string>
     <string name="has_penalty">penalty added</string>
     <string name="has_entry">entry recorded</string>
-    <string name="empty_month_prompt">No entries this month</string>
-    <string name="open_today">Open today</string>
 
     <string name="worked">Duration</string>
     <string name="hourly_rate">Rate per hour</string>
@@ -96,6 +94,8 @@
     <string name="backup_imported">Data restored</string>
     <string name="backup_export_failed">Could not export data. Try again.</string>
     <string name="backup_import_failed">Could not read the backup file. Try again.</string>
+    <string name="backup_import_rollback_failed">Import failed: previous data could not be restored.</string>
+    <string name="default_rate_adoption_failed">Entry saved, but the default rate could not be updated.</string>
     <string name="import_confirmation_title">Replace all data?</string>
     <string name="import_confirmation_text">The file contains %1$d entries. Current entries and settings will be replaced.</string>
     <string name="replace">Replace</string>

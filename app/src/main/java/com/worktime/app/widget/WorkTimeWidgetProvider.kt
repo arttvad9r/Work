@@ -16,12 +16,17 @@ import com.worktime.app.domain.repository.WorkEntryRepository
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import java.time.YearMonth
+import java.time.Duration
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class WorkTimeWidgetProvider : AppWidgetProvider() {
@@ -51,14 +56,36 @@ suspend fun refresh(context: Context, repository: WorkEntryRepository) {
     push(context, SalaryCalculator.monthSummary(entries))
 }
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 fun observeForWidget(context: Context, repository: WorkEntryRepository): Job =
     WorkTimeWidgetScope.launch {
-        // ponytail: month fixed for this process lifetime; month rollover is covered
-        // by the 30-minute system tick while the app is closed.
-        repository.observeMonth(YearMonth.now()).collect { entries ->
+        currentMonthFlow().flatMapLatest { month -> repository.observeMonth(month) }.collect { entries ->
             push(context, SalaryCalculator.monthSummary(entries))
         }
     }
+
+internal fun currentMonthFlow(
+    now: () -> YearMonth = { YearMonth.now() },
+    waitUntilNextMonth: suspend (YearMonth) -> Unit = { month ->
+        val nextMonth = month.plusMonths(1).atDay(1)
+            .atStartOfDay(ZoneId.systemDefault())
+        val waitMillis = Duration.between(java.time.Instant.now(), nextMonth.toInstant())
+            .toMillis()
+            .coerceAtLeast(1_000L)
+        delay(waitMillis)
+    },
+) = flow {
+    var current = now()
+    emit(current)
+    while (true) {
+        waitUntilNextMonth(current)
+        val next = now()
+        if (next != current) {
+            current = next
+            emit(current)
+        }
+    }
+}
 
 private fun push(context: Context, summary: MonthSummary) {
     val appContext = context.applicationContext

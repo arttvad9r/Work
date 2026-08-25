@@ -81,4 +81,22 @@ class BackupCodecTest {
             BackupCodec.decode(text)
         }
     }
+
+    @Test
+    fun `decode rejects duplicate dates`() {
+        val text = BackupCodec.encode(entries + entries.first(), preferences)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            BackupCodec.decode(text)
+        }
+    }
+
+    @Test
+    fun `decode rejects oversized payload`() {
+        val text = "{" + "x".repeat(BackupCodec.MAX_BACKUP_SIZE_BYTES) + "}"
+
+        assertThrows(IllegalArgumentException::class.java) {
+            BackupCodec.decode(text)
+        }
+    }
 }

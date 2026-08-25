@@ -25,7 +25,7 @@ class WorkEntryCsvTest {
         val lines = csv.trimEnd('\n').split('\n')
         assertEquals("date,duration,hourly_rate,bonus,penalty,total", lines[0])
         assertEquals("2026-02-01,14:00,350,0,0,4900", lines[1])
-        assertEquals("2026-05-29,13:15,370.5,1500,250,6159.12", lines[2])
+        assertEquals("2026-05-29,13:15,370.5,1500,250,6159.13", lines[2])
     }
 
     @Test

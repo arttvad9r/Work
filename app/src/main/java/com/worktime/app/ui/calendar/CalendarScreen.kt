@@ -1,9 +1,5 @@
 package com.worktime.app.ui.calendar
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -113,15 +109,6 @@ fun CalendarScreen(
     )
     val scope = rememberCoroutineScope()
     val summaryTargetExpanded = summarySheetState.targetValue == SheetValue.Expanded
-    val summaryContentAlpha by animateFloatAsState(
-        targetValue = if (summaryTargetExpanded) 1f else 0f,
-        animationSpec = if (summaryTargetExpanded) {
-            tween(durationMillis = 160, easing = FastOutSlowInEasing)
-        } else {
-            snap()
-        },
-        label = "summaryContentAlpha",
-    )
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
         val shouldCollapse =
             summarySheetState.currentValue == SheetValue.Expanded ||
@@ -151,9 +138,7 @@ fun CalendarScreen(
     BottomSheetScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
-        // The collapsed summary is part of the content below the calendar. The
-        // sheet itself has no visible peek area until it is expanded.
-        sheetPeekHeight = 0.dp,
+        sheetPeekHeight = 80.dp,
         // Material wraps every non-null handle slot in DragHandleWithTooltip. Keep
         // the slot null and render our handle as stable sheet content instead.
         sheetDragHandle = null,
@@ -161,13 +146,18 @@ fun CalendarScreen(
         sheetShape = AppSheetShape,
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
-        // The sheet is transparent while collapsed and becomes an opaque report
-        // only after the user opens it.
-        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(
-            alpha = summaryContentAlpha,
-        ),
+        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         sheetContent = {
             Column(modifier = Modifier.fillMaxWidth()) {
+                SummaryStrip(
+                    state = state,
+                    expanded = summaryTargetExpanded,
+                    locale = locale,
+                    onClick = toggleSummary,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 8.dp, bottom = 8.dp),
+                )
                 if (summaryTargetExpanded) {
                     PlainDragHandle(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -180,16 +170,8 @@ fun CalendarScreen(
                     onOpenYearSummary = { closeSummaryBehind(onOpenYearSummary) },
                     locale = locale,
                     modifier = Modifier
-                        .alpha(summaryContentAlpha)
                         .navigationBarsPadding()
-                        .padding(bottom = 12.dp)
-                        .then(
-                            if (summaryTargetExpanded) {
-                                Modifier
-                            } else {
-                                Modifier.clearAndSetSemantics { }
-                            },
-                        ),
+                        .padding(bottom = 12.dp),
                 )
             }
         },
@@ -229,16 +211,6 @@ fun CalendarScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                SummaryStrip(
-                    state = state,
-                    expanded = false,
-                    locale = locale,
-                    onClick = toggleSummary,
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .padding(top = 12.dp, bottom = 8.dp)
-                        .navigationBarsPadding(),
-                )
             }
         }
     }
@@ -479,7 +451,6 @@ private fun MonthlySummaryPanel(
             }
 
             YearNavRow(
-                year = state.visibleMonth.year,
                 onClick = onOpenYearSummary,
             )
         }
@@ -487,7 +458,7 @@ private fun MonthlySummaryPanel(
 }
 
 @Composable
-private fun YearNavRow(year: Int, onClick: () -> Unit) {
+private fun YearNavRow(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

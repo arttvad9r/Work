@@ -415,11 +415,7 @@ private fun NumericEditorSection(
     val bonusSlotHeight = fieldHeight
     val penaltySlotHeight = fieldHeight
     val penaltyTop = adjustmentTop + bonusSlotHeight + gap
-    val sectionHeight = if (!expandedAdjustments) {
-        adjustmentTop + bonusSlotHeight + gap + penaltySlotHeight
-    } else {
-        adjustmentTop + bonusSlotHeight + gap + penaltySlotHeight
-    }
+    val sectionHeight = adjustmentTop + bonusSlotHeight + gap + penaltySlotHeight
 
     BoxWithConstraints(
         modifier = Modifier

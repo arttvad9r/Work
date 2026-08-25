@@ -206,9 +206,9 @@ fun YearSummaryScreen(
                             .fillMaxWidth()
                             .weight(1f),
                     ) {
-                        Month.entries.forEach { month ->
+                        Month.entries.forEachIndexed { index, month ->
                             val monthTotal = summary.months[month.value - 1]
-                            val empty = monthTotal.workedMinutes == 0 && monthTotal.totalPayMicros == 0L
+                            val empty = !summary.monthHasData.getOrElse(index) { false }
                             MonthLine(
                                 modifier = Modifier
                                     .weight(1f)

@@ -8,7 +8,7 @@ The preferred command is:
 nix develop
 ```
 
-The repository keeps `shell.nix` during migration. `.envrc` continues to support direnv-based entry for existing local setups.
+`flake.nix` is the only supported source of the development shell. `.envrc` continues to enter it for existing direnv-based setups.
 
 ## Provided tools
 

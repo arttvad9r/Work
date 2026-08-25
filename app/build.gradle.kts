@@ -23,6 +23,24 @@ android {
         compose = true
     }
 
+    val releaseStoreFile = providers.gradleProperty("releaseStoreFile").orNull
+        ?: System.getenv("RELEASE_STORE_FILE")
+    val releaseStorePassword = providers.gradleProperty("releaseStorePassword").orNull
+        ?: System.getenv("RELEASE_STORE_PASSWORD")
+    val releaseKeyAlias = providers.gradleProperty("releaseKeyAlias").orNull
+        ?: System.getenv("RELEASE_KEY_ALIAS")
+    val releaseKeyPassword = providers.gradleProperty("releaseKeyPassword").orNull
+        ?: System.getenv("RELEASE_KEY_PASSWORD")
+
+    if (listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { it != null }) {
+        signingConfigs.create("production") {
+            storeFile = file(releaseStoreFile!!)
+            storePassword = releaseStorePassword!!
+            keyAlias = releaseKeyAlias!!
+            keyPassword = releaseKeyPassword!!
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -30,9 +48,10 @@ android {
 
     buildTypes {
         release {
-            // Local testing: debug-signed so `assembleRelease` installs over the
-            // debug build. Flip to a real signing config before any distribution.
-            signingConfig = signingConfigs.getByName("debug")
+            // Production signing is opt-in through RELEASE_* properties/env vars.
+            // Without them Gradle produces an unsigned release artifact, never a
+            // misleading debug-signed production build.
+            signingConfig = signingConfigs.findByName("production")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

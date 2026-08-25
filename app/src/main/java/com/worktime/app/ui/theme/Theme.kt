@@ -9,9 +9,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
@@ -79,21 +77,6 @@ private val DarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFFDAD6),
 )
 
-/**
- * App-specific color tokens that have no Material slot. The calendar's worked-day
- * fill must stay a faint blue tint in both themes, one step lighter than the
- * summary strip's primaryContainer.
- */
-@Immutable
-data class WorkTimeColors(
-    val workedDayContainer: Color,
-)
-
-private val LightWorkTimeColors = WorkTimeColors(workedDayContainer = Color(0xFFEDF3FD))
-private val DarkWorkTimeColors = WorkTimeColors(workedDayContainer = Color(0xFF232F47))
-
-val LocalWorkTimeColors = staticCompositionLocalOf { LightWorkTimeColors }
-
 private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 
 /** Default Material typography with tabular numerals so money/time values never jitter. */
@@ -149,14 +132,10 @@ fun WorkTimeTheme(
         }
     }
 
-    androidx.compose.runtime.CompositionLocalProvider(
-        LocalWorkTimeColors provides if (darkTheme) DarkWorkTimeColors else LightWorkTimeColors,
-    ) {
-        MaterialTheme(
-            colorScheme = colorScheme,
-            typography = WorkTimeTypography,
-            shapes = WorkTimeShapes,
-            content = content,
-        )
-    }
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = WorkTimeTypography,
+        shapes = WorkTimeShapes,
+        content = content,
+    )
 }

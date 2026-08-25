@@ -98,7 +98,12 @@ fun CompactMoneyField(
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
                     .onFocusChanged { focusState ->
-                        if (focusState.isFocused) hadFocus = true
+                        if (focusState.isFocused) {
+                            hadFocus = true
+                            if (fieldValue.text == "0") {
+                                fieldValue = fieldValue.copy(selection = TextRange(0, 1))
+                            }
+                        }
                         if (onLostFocus != null && hadFocus && !focusState.isFocused && !focusState.hasFocus) {
                             onLostFocus()
                         }
