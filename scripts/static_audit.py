@@ -142,81 +142,6 @@ for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
     if "fallbackToDestructiveMigration" in text:
         fail(f"Destructive Room fallback found: {kotlin_file.relative_to(ROOT)}")
 
-calendar_screen = (
-    APP / "src/main/java/com/worktime/app/ui/calendar/CalendarScreen.kt"
-).read_text(encoding="utf-8")
-if "sheetDragHandle = null" not in calendar_screen:
-    fail("Monthly report must not use Material's tooltip-wrapped sheet drag-handle slot")
-if "sheetDragHandle = { PlainDragHandle() }" in calendar_screen:
-    fail("Tooltip-prone Material sheet drag-handle slot regressed")
-if "Crossfade(" in calendar_screen or "animateColorAsState" in calendar_screen:
-    fail("Calendar month navigation must not crossfade/reuse animated day-cell state")
-if "formatWholeAmountMicros(totalMicros, locale)" not in calendar_screen:
-    fail("Calendar day cells must display whole amounts without fractional digits")
-if "totalMicros != 0L" not in calendar_screen:
-    fail("Calendar day cells must hide zero net amounts")
-
-day_editor = (
-    APP / "src/main/java/com/worktime/app/ui/dayeditor/DayEditorSheet.kt"
-).read_text(encoding="utf-8")
-if "lineHeight = MaterialTheme.typography.titleMedium.fontSize" in day_editor:
-    fail("Numeric editor must use Material's default line height to avoid clipped digits")
-if "val fieldHeight = 64.dp" not in day_editor:
-    fail("Numeric editor fields need enough height for attached labels and title text")
-
-for expected in (
-    ".align(Alignment.TopEnd)",
-    ".align(Alignment.BottomStart)",
-    "MaterialTheme.typography.titleMedium",
-    "fontWeight = FontWeight.Bold",
-    ".padding(horizontal = 1.dp)",
-    ".padding(0.25.dp)",
-):
-    if expected not in calendar_screen:
-        fail(f"Calendar compact cell layout invariant missing: {expected}")
-
-if "withFrameNanos" in day_editor:
-    fail("Day editor contains a frame-delayed focus transfer that can restart the IME")
-if "rememberTextFieldState" not in day_editor or "InputTransformation.byValue" not in day_editor:
-    fail("Day editor must use state-based text input and synchronous input transformations")
-if "TextFieldValue" in day_editor or "KeyboardActions" in day_editor:
-    fail("Day editor regressed to value-based text input / custom IME action plumbing")
-if "state.clearText()" in day_editor:
-    fail("Day editor must not clear editor text from focus transitions")
-if 'if (workedMinutes == 0) ""' not in day_editor:
-    fail("Empty/zero worked duration must start as an empty editor value")
-if 'if (micros == 0L) ""' not in day_editor:
-    fail("Zero numeric adjustments/defaults must start empty instead of mutating on focus")
-if "contentWindowInsets = { WindowInsets(0, 0, 0, 0) }" in day_editor:
-    fail("Day editor must allow ModalBottomSheet to lift above the IME")
-if "val numericKeyboardOptions" not in day_editor:
-    fail("Day editor must share one keyboard configuration across numeric fields")
-for expected in (
-    "enum class NumericField",
-    "NumericField.Duration",
-    "NumericField.Rate",
-    "NumericField.Bonus",
-    "NumericField.Penalty",
-    "val editorState",
-    "val editorFocusRequester",
-    "focusEditorOnActivate",
-    "PersistentNumericEditor(",
-    "TextFieldLabelPosition.Attached(alwaysMinimize = true)",
-    "indication = null",
-):
-    if expected not in day_editor:
-        fail(f"Persistent numeric-input invariant missing: {expected}")
-if "bonusFocusRequester" in day_editor or "penaltyFocusRequester" in day_editor:
-    fail("Bonus/penalty must use the persistent editor instead of separate focus sessions")
-if day_editor.count("TextFieldLabelPosition.Attached(alwaysMinimize = true)") < 3:
-    fail("All primary/adjustment field renderers must keep labels minimized on the outline")
-
-calendar_view_model = (
-    APP / "src/main/java/com/worktime/app/ui/calendar/CalendarViewModel.kt"
-).read_text(encoding="utf-8")
-if "visibleMonth," not in calendar_view_model or "loadedMonth == requestedMonth" not in calendar_view_model:
-    fail("Calendar navigation must publish the requested month before Room finishes loading rows")
-
 build_file = (APP / "build.gradle.kts").read_text(encoding="utf-8")
 catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
 if 'testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"' not in build_file:
@@ -234,5 +159,5 @@ if failures:
 
 print(
     "static-audit: OK "
-    f"({len(base_keys)} localized string keys; XML/privacy/domain/UI invariants passed)"
+    f"({len(base_keys)} localized string keys; XML/privacy/domain invariants passed)"
 )

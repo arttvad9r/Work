@@ -24,7 +24,7 @@
 - Add Compose instrumentation coverage for report-handle tap/drag/semantics where the test environment can reliably exercise current Material 3.
 - Add editor UI coverage for focus transfer and bonus/penalty expansion order.
 - Capture final screenshots after focused device QA.
-- Record exact device model, Android version and tested commit in `DEVICE_QA_REPORT.md`.
+- Record exact device model, Android version and tested commit in the release PR description.
 - Review launcher icon, signing and Play pre-launch report.
 
 ## P2 - future decisions

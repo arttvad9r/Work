@@ -2,6 +2,8 @@ package com.worktime.app.data.backup
 
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 /**
  * CSV export for spreadsheets. Every value is generated (ISO date, `H:MM`
@@ -28,20 +30,10 @@ object WorkEntryCsv {
     private fun duration(workedMinutes: Int): String =
         "%d:%02d".format(workedMinutes / 60, workedMinutes % 60)
 
-    private fun money(micros: Long): String {
-        val negative = micros < 0
-        val absolute = if (negative) -micros else micros
-        val whole = absolute / 1_000_000L
-        val hundredths = (absolute % 1_000_000L) / 10_000L
-        val fraction = when {
-            hundredths == 0L -> ""
-            hundredths % 10L == 0L -> ".${hundredths / 10L}"
-            else -> ".$hundredths"
-        }
-        return buildString {
-            if (negative) append('-')
-            append(whole)
-            append(fraction)
-        }
-    }
+    private fun money(micros: Long): String =
+        // Truncate to hundredths toward zero; matches the hand-rolled format it replaces.
+        BigDecimal.valueOf(micros, 6)
+            .setScale(2, RoundingMode.DOWN)
+            .stripTrailingZeros()
+            .toPlainString()
 }

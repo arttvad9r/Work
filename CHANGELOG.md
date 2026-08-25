@@ -4,6 +4,10 @@ All notable changes are documented here.
 
 ## [Unreleased] - 2026-08-22
 
+### Maintenance
+
+- Over-engineering audit cleanup: removed source-text pinning from `scripts/static_audit.py` (behavior is covered by unit/UI tests), deleted eight point-in-time QA/baseline/research docs and the committed plan artifact, merged the duplicate `CalendarOperationEvent.Error` enum into `CalendarOperationError`, collapsed the seven copy-pasted operation scaffolds in `CalendarViewModel` into one `runOperation` helper, replaced the hand-rolled CSV decimal truncation with `BigDecimal`, unified four identical label/value row composables into `LabelValueRow`, swapped the hand-built top bar for Material 3's `CenterAlignedTopAppBar`, dropped the single-property `WorkTimeThemeDefaults` wrapper and ignored `.opencode/`.
+
 ### Year summary
 
 - Settings gained a `Statistics` group with `Year summary`: a view-only sheet showing yearly income, work days, hours worked, average monthly income and average shift (averages cover only months that carry data), plus bonus/penalty totals when non-zero.

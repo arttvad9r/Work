@@ -60,13 +60,20 @@ private enum class DateField { Start, End }
 @Composable
 fun ChangeRateSheet(
     visibleMonth: YearMonth,
+    initialRange: ClosedRange<LocalDate>?,
     operationErrorMessage: String?,
     onDismiss: () -> Unit,
     onChangeRate: (LocalDate, LocalDate, Long) -> Unit,
 ) {
-    var period by rememberSaveable { mutableStateOf(RatePeriod.CURRENT_MONTH) }
-    var customStart by rememberSaveable { mutableStateOf<LocalDate?>(null) }
-    var customEnd by rememberSaveable { mutableStateOf<LocalDate?>(null) }
+    var period by rememberSaveable(initialRange) {
+        mutableStateOf(if (initialRange != null) RatePeriod.CUSTOM else RatePeriod.CURRENT_MONTH)
+    }
+    var customStart by rememberSaveable(initialRange) {
+        mutableStateOf(initialRange?.start)
+    }
+    var customEnd by rememberSaveable(initialRange) {
+        mutableStateOf(initialRange?.endInclusive)
+    }
     var rate by rememberSaveable { mutableStateOf("") }
     var pickingDate by rememberSaveable { mutableStateOf<DateField?>(null) }
     var confirmChange by rememberSaveable { mutableStateOf(false) }
@@ -115,7 +122,7 @@ fun ChangeRateSheet(
                 PlainDragHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
 
                 Text(
-                    text = stringResource(R.string.change_rate_for_period),
+                    text = stringResource(R.string.rate_for_period),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )

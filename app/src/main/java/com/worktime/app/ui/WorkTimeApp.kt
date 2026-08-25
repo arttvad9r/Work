@@ -15,9 +15,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -32,8 +30,9 @@ import com.worktime.app.ui.calendar.CalendarScreen
 import com.worktime.app.ui.calendar.CalendarViewModel
 import com.worktime.app.ui.dayeditor.DayEditorSheet
 import com.worktime.app.ui.settings.ChangeRateSheet
-import com.worktime.app.ui.settings.SettingsSheet
-import com.worktime.app.ui.settings.YearSummarySheet
+import com.worktime.app.ui.settings.RateHistoryScreen
+import com.worktime.app.ui.settings.SettingsScreen
+import com.worktime.app.ui.settings.YearSummaryScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
 import java.time.LocalDate
 
@@ -47,11 +46,6 @@ fun WorkTimeApp(container: AppContainer) {
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    var previewTheme by remember { mutableStateOf(state.themeMode) }
-
-    LaunchedEffect(state.isSettingsOpen, state.themeMode) {
-        previewTheme = state.themeMode
-    }
 
     val entryDeletedMessage = stringResource(R.string.entry_deleted)
     val rateChangedMessage = stringResource(R.string.rate_changed)
@@ -82,8 +76,12 @@ fun WorkTimeApp(container: AppContainer) {
                     snackbarHostState.showSnackbar(backupImportedMessage)
                 // Undo fires from a consumed root snackbar after every sheet is gone,
                 // so it is the only error with no owning surface to display it.
-                CalendarOperationEvent.Error.UNDO ->
-                    snackbarHostState.showSnackbar(undoFailedMessage, duration = SnackbarDuration.Long)
+                is CalendarOperationEvent.Error ->
+                    if (event.kind == CalendarOperationError.UNDO) {
+                        snackbarHostState.showSnackbar(undoFailedMessage, duration = SnackbarDuration.Long)
+                    } else {
+                        Unit
+                    }
                 else -> Unit
             }
         }
@@ -123,9 +121,7 @@ fun WorkTimeApp(container: AppContainer) {
         }
     }
 
-    WorkTimeTheme(
-        themeMode = if (state.isSettingsOpen) previewTheme else state.themeMode,
-    ) {
+    WorkTimeTheme(themeMode = state.themeMode) {
         Box(modifier = Modifier.fillMaxSize()) {
             CalendarScreen(
                 state = state,
@@ -134,6 +130,7 @@ fun WorkTimeApp(container: AppContainer) {
                 onSelectMonth = viewModel::showMonth,
                 onDayClick = viewModel::selectDate,
                 onSettingsClick = viewModel::openSettings,
+                onOpenYearSummary = viewModel::openYearSummary,
             )
 
             state.selectedDate?.let { date ->
@@ -162,15 +159,14 @@ fun WorkTimeApp(container: AppContainer) {
                     CalendarOperationError.BACKUP_IMPORT -> stringResource(R.string.backup_import_failed)
                     else -> null
                 }
-                SettingsSheet(
+                SettingsScreen(
                     defaultHourlyRateMicros = state.defaultHourlyRateMicros,
                     themeMode = state.themeMode,
                     operationErrorMessage = operationErrorMessage,
                     onDismiss = viewModel::dismissSettings,
-                    onSave = viewModel::updatePreferences,
-                    onPreviewTheme = { previewTheme = it },
-                    onChangeRateForPeriod = viewModel::openChangeRateSheet,
-                    onOpenYearSummary = viewModel::openYearSummary,
+                    onThemeChange = viewModel::updateThemeMode,
+                    onRateChange = viewModel::updateDefaultRate,
+                    onOpenRateHistory = viewModel::openRateHistory,
                     onExportData = {
                         exportLauncher.launch("worktime-backup-" + LocalDate.now() + ".json")
                     },
@@ -185,20 +181,23 @@ fun WorkTimeApp(container: AppContainer) {
                 )
             }
 
+            if (state.isRateHistoryOpen) {
+                RateHistoryScreen(
+                    periods = state.ratePeriods,
+                    onDismiss = viewModel::dismissRateHistory,
+                    onEditPeriod = { period ->
+                        viewModel.openRatePeriodEditor(period.start..period.end)
+                    },
+                    onAddPeriod = { viewModel.openRatePeriodEditor(null) },
+                )
+            }
+
             if (state.isYearSummaryOpen) {
-                YearSummarySheet(
+                YearSummaryScreen(
                     summary = state.yearSummary,
                     onDismiss = viewModel::dismissYearSummary,
                     onPreviousYear = viewModel::showPreviousYear,
                     onNextYear = viewModel::showNextYear,
-                )
-            }
-
-            state.pendingImportCount?.let { pendingCount ->
-                ImportConfirmationDialog(
-                    pendingCount = pendingCount,
-                    onConfirm = viewModel::confirmImport,
-                    onDismiss = viewModel::cancelImport,
                 )
             }
 
@@ -209,9 +208,18 @@ fun WorkTimeApp(container: AppContainer) {
                 }
                 ChangeRateSheet(
                     visibleMonth = state.visibleMonth,
+                    initialRange = state.changeRateInitialRange,
                     operationErrorMessage = operationErrorMessage,
                     onDismiss = viewModel::dismissChangeRateSheet,
                     onChangeRate = viewModel::changeRateForPeriod,
+                )
+            }
+
+            state.pendingImportCount?.let { pendingCount ->
+                ImportConfirmationDialog(
+                    pendingCount = pendingCount,
+                    onConfirm = viewModel::confirmImport,
+                    onDismiss = viewModel::cancelImport,
                 )
             }
 

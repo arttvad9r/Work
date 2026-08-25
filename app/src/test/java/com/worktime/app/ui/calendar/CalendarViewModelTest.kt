@@ -67,7 +67,7 @@ class CalendarViewModelTest {
         }
 
         viewModel.exportBackup(failingStream)
-        assertEquals(CalendarOperationEvent.Error.BACKUP_EXPORT, viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BACKUP_EXPORT), viewModel.operationEvents.first())
         viewModel.state.first { it.operationError == CalendarOperationError.BACKUP_EXPORT }
         stateJob.cancel()
     }
@@ -102,7 +102,7 @@ class CalendarViewModelTest {
         viewModel.state.first { it.isReady }
 
         viewModel.importBackup(ByteArrayInputStream("garbage".toByteArray()))
-        assertEquals(CalendarOperationEvent.Error.BACKUP_IMPORT, viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BACKUP_IMPORT), viewModel.operationEvents.first())
         assertEquals(null, viewModel.state.value.pendingImportCount)
         assertEquals(0, repository.replaceAllCalls)
         stateJob.cancel()
@@ -136,7 +136,7 @@ class CalendarViewModelTest {
         viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.confirmImport()
-        assertEquals(CalendarOperationEvent.Error.BACKUP_IMPORT, viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BACKUP_IMPORT), viewModel.operationEvents.first())
 
         assertEquals(backupEntries.size, viewModel.state.value.pendingImportCount)
         stateJob.cancel()
@@ -212,7 +212,7 @@ class CalendarViewModelTest {
             CalendarOperationError.BULK_RATE,
             viewModel.state.first { it.operationError == CalendarOperationError.BULK_RATE }.operationError,
         )
-        assertEquals(CalendarOperationEvent.Error.BULK_RATE, viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BULK_RATE), viewModel.operationEvents.first())
         assertEquals(null, viewModel.state.value.selectedDate)
         stateJob.cancel()
     }
@@ -259,7 +259,7 @@ class CalendarViewModelTest {
 
         viewModel.deleteEntry(LocalDate.of(2026, 8, 10))
 
-        assertEquals(CalendarOperationEvent.Error.DELETE_ENTRY, viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.DELETE_ENTRY), viewModel.operationEvents.first())
         assertFalse(viewModel.state.value.canUndo)
         stateJob.cancel()
     }
@@ -390,7 +390,7 @@ class CalendarViewModelTest {
         repository.restoreError = IllegalStateException()
 
         viewModel.undoLastOperation()
-        assertEquals(CalendarOperationEvent.Error.UNDO, viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.UNDO), viewModel.operationEvents.first())
         assertTrue(viewModel.state.value.canUndo)
         repository.restoreError = null
         viewModel.undoLastOperation()
@@ -410,7 +410,7 @@ class CalendarViewModelTest {
         viewModel.state.first { it.isReady }
 
         viewModel.changeRateForPeriod(LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10), 20_000_000)
-        assertEquals(CalendarOperationEvent.Error.BULK_RATE, viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BULK_RATE), viewModel.operationEvents.first())
         assertEquals(null, viewModel.state.value.selectedDate)
 
         repository.bulkError = null
@@ -420,25 +420,31 @@ class CalendarViewModelTest {
         viewModel.changeRateForPeriod(entry.date, entry.date, 20_000_000)
         assertEquals(CalendarOperationEvent.Success.RATE_UPDATED, viewModel.operationEvents.first())
         viewModel.undoLastOperation()
-        assertEquals(CalendarOperationEvent.Error.UNDO, viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.UNDO), viewModel.operationEvents.first())
         assertEquals(CalendarOperationError.UNDO, viewModel.state.first { it.operationError == CalendarOperationError.UNDO }.operationError)
         assertEquals(null, viewModel.state.value.selectedDate)
         stateJob.cancel()
     }
 
     @Test
-    fun `opening change rate sheet closes settings`() = runTest {
+    fun `opening rate period editor keeps settings and history open`() = runTest {
         val repository = FakeWorkEntryRepository(emptyList())
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
 
         viewModel.openSettings()
-        viewModel.openChangeRateSheet()
+        viewModel.openRateHistory()
+        viewModel.openRatePeriodEditor(null)
         advanceUntilIdle()
 
-        assertFalse(viewModel.state.first { it.isChangeRateSheetOpen }.isSettingsOpen)
-        assertTrue(viewModel.state.value.isChangeRateSheetOpen)
+        // Flags propagate through separate combine chains; wait for all of them.
+        val state = viewModel.state.first {
+            it.isChangeRateSheetOpen && it.isRateHistoryOpen && it.isSettingsOpen
+        }
+        assertTrue(state.isSettingsOpen)
+        assertTrue(state.isRateHistoryOpen)
+        assertTrue(state.isChangeRateSheetOpen)
 
         viewModel.dismissChangeRateSheet()
         assertFalse(viewModel.state.first { !it.isChangeRateSheetOpen }.isChangeRateSheetOpen)
@@ -452,7 +458,7 @@ class CalendarViewModelTest {
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
-        viewModel.openChangeRateSheet()
+        viewModel.openRatePeriodEditor(null)
         advanceUntilIdle()
 
         viewModel.changeRateForPeriod(entry.date, entry.date, 20_000_000)
@@ -467,13 +473,13 @@ class CalendarViewModelTest {
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
-        viewModel.openChangeRateSheet()
+        viewModel.openRatePeriodEditor(null)
         advanceUntilIdle()
 
         viewModel.changeRateForPeriod(LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10), 20_000_000)
         advanceUntilIdle()
 
-        assertEquals(CalendarOperationEvent.Error.BULK_RATE, viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BULK_RATE), viewModel.operationEvents.first())
         assertTrue(viewModel.state.first { it.isChangeRateSheetOpen }.isChangeRateSheetOpen)
         stateJob.cancel()
     }

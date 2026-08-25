@@ -14,7 +14,10 @@ data class CalendarUiState(
     val defaultHourlyRateMicros: Long = 0L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isSettingsOpen: Boolean = false,
+    val isRateHistoryOpen: Boolean = false,
+    val ratePeriods: List<RatePeriodUi> = emptyList(),
     val isChangeRateSheetOpen: Boolean = false,
+    val changeRateInitialRange: ClosedRange<LocalDate>? = null,
     val isYearSummaryOpen: Boolean = false,
     val yearSummary: YearSummary? = null,
     val isReady: Boolean = false,
@@ -38,6 +41,16 @@ data class YearSummary(
         get() = months.count { it.totalPayMicros != 0L || it.workedMinutes != 0 }
 }
 
+/**
+ * One contiguous run of entries sharing the same hourly rate — the closest thing
+ * to a "rate period" the per-entry data model provides.
+ */
+data class RatePeriodUi(
+    val start: LocalDate,
+    val end: LocalDate,
+    val rateMicros: Long,
+)
+
 enum class CalendarOperationError {
     SAVE_ENTRY,
     DELETE_ENTRY,
@@ -58,13 +71,23 @@ sealed interface CalendarOperationEvent {
         NO_OP,
     }
 
-    enum class Error : CalendarOperationEvent {
-        SAVE_ENTRY,
-        DELETE_ENTRY,
-        SAVE_SETTINGS,
-        BULK_RATE,
-        UNDO,
-        BACKUP_EXPORT,
-        BACKUP_IMPORT,
+    data class Error(val kind: CalendarOperationError) : CalendarOperationEvent
+}
+
+/**
+ * Groups chronologically sorted entries into maximal same-rate runs.
+ * The last run is the current period; the oldest one is open-ended in the past.
+ */
+internal fun buildRatePeriods(entries: List<WorkEntry>): List<RatePeriodUi> {
+    if (entries.isEmpty()) return emptyList()
+    val periods = mutableListOf<RatePeriodUi>()
+    for (entry in entries.sortedBy { it.date }) {
+        val last = periods.lastOrNull()
+        if (last != null && last.rateMicros == entry.hourlyRateMicros) {
+            periods[periods.lastIndex] = last.copy(end = entry.date)
+        } else {
+            periods += RatePeriodUi(entry.date, entry.date, entry.hourlyRateMicros)
+        }
     }
+    return periods
 }

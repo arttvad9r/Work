@@ -20,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
@@ -47,13 +49,20 @@ fun CompactMoneyField(
     isError: Boolean,
     contentDescription: String,
     modifier: Modifier = Modifier,
+    autoFocus: Boolean = false,
+    onLostFocus: (() -> Unit)? = null,
 ) {
     val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
+    var hadFocus by remember { mutableStateOf(false) }
     var fieldValue by remember { mutableStateOf(TextFieldValue(text, TextRange(text.length))) }
     LaunchedEffect(text) {
         if (text != fieldValue.text) {
             fieldValue = TextFieldValue(text, TextRange(text.length))
         }
+    }
+    LaunchedEffect(autoFocus) {
+        if (autoFocus) focusRequester.requestFocus()
     }
     Surface(
         modifier = modifier.width(120.dp),
@@ -87,9 +96,11 @@ fun CompactMoneyField(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .focusRequester(focusRequester)
                     .onFocusChanged { focusState ->
-                        if (focusState.isFocused && fieldValue.text == "0") {
-                            fieldValue = fieldValue.copy(selection = TextRange(0, fieldValue.text.length))
+                        if (focusState.isFocused) hadFocus = true
+                        if (onLostFocus != null && hadFocus && !focusState.isFocused && !focusState.hasFocus) {
+                            onLostFocus()
                         }
                     }
                     .semantics { this.contentDescription = contentDescription },

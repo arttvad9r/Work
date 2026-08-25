@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -24,18 +23,20 @@ import androidx.compose.foundation.text.input.byValue
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldLabelPosition
@@ -415,8 +416,10 @@ private fun NumericEditorSection(
 ) {
     val fieldHeight = 64.dp
     val buttonHeight = 48.dp
-    val gap = 8.dp
-    val adjustmentTop = fieldHeight + gap
+    val gap = 10.dp
+    val rateY = fieldHeight + gap
+    // Duration occupies row one; the rate row sits below as a secondary line.
+    val adjustmentTop = rateY + fieldHeight + gap
     val expandedAdjustments = bonusVisible || penaltyVisible
     val bonusSlotHeight = if (bonusVisible) fieldHeight else buttonHeight
     val penaltySlotHeight = if (penaltyVisible) fieldHeight else buttonHeight
@@ -431,9 +434,6 @@ private fun NumericEditorSection(
             .fillMaxWidth()
             .height(sectionHeight),
     ) {
-        val halfWidth = (maxWidth - gap) / 2f
-        val rateX = halfWidth + gap
-
         if (activeField != NumericField.Duration) {
             PassiveDurationField(
                 state = durationState,
@@ -441,19 +441,18 @@ private fun NumericEditorSection(
                 isError = durationHasError,
                 onClick = { onActivateField(NumericField.Duration) },
                 modifier = Modifier
-                    .width(halfWidth)
+                    .fillMaxWidth()
                     .height(fieldHeight),
             )
         }
         if (activeField != NumericField.Rate) {
-            PassiveMoneyField(
-                state = rateState,
-                label = stringResource(R.string.hourly_rate),
+            RateSummaryRow(
+                rateText = rateState.text.toString(),
                 isError = rateHasError,
                 onClick = { onActivateField(NumericField.Rate) },
                 modifier = Modifier
-                    .offset(x = rateX)
-                    .width(halfWidth)
+                    .offset(y = rateY)
+                    .fillMaxWidth()
                     .height(fieldHeight),
             )
         }
@@ -464,15 +463,15 @@ private fun NumericEditorSection(
                 onClick = onShowBonus,
                 modifier = Modifier
                     .offset(y = adjustmentTop)
-                    .width(halfWidth)
+                    .width((maxWidth - gap) / 2f)
                     .height(buttonHeight),
             )
             AdjustmentButton(
                 text = stringResource(R.string.add_penalty),
                 onClick = onShowPenalty,
                 modifier = Modifier
-                    .offset(x = rateX, y = adjustmentTop)
-                    .width(halfWidth)
+                    .offset(x = (maxWidth + gap) / 2f, y = adjustmentTop)
+                    .width((maxWidth - gap) / 2f)
                     .height(buttonHeight),
             )
         } else {
@@ -533,12 +532,12 @@ private fun NumericEditorSection(
             NumericField.Duration -> {
                 editorX = 0.dp
                 editorY = 0.dp
-                editorWidth = halfWidth
+                editorWidth = maxWidth
             }
             NumericField.Rate -> {
-                editorX = rateX
-                editorY = 0.dp
-                editorWidth = halfWidth
+                editorX = 0.dp
+                editorY = rateY
+                editorWidth = maxWidth
             }
             NumericField.Bonus -> {
                 editorX = 0.dp
@@ -570,6 +569,49 @@ private fun NumericEditorSection(
                 .focusRequester(editorFocusRequester)
                 .onFocusChanged { onEditorFocusChanged(it.isFocused) },
         )
+    }
+}
+
+/** Inactive rate line: visually secondary, tap to edit the rate for this shift. */
+@Composable
+private fun RateSummaryRow(
+    rateText: String,
+    isError: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.clickable(onClick = onClick),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.at_rate),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = if (rateText.isBlank()) {
+                    "—"
+                } else {
+                    stringResource(R.string.rate_with_currency, rateText)
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                maxLines = 1,
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -716,57 +758,54 @@ private fun CalculationSummary(
     draft: WorkEntry?,
     totalMicros: Long?,
 ) {
+    // No empty "calculation" card while there is nothing to calculate yet.
+    if (draft == null || totalMicros == null) return
     val locale = LocalLocale.current.platformLocale
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
+    val entryPay = SalaryCalculator.entryPay(draft)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.calculation),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+        CalculationRow(
+            label = stringResource(
+                R.string.calc_expression,
+                formatDurationCompact(draft.workedMinutes),
+                formatDecimalMicros(draft.hourlyRateMicros),
+            ),
+            value = stringResource(
+                R.string.amount_with_currency,
+                formatAmountMicros(entryPay.basePayMicros, locale),
+            ),
+        )
+        if (draft.bonusMicros > 0L) {
+            CalculationRow(
+                label = stringResource(R.string.calculation_bonus),
+                value = "+" + stringResource(
+                    R.string.amount_with_currency,
+                    formatAmountMicros(draft.bonusMicros, locale),
+                ),
             )
-            if (draft != null && totalMicros != null) {
-                if (draft.bonusMicros > 0L || draft.penaltyMicros > 0L) {
-                    val entryPay = SalaryCalculator.entryPay(draft)
-                    CalculationRow(
-                        label = stringResource(R.string.calculation_base),
-                        value = formatAmountMicros(entryPay.basePayMicros, locale),
-                    )
-                    if (draft.bonusMicros > 0L) {
-                        CalculationRow(
-                            label = "+ ${stringResource(R.string.calculation_bonus)}",
-                            value = formatAmountMicros(draft.bonusMicros, locale),
-                        )
-                    }
-                    if (draft.penaltyMicros > 0L) {
-                        CalculationRow(
-                            label = "− ${stringResource(R.string.calculation_penalty)}",
-                            value = formatAmountMicros(draft.penaltyMicros, locale),
-                        )
-                    }
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.14f),
-                    )
-                }
-                CalculationRow(
-                    label = stringResource(R.string.calculation_total),
-                    value = formatAmountMicros(totalMicros, locale),
-                    emphasized = true,
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.total_unavailable),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
+        if (draft.penaltyMicros > 0L) {
+            CalculationRow(
+                label = stringResource(R.string.calculation_penalty),
+                value = "−" + stringResource(
+                    R.string.amount_with_currency,
+                    formatAmountMicros(draft.penaltyMicros, locale),
+                ),
+            )
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        CalculationRow(
+            label = stringResource(R.string.calculation_total),
+            value = stringResource(
+                R.string.amount_with_currency,
+                formatAmountMicros(totalMicros, locale),
+            ),
+            emphasized = true,
+        )
     }
 }
 
@@ -781,12 +820,23 @@ private fun CalculationRow(
     } else {
         MaterialTheme.typography.bodyMedium
     }
+    val fontWeight = if (emphasized) FontWeight.SemiBold else null
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = label, style = textStyle, fontWeight = if (emphasized) FontWeight.Bold else null)
-        Text(text = value, style = textStyle, fontWeight = if (emphasized) FontWeight.Bold else null)
+        Text(
+            text = label,
+            style = textStyle,
+            fontWeight = fontWeight,
+            maxLines = 1,
+        )
+        Text(
+            text = value,
+            style = textStyle,
+            fontWeight = fontWeight,
+            maxLines = 1,
+        )
     }
 }
 
