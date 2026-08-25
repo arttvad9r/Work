@@ -33,6 +33,7 @@
     <string name="calc_expression">%1$s ч × %2$s ₽</string>
     <string name="calculation_base">По ставке</string>
     <string name="calculation_bonus">Премия</string>
+    <string name="year_bonuses">Премии</string>
     <string name="calculation_penalty">Штраф</string>
     <string name="calculation_total">Итого</string>
     <string name="save">Сохранить</string>
@@ -66,7 +67,8 @@
     <string name="rate_period_range">%1$s — %2$s</string>
 
     <string name="year_summary">Итоги за год</string>
-    <string name="year_stats_title">%1$d год</string>
+    <string name="year_income">Доход за год</string>
+    <string name="year_stats_title">Сводка за год</string>
     <string name="by_month">По месяцам</string>
     <string name="average_working_month">Среднее за рабочий месяц</string>
     <string name="average_shift">Средняя смена</string>

@@ -33,6 +33,7 @@
     <string name="calc_expression">%1$s h × %2$s ₽</string>
     <string name="calculation_base">At hourly rate</string>
     <string name="calculation_bonus">Bonus</string>
+    <string name="year_bonuses">Bonuses</string>
     <string name="calculation_penalty">Penalty</string>
     <string name="calculation_total">Total</string>
     <string name="save">Save</string>
@@ -66,7 +67,8 @@
     <string name="rate_period_range">%1$s — %2$s</string>
 
     <string name="year_summary">Year summary</string>
-    <string name="year_stats_title">Year %1$d</string>
+    <string name="year_income">Income for the year</string>
+    <string name="year_stats_title">Year summary</string>
     <string name="by_month">By month</string>
     <string name="average_working_month">Average per working month</string>
     <string name="average_shift">Average shift</string>

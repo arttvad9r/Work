@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,7 +46,7 @@ import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.CompactMoneyField
-import com.worktime.app.ui.components.LabelValueRow
+import com.worktime.app.ui.components.AppModalBottomSheet
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
 
@@ -162,7 +161,7 @@ fun SettingsScreen(
 private fun SectionLabel(text: String) {
     Text(
         text = text,
-        modifier = Modifier.padding(top = 20.dp, bottom = 4.dp),
+        modifier = Modifier.padding(top = 16.dp, bottom = 6.dp),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -171,7 +170,7 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun SectionDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(top = 12.dp),
+        modifier = Modifier.padding(top = 8.dp),
         color = MaterialTheme.colorScheme.outlineVariant,
     )
 }
@@ -188,14 +187,25 @@ private fun RateRow(
         mutableStateOf(formatDecimalMicros(rateMicros))
     }
     if (!editing) {
-        LabelValueRow(
-            label = stringResource(R.string.settings_rate),
-            value = stringResource(R.string.rate_with_currency, formatDecimalMicros(rateMicros)),
-            valueColor = MaterialTheme.colorScheme.primary,
+        Row(
             modifier = Modifier
+                .fillMaxWidth()
                 .heightIn(min = 56.dp)
                 .clickable(onClick = onEdit),
-        )
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.settings_rate),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         return
     }
     val parsed = runCatching { parseDecimalMicros(rateInput) }.getOrNull()
@@ -235,7 +245,11 @@ private fun ThemeSegmentedControl(
     onSelect: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(44.dp),
+    ) {
         ThemeMode.entries.forEachIndexed { index, mode ->
             SegmentedButton(
                 selected = selected == mode,
@@ -243,9 +257,11 @@ private fun ThemeSegmentedControl(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeMode.entries.size),
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    activeContentColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onSurface,
+                    activeBorderColor = Color.Transparent,
                     inactiveContainerColor = Color.Transparent,
                     inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
                 ),
                 icon = {},
                 label = {
@@ -293,31 +309,39 @@ private fun themeLabel(themeMode: ThemeMode): String = when (themeMode) {
     ThemeMode.DARK -> stringResource(R.string.theme_dark)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ExportFormatDialog(
     onSelectJson: () -> Unit,
     onSelectCsv: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    AppModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.export_format_title)) },
-        text = {
-            Column {
-                ExportFormatOption(
-                    title = stringResource(R.string.export_json_option),
-                    subtitle = stringResource(R.string.export_json_hint),
-                    onClick = onSelectJson,
-                )
-                ExportFormatOption(
-                    title = stringResource(R.string.export_csv_option),
-                    subtitle = stringResource(R.string.export_csv_hint),
-                    onClick = onSelectCsv,
-                )
-            }
-        },
-        confirmButton = {},
-    )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.export_format_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            ExportFormatOption(
+                title = stringResource(R.string.export_json_option),
+                subtitle = stringResource(R.string.export_json_hint),
+                onClick = onSelectJson,
+            )
+            ExportFormatOption(
+                title = stringResource(R.string.export_csv_option),
+                subtitle = stringResource(R.string.export_csv_hint),
+                onClick = onSelectCsv,
+            )
+        }
+    }
 }
 
 @Composable
@@ -330,7 +354,7 @@ private fun ExportFormatOption(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 4.dp),
+            .padding(vertical = 8.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {

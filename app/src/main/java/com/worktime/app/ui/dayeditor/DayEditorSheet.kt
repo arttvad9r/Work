@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,7 +33,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
@@ -40,7 +40,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldLabelPosition
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,11 +64,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.model.WorkEntry
-import com.worktime.app.ui.components.PlainDragHandle
+import com.worktime.app.ui.components.AppModalBottomSheet
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.formatDurationCompact
@@ -268,30 +268,22 @@ private fun DayEditorSheetContent(
     val bonusHasError = parsedBonus == null || parsedBonus > MoneyLimits.MAX_COMPONENT_MICROS
     val penaltyHasError = parsedPenalty == null || parsedPenalty > MoneyLimits.MAX_COMPONENT_MICROS
     val totalMicros = draft?.let { runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull() }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = null,
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PlainDragHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
-
                 Text(
                     text = date.format(
                         DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale),
                     ),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp),
                     fontWeight = FontWeight.SemiBold,
                 )
 
@@ -341,7 +333,7 @@ private fun DayEditorSheetContent(
                     enabled = draft != null && totalMicros != null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 50.dp),
+                        .heightIn(min = 52.dp),
                 ) {
                     Text(stringResource(R.string.save))
                 }
@@ -414,17 +406,17 @@ private fun NumericEditorSection(
     editorFocusRequester: FocusRequester,
     onEditorFocusChanged: (Boolean) -> Unit,
 ) {
-    val fieldHeight = 64.dp
-    val buttonHeight = 48.dp
-    val gap = 10.dp
+    val fieldHeight = 58.dp
+    val gap = 8.dp
     val rateY = fieldHeight + gap
     // Duration occupies row one; the rate row sits below as a secondary line.
     val adjustmentTop = rateY + fieldHeight + gap
     val expandedAdjustments = bonusVisible || penaltyVisible
-    val bonusSlotHeight = if (bonusVisible) fieldHeight else buttonHeight
-    val penaltySlotHeight = if (penaltyVisible) fieldHeight else buttonHeight
+    val bonusSlotHeight = fieldHeight
+    val penaltySlotHeight = fieldHeight
+    val penaltyTop = adjustmentTop + bonusSlotHeight + gap
     val sectionHeight = if (!expandedAdjustments) {
-        adjustmentTop + buttonHeight
+        adjustmentTop + bonusSlotHeight + gap + penaltySlotHeight
     } else {
         adjustmentTop + bonusSlotHeight + gap + penaltySlotHeight
     }
@@ -458,21 +450,21 @@ private fun NumericEditorSection(
         }
 
         if (!expandedAdjustments) {
-            AdjustmentButton(
-                text = stringResource(R.string.add_bonus),
+            AdjustmentSummaryRow(
+                label = stringResource(R.string.bonus),
                 onClick = onShowBonus,
                 modifier = Modifier
                     .offset(y = adjustmentTop)
-                    .width((maxWidth - gap) / 2f)
-                    .height(buttonHeight),
+                    .fillMaxWidth()
+                    .height(fieldHeight),
             )
-            AdjustmentButton(
-                text = stringResource(R.string.add_penalty),
+            AdjustmentSummaryRow(
+                label = stringResource(R.string.penalty),
                 onClick = onShowPenalty,
                 modifier = Modifier
-                    .offset(x = (maxWidth + gap) / 2f, y = adjustmentTop)
-                    .width((maxWidth - gap) / 2f)
-                    .height(buttonHeight),
+                    .offset(y = penaltyTop)
+                    .fillMaxWidth()
+                    .height(fieldHeight),
             )
         } else {
             if (bonusVisible) {
@@ -484,22 +476,21 @@ private fun NumericEditorSection(
                         onClick = { onActivateField(NumericField.Bonus) },
                         modifier = Modifier
                             .offset(y = adjustmentTop)
-                            .fillMaxWidth()
-                            .height(fieldHeight),
+                    .fillMaxWidth()
+                    .height(fieldHeight),
                     )
                 }
             } else {
-                AdjustmentButton(
-                    text = stringResource(R.string.add_bonus),
+                AdjustmentSummaryRow(
+                    label = stringResource(R.string.bonus),
                     onClick = onShowBonus,
                     modifier = Modifier
                         .offset(y = adjustmentTop)
                         .fillMaxWidth()
-                        .height(buttonHeight),
+                    .height(fieldHeight),
                 )
             }
 
-            val penaltyTop = adjustmentTop + bonusSlotHeight + gap
             if (penaltyVisible) {
                 if (activeField != NumericField.Penalty) {
                     PassiveMoneyField(
@@ -509,18 +500,18 @@ private fun NumericEditorSection(
                         onClick = { onActivateField(NumericField.Penalty) },
                         modifier = Modifier
                             .offset(y = penaltyTop)
-                            .fillMaxWidth()
-                            .height(fieldHeight),
+                    .fillMaxWidth()
+                    .height(fieldHeight),
                     )
                 }
             } else {
-                AdjustmentButton(
-                    text = stringResource(R.string.add_penalty),
+                AdjustmentSummaryRow(
+                    label = stringResource(R.string.penalty),
                     onClick = onShowPenalty,
                     modifier = Modifier
                         .offset(y = penaltyTop)
                         .fillMaxWidth()
-                        .height(buttonHeight),
+                    .height(fieldHeight),
                 )
             }
         }
@@ -592,20 +583,27 @@ private fun RateSummaryRow(
             maxLines = 1,
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = if (rateText.isBlank()) {
-                    "—"
-                } else {
-                    stringResource(R.string.rate_with_currency, rateText)
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (isError) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                maxLines = 1,
-            )
+            Box(
+                modifier = Modifier.width(120.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (rateText.isBlank()) {
+                        "—"
+                    } else {
+                        stringResource(R.string.rate_with_currency, rateText)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isError) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+            }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
@@ -616,16 +614,29 @@ private fun RateSummaryRow(
 }
 
 @Composable
-private fun AdjustmentButton(
-    text: String,
+private fun AdjustmentSummaryRow(
+    label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.focusProperties { canFocus = false },
+    Row(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 0.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text, maxLines = 1)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -678,7 +689,9 @@ private fun PersistentNumericEditor(
         },
         textStyle = MaterialTheme.typography.titleMedium.copy(
             textAlign = TextAlign.Center,
+            lineHeight = 20.sp,
         ),
+        contentPadding = NumericFieldContentPadding,
         isError = isError,
         modifier = modifier,
         lineLimits = TextFieldLineLimits.SingleLine,
@@ -765,8 +778,8 @@ private fun CalculationSummary(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(vertical = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         CalculationRow(
             label = stringResource(
@@ -920,7 +933,9 @@ private fun DurationField(
         },
         textStyle = MaterialTheme.typography.titleMedium.copy(
             textAlign = TextAlign.Center,
+            lineHeight = 20.sp,
         ),
+        contentPadding = NumericFieldContentPadding,
         isError = isError,
         modifier = modifier,
         readOnly = readOnly,
@@ -946,7 +961,9 @@ private fun MoneyField(
         labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
         textStyle = MaterialTheme.typography.titleMedium.copy(
             textAlign = TextAlign.Center,
+            lineHeight = 20.sp,
         ),
+        contentPadding = NumericFieldContentPadding,
         isError = isError,
         modifier = modifier.fillMaxWidth(),
         readOnly = readOnly,
@@ -954,3 +971,10 @@ private fun MoneyField(
         keyboardOptions = keyboardOptions,
     )
 }
+
+private val NumericFieldContentPadding = PaddingValues(
+    start = 16.dp,
+    top = 0.dp,
+    end = 16.dp,
+    bottom = 16.dp,
+)

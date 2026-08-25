@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -69,37 +70,37 @@ fun RateHistoryScreen(
                 onBack = onDismiss,
             )
 
-            if (periods.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = if (periods.isEmpty()) Alignment.Center else Alignment.TopCenter,
+            ) {
+                if (periods.isEmpty()) {
                     Text(
                         text = stringResource(R.string.rate_history_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    val currentYear = LocalDate.now().year
-                    periods.forEachIndexed { index, period ->
-                        if (index > 0) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        val currentYear = LocalDate.now().year
+                        periods.forEachIndexed { index, period ->
+                            if (index > 0) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            }
+                            RatePeriodRow(
+                                period = period,
+                                isLatest = index == periods.lastIndex,
+                                isOldest = index == 0 && periods.size > 1,
+                                currentYear = currentYear,
+                                onClick = { onEditPeriod(period) },
+                            )
                         }
-                        RatePeriodRow(
-                            period = period,
-                            isLatest = index == periods.lastIndex,
-                            isOldest = index == 0 && periods.size > 1,
-                            currentYear = currentYear,
-                            onClick = { onEditPeriod(period) },
-                        )
                     }
                 }
             }
@@ -108,7 +109,7 @@ fun RateHistoryScreen(
                 onClick = onAddPeriod,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp),
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
             )
             Box(modifier = Modifier.navigationBarsPadding().height(8.dp))
         }
@@ -129,12 +130,11 @@ private fun RatePeriodRow(
             .fillMaxWidth()
             .heightIn(min = 60.dp)
             .clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = periodLabel(period, isLatest, isOldest, currentYear),
-            modifier = Modifier.weight(1f, fill = false),
+            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -145,9 +145,10 @@ private fun RatePeriodRow(
                 formatDecimalMicros(period.rateMicros),
             ),
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
+        Spacer(modifier = Modifier.size(width = 12.dp, height = 1.dp))
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
@@ -186,7 +187,7 @@ private fun AddPeriodButton(
 ) {
     Row(
         modifier = modifier
-            .heightIn(min = 52.dp)
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .clickable(onClick = onClick),
@@ -196,7 +197,7 @@ private fun AddPeriodButton(
         Icon(
             imageVector = Icons.Filled.Add,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(20.dp),
         )
         Text(
@@ -204,7 +205,7 @@ private fun AddPeriodButton(
             modifier = Modifier.padding(start = 8.dp),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }

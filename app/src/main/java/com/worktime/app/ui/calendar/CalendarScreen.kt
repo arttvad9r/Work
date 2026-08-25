@@ -29,11 +29,10 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +56,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.pluralStringResource
@@ -73,11 +74,11 @@ import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.components.LabelValueRow
+import com.worktime.app.ui.components.AppSheetShape
 import com.worktime.app.ui.components.PlainDragHandle
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import com.worktime.app.ui.format.formatWholeAmountMicros
-import com.worktime.app.ui.theme.LocalWorkTimeColors
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.Month
@@ -150,42 +151,38 @@ fun CalendarScreen(
     BottomSheetScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
-        sheetPeekHeight = 88.dp,
+        // The collapsed summary is part of the content below the calendar. The
+        // sheet itself has no visible peek area until it is expanded.
+        sheetPeekHeight = 0.dp,
         // Material wraps every non-null handle slot in DragHandleWithTooltip. Keep
         // the slot null and render our handle as stable sheet content instead.
         sheetDragHandle = null,
         sheetSwipeEnabled = true,
-        sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        sheetShape = AppSheetShape,
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
-        // Collapsed: transparent sheet so the summary strip floats on the calendar
-        // background. Expanded: opaque surface for the full report.
+        // The sheet is transparent while collapsed and becomes an opaque report
+        // only after the user opens it.
         sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(
             alpha = summaryContentAlpha,
         ),
         sheetContent = {
-            // The strip and the report stay composed in both states. Only visibility
-            // and semantics change, so the measured sheet height and swipe anchors
-            // never jump while a drag is in progress.
             Column(modifier = Modifier.fillMaxWidth()) {
-                PlainDragHandle(
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    onClick = toggleSummary,
-                    accessibilityLabel = stringResource(R.string.monthly_summary),
-                )
-                SummaryStrip(
-                    state = state,
-                    expanded = summaryTargetExpanded,
-                    locale = locale,
-                    onClick = toggleSummary,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                )
+                if (summaryTargetExpanded) {
+                    PlainDragHandle(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        onClick = toggleSummary,
+                        accessibilityLabel = stringResource(R.string.monthly_summary),
+                    )
+                }
                 MonthlySummaryPanel(
                     state = state,
                     onOpenYearSummary = { closeSummaryBehind(onOpenYearSummary) },
                     locale = locale,
                     modifier = Modifier
                         .alpha(summaryContentAlpha)
+                        .navigationBarsPadding()
+                        .padding(bottom = 12.dp)
                         .then(
                             if (summaryTargetExpanded) {
                                 Modifier
@@ -229,18 +226,19 @@ fun CalendarScreen(
                     onSwipeToPrevious = { closeSummaryBehind(onPreviousMonth) },
                     onSwipeToNext = { closeSummaryBehind(onNextMonth) },
                     locale = locale,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .heightIn(max = 480.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                if (state.entries.isEmpty()) {
-                    EmptyMonthPrompt(
-                        onOpenToday = { closeSummaryBehind { onDayClick(LocalDate.now()) } },
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.weight(1f))
+                SummaryStrip(
+                    state = state,
+                    expanded = false,
+                    locale = locale,
+                    onClick = toggleSummary,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 12.dp, bottom = 8.dp)
+                        .navigationBarsPadding(),
+                )
             }
         }
     }
@@ -271,7 +269,7 @@ private fun CalendarHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(48.dp)
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -280,6 +278,7 @@ private fun CalendarHeader(
             IconButton(onClick = onPreviousMonth) {
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    modifier = Modifier.size(22.dp),
                     contentDescription = stringResource(R.string.previous_month),
                 )
             }
@@ -288,13 +287,14 @@ private fun CalendarHeader(
                 modifier = Modifier
                     .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
                     .padding(horizontal = 4.dp),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
             )
             IconButton(onClick = onNextMonth) {
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    modifier = Modifier.size(22.dp),
                     contentDescription = stringResource(R.string.next_month),
                 )
             }
@@ -306,6 +306,7 @@ private fun CalendarHeader(
             IconButton(onClick = onSettingsClick, enabled = state.isReady) {
                 Icon(
                     Icons.Filled.Settings,
+                    modifier = Modifier.size(22.dp),
                     contentDescription = stringResource(R.string.settings),
                 )
             }
@@ -334,7 +335,7 @@ private fun SummaryStrip(
                 .alpha(if (expanded) 0f else 1f)
                 .then(if (expanded) Modifier.clearAndSetSemantics { } else Modifier)
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(MaterialTheme.colorScheme.secondaryContainer)
                 .clickable(
                     enabled = !expanded,
                     onClickLabel = stringResource(R.string.monthly_summary),
@@ -353,14 +354,14 @@ private fun SummaryStrip(
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
             )
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
         // Expanded state: the report header in the same slot.
@@ -382,16 +383,18 @@ private fun SummaryStrip(
 private fun summaryLine(
     shiftCount: Int,
     workedMinutes: Int,
-    totalPayMicros: Long,
     locale: Locale,
+    totalPayMicros: Long? = null,
 ): String {
     val shifts = pluralStringResource(R.plurals.shifts_short, shiftCount, shiftCount)
     val hours = stringResource(R.string.hours_short, formatDurationCompact(workedMinutes))
+    val line = "$shifts · $hours"
+    if (totalPayMicros == null) return line
     val money = stringResource(
         R.string.amount_with_currency,
         formatWholeAmountMicros(totalPayMicros, locale),
     )
-    return "$shifts · $hours · $money"
+    return "$line · $money"
 }
 
 @Composable
@@ -404,19 +407,27 @@ private fun MonthlySummaryPanel(
     val summary = state.summary
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
+            .fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 2.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            Text(
+                text = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale)),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
             Text(
                 text = stringResource(
                     R.string.amount_with_currency,
                     formatWholeAmountMicros(summary.totalPayMicros, locale),
                 ),
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 20.sp,
+                    lineHeight = 24.sp,
+                ),
                 fontWeight = FontWeight.SemiBold,
                 color = if (shouldUseErrorColorForTotal(summary.totalPayMicros)) {
                     MaterialTheme.colorScheme.error
@@ -425,19 +436,18 @@ private fun MonthlySummaryPanel(
                 },
                 maxLines = 1,
             )
+            // The total already sits above; this line carries only shifts and hours.
             Text(
                 text = summaryLine(
                     shiftCount = summary.shiftCount,
                     workedMinutes = summary.workedMinutes,
-                    totalPayMicros = summary.totalPayMicros,
                     locale = locale,
                 ),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
             LabelValueRow(
                 label = stringResource(R.string.calculation_base),
                 value = formatWholeAmountMicros(summary.basePayMicros, locale),
@@ -468,7 +478,6 @@ private fun MonthlySummaryPanel(
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
             YearNavRow(
                 year = state.visibleMonth.year,
                 onClick = onOpenYearSummary,
@@ -482,7 +491,7 @@ private fun YearNavRow(year: Int, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 52.dp)
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .clickable(onClick = onClick)
@@ -491,8 +500,8 @@ private fun YearNavRow(year: Int, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.year_stats_title, year),
-            style = MaterialTheme.typography.bodyLarge,
+            text = stringResource(R.string.year_stats_title),
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
@@ -549,7 +558,7 @@ private fun MonthPickerDialog(
             }
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 monthLabels.chunked(3).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         row.forEach { (month, label) ->
@@ -568,6 +577,13 @@ private fun MonthPickerDialog(
                                     )
                                 },
                                 modifier = Modifier.weight(1f),
+                                border = null,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color.Transparent,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                ),
                             )
                         }
                     }
@@ -592,8 +608,9 @@ private fun CalendarGrid(
 ) {
     val currentOnSwipeToPrevious by rememberUpdatedState(onSwipeToPrevious)
     val currentOnSwipeToNext by rememberUpdatedState(onSwipeToNext)
-    Column(
+    Box(
         modifier = modifier
+            .height(CalendarGridHeight)
             .pointerInput(Unit) {
                 val swipeThresholdPx = MonthSwipeThreshold.toPx()
                 var totalDrag = Offset.Zero
@@ -620,32 +637,36 @@ private fun CalendarGrid(
         val cells = (0L until 42L).map { offset -> gridStart.plusDays(offset) }
         val today = LocalDate.now()
 
-        Row(modifier = Modifier.fillMaxWidth()) {
-            weekdays.forEach { day ->
-                Text(
-                    text = day.getDisplayName(TextStyle.SHORT, locale),
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                )
-            }
-        }
-
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+                .padding(top = 6.dp),
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(28.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                weekdays.forEach { day ->
+                    Text(
+                        text = day.getDisplayName(TextStyle.SHORT, locale),
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                    )
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
             cells.chunked(7).forEach { week ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .height(WeekRowHeight),
                 ) {
                     week.forEach { date ->
                         val isInVisibleMonth = YearMonth.from(date) == state.visibleMonth
@@ -671,7 +692,9 @@ private fun CalendarGrid(
     }
 }
 
-private val DayCellShape = RoundedCornerShape(10.dp)
+private const val CalendarWeekCount = 6
+private val WeekRowHeight = 64.dp
+private val CalendarGridHeight = WeekRowHeight * CalendarWeekCount + 36.dp
 
 @Composable
 private fun DayCell(
@@ -724,98 +747,91 @@ private fun DayCell(
 
     Box(
         modifier = Modifier
-            .padding(1.dp)
             .fillMaxSize()
-            .clip(DayCellShape)
+            .border(
+                width = 0.5.dp,
+                brush = SolidColor(
+                    if (isToday && isInVisibleMonth) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+                    },
+                ),
+                shape = RectangleShape,
+            )
             .background(
                 when {
-                    visibleEntry == null -> Color.Transparent
-                    else -> LocalWorkTimeColors.current.workedDayContainer
-                },
-            )
-            .then(
-                if (isSelected) {
-                    Modifier.border(1.25.dp, MaterialTheme.colorScheme.primary, DayCellShape)
-                } else {
-                    Modifier
+                    isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
+                    visibleEntry != null -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f)
+                    else -> Color.Transparent
                 },
             )
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .clickable(enabled = isInVisibleMonth, onClick = onClick),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 3.dp, horizontal = 2.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Text(
-                text = date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                color = dateColor,
-                maxLines = 1,
-            )
-            if (visibleEntry != null) {
-                if (visibleEntry.workedMinutes > 0) {
-                    Spacer(modifier = Modifier.weight(0.9f))
-                    Text(
-                        text = formatDurationCompact(visibleEntry.workedMinutes),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
-                    Text(
-                        text = formatWholeAmountMicros(totalMicros, locale),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Clip,
-                    )
-                }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(28.dp)
+                    .padding(top = 3.dp, end = 4.dp),
+                contentAlignment = Alignment.TopEnd,
+            ) {
+                Text(
+                    text = date.dayOfMonth.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = dateColor,
+                    maxLines = 1,
+                )
             }
-        }
-
-        AdjustmentDots(
-            hasBonus = (visibleEntry?.bonusMicros ?: 0L) > 0L,
-            hasPenalty = (visibleEntry?.penaltyMicros ?: 0L) > 0L,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 3.dp, end = 3.dp),
-        )
-    }
-}
-
-/** Tiny non-interactive markers for days with bonus/penalty adjustments. */
-@Composable
-private fun AdjustmentDots(
-    hasBonus: Boolean,
-    hasPenalty: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    if (!hasBonus && !hasPenalty) return
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        if (hasBonus) {
-            Box(
-                modifier = Modifier
-                    .size(5.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.primary),
-            )
-        }
-        if (hasPenalty) {
-            Box(
-                modifier = Modifier
-                    .size(5.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.error),
-            )
+            if (visibleEntry != null) {
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp),
+                    text = if (visibleEntry.workedMinutes > 0) {
+                        formatDurationCompact(visibleEntry.workedMinutes)
+                    } else {
+                        ""
+                    },
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 15.sp,
+                        lineHeight = 18.sp,
+                    ),
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                )
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(bottom = 3.dp)
+                        .padding(horizontal = 2.dp),
+                    text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
+                        formatWholeAmountMicros(totalMicros, locale)
+                    } else {
+                        ""
+                    },
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        lineHeight = 13.sp,
+                    ),
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                )
+            }
         }
     }
 }
@@ -852,37 +868,6 @@ internal fun buildDayCellDescription(
     bonusText,
     penaltyText,
 ).joinToString(", ")
-
-@Composable
-private fun EmptyMonthPrompt(
-    onOpenToday: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 16.dp, end = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.empty_month_prompt),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-            TextButton(onClick = onOpenToday) {
-                Text(stringResource(R.string.open_today))
-            }
-        }
-    }
-}
 
 @Composable
 private fun formatDuration(minutes: Int): String {
