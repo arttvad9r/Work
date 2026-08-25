@@ -31,21 +31,33 @@ class DataStoreUserPreferencesRepository(
         }
         .map(::toUserPreferences)
 
+    override val defaultRateInitialized: Flow<Boolean> = context.userPreferencesDataStore.data
+        .catch { error ->
+            if (error is IOException) emit(emptyPreferences()) else throw error
+        }
+        .map { preferences ->
+            preferences[Keys.DEFAULT_RATE_INITIALIZED]
+                ?: (preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] ?: 0L) != 0L
+        }
+
     override suspend fun update(
         defaultHourlyRateMicros: Long,
         themeMode: ThemeMode,
+        defaultRateInitialized: Boolean,
     ) {
         require(defaultHourlyRateMicros in 0..MoneyLimits.MAX_COMPONENT_MICROS)
 
         context.userPreferencesDataStore.edit { preferences ->
             preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] = defaultHourlyRateMicros
             preferences[Keys.THEME_MODE] = themeMode.name
+            preferences[Keys.DEFAULT_RATE_INITIALIZED] = defaultRateInitialized
         }
     }
 
     override suspend fun updateThemeMode(themeMode: ThemeMode) {
         context.userPreferencesDataStore.edit { preferences ->
             preferences[Keys.THEME_MODE] = themeMode.name
+            preferences[Keys.DEFAULT_RATE_INITIALIZED] = true
         }
     }
 
@@ -53,15 +65,24 @@ class DataStoreUserPreferencesRepository(
         require(defaultHourlyRateMicros in 0..MoneyLimits.MAX_COMPONENT_MICROS)
         context.userPreferencesDataStore.edit { preferences ->
             preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] = defaultHourlyRateMicros
+            preferences[Keys.DEFAULT_RATE_INITIALIZED] = true
         }
     }
 
-    override suspend fun adoptDefaultHourlyRateIfUnset(defaultHourlyRateMicros: Long): Boolean {
+    override suspend fun adoptDefaultHourlyRateIfUninitialized(defaultHourlyRateMicros: Long): Boolean {
         require(defaultHourlyRateMicros in 1..MoneyLimits.MAX_COMPONENT_MICROS)
         var adopted = false
         context.userPreferencesDataStore.edit { preferences ->
+            if (preferences[Keys.DEFAULT_RATE_INITIALIZED] == true) return@edit
+            if (preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] != null &&
+                preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] != 0L
+            ) {
+                preferences[Keys.DEFAULT_RATE_INITIALIZED] = true
+                return@edit
+            }
             if ((preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] ?: 0L) == 0L) {
                 preferences[Keys.DEFAULT_HOURLY_RATE_MICROS] = defaultHourlyRateMicros
+                preferences[Keys.DEFAULT_RATE_INITIALIZED] = true
                 adopted = true
             }
         }
@@ -86,5 +107,8 @@ class DataStoreUserPreferencesRepository(
     private object Keys {
         val DEFAULT_HOURLY_RATE_MICROS = longPreferencesKey("default_hourly_rate_micros")
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val DEFAULT_RATE_INITIALIZED = androidx.datastore.preferences.core.booleanPreferencesKey(
+            "default_rate_initialized",
+        )
     }
 }

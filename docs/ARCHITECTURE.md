@@ -35,13 +35,14 @@ The legacy `note` column is retained to avoid a destructive schema change. The c
 Current preferences:
 
 - default hourly rate micros;
-- theme mode.
+- theme mode;
+- whether the first-entry default-rate adoption has already been decided.
 
 An old stored currency key may remain on upgraded installations but is not read or written.
 
 ## Amount model
 
-Amounts are neutral decimal values stored as `Long` micros. There is no currency model in current application state.
+Amounts are stored as `Long` micros. The UI formats them with the fixed `₽`/`₽/h` presentation strings; there is no selectable currency or exchange-rate model.
 
 ```text
 ratePay = roundHalfUp(workedMinutes x hourlyRateMicros / 60)
@@ -55,7 +56,9 @@ Parsing rejects malformed/exponent input. `MoneyLimits` bounds user-entered comp
 
 - `CalendarScreen`: fixed calendar, fixed summary, standard draggable report sheet.
 - `DayEditorSheet`: draft validation and create/edit/delete actions.
-- `SettingsSheet`: default rate and theme.
+- `SettingsScreen`: default rate, theme and data operations.
+- `RateHistoryScreen`: grouped ranges of recorded entries, not continuous effective-rate periods.
+- `YearSummaryScreen`: view-only yearly statistics.
 - `MoneyFormatting` and `DurationFormatting`: presentation-boundary formatting only.
 
-Write failures keep the relevant sheet open and expose a generic localized error without logging personal values.
+Write failures keep the relevant editor/settings surface open where applicable and expose a generic localized error without logging personal values. Import is validated before confirmation and compensated across Room/DataStore: a failure after replacement attempts to restore both snapshots; rollback failure is reported separately.

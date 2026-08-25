@@ -17,11 +17,11 @@ open month -> tap a day -> enter duration and hourly rate -> save
 - a separate draggable bottom report with days, hours, optional bonus/penalty and total;
 - one day-editor sheet with duration and hourly rate on one row;
 - optional bonus above optional penalty;
-- compact settings sheet with hourly rate and system/light/dark theme;
+- full-screen settings pages for hourly rate, statistics, rate history and system/light/dark theme;
 - controlled light/dark color palettes and consistent Material 3 shapes;
 - portrait-only application layout.
 
-Currency selection, currency symbols, notes and quick-duration presets are intentionally not part of the product. Numeric amounts are shown as neutral values. A fractional part is shown only when it is non-zero. Durations are displayed as `0`, `15` or `15:30`.
+There is no currency selector or conversion model; the current presentation uses the fixed `₽` and `₽/h` labels. Notes and quick-duration presets are intentionally not part of the product. A fractional part is shown only when it is non-zero. Durations are displayed as `0`, `15` or `15:30`.
 
 Numeric validation is deliberately compact: invalid input is indicated by the red field outline without helper text. Persistence failures are separate operational errors and are shown transiently without changing sheet geometry.
 

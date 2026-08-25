@@ -42,14 +42,12 @@ data class YearSummary(
         get() = monthHasData.count { it }
 }
 
-/**
- * One contiguous run of entries sharing the same hourly rate — the closest thing
- * to a "rate period" the per-entry data model provides.
- */
+/** A grouped view of recorded entries sharing one hourly rate, not an effective period. */
 data class RatePeriodUi(
     val start: LocalDate,
     val end: LocalDate,
     val rateMicros: Long,
+    val entryCount: Int,
 )
 
 enum class CalendarOperationError {
@@ -78,8 +76,9 @@ sealed interface CalendarOperationEvent {
 }
 
 /**
- * Groups chronologically sorted entries into maximal same-rate runs.
- * The last run is the current period; the oldest one is open-ended in the past.
+ * Groups chronologically sorted entries into same-rate runs for display.
+ * The dates are the first and last recorded entries in each group; gaps are not
+ * treated as evidence that the rate was continuously effective.
  */
 internal fun buildRatePeriods(entries: List<WorkEntry>): List<RatePeriodUi> {
     if (entries.isEmpty()) return emptyList()
@@ -87,9 +86,9 @@ internal fun buildRatePeriods(entries: List<WorkEntry>): List<RatePeriodUi> {
     for (entry in entries.sortedBy { it.date }) {
         val last = periods.lastOrNull()
         if (last != null && last.rateMicros == entry.hourlyRateMicros) {
-            periods[periods.lastIndex] = last.copy(end = entry.date)
+            periods[periods.lastIndex] = last.copy(end = entry.date, entryCount = last.entryCount + 1)
         } else {
-            periods += RatePeriodUi(entry.date, entry.date, entry.hourlyRateMicros)
+            periods += RatePeriodUi(entry.date, entry.date, entry.hourlyRateMicros, entryCount = 1)
         }
     }
     return periods

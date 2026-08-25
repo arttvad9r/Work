@@ -4,6 +4,15 @@ All notable changes are documented here.
 
 ## [Unreleased] - 2026-08-22
 
+### Reliability follow-up — 2026-08-26
+
+- Import compensation now runs in a short non-cancellable rollback section after a Room replacement; cancellation remains cancellation after successful rollback and rollback failures have a separate error state.
+- First-entry default-rate adoption is persisted as a one-time decision, including an explicit user reset to zero; concurrent preference updates are serialized.
+- Adoption failures are global transient events, while the saved entry remains successful.
+- Rate history now describes grouped recorded entries rather than implying continuous effective periods.
+- Widget month observation reacts to system date/time/timezone invalidation broadcasts.
+- CI actions are pinned to commit SHAs; the Nix flake declares Linux-only support because its Android FHS wrapper uses `steam-run`.
+
 ### Maintenance
 
 - Over-engineering audit cleanup: removed source-text pinning from `scripts/static_audit.py` (behavior is covered by unit/UI tests), deleted eight point-in-time QA/baseline/research docs and the committed plan artifact, merged the duplicate `CalendarOperationEvent.Error` enum into `CalendarOperationError`, collapsed the seven copy-pasted operation scaffolds in `CalendarViewModel` into one `runOperation` helper, replaced the hand-rolled CSV decimal truncation with `BigDecimal`, unified four identical label/value row composables into `LabelValueRow`, swapped the hand-built top bar for Material 3's `CenterAlignedTopAppBar`, dropped the single-property `WorkTimeThemeDefaults` wrapper and ignored `.opencode/`.
@@ -23,13 +32,13 @@ All notable changes are documented here.
 
 - Added an optional 3x2 home-screen widget mirroring the fixed monthly summary (`Work days`, `Hours worked`, `Monthly income` as label-colon-value rows).
 - The widget follows the app's light/dark primary-container palette and opens the main screen on tap.
-- While the app process is alive the widget updates on every entry change; with the process dead the 30-minute system update tick keeps it current.
+- While the app process is alive the widget updates on every entry change and system date/time/timezone invalidation; with the process dead the system update tick keeps it current.
 
 ### Data export and import
 
 - Settings `Data and operations` gained `Export data` and `Import data`: a versioned JSON file covering every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme).
 - `Export data` asks for the format first — JSON backup or a spreadsheet-friendly CSV (`date,duration,hourly_rate,bonus,penalty,total`, dot-decimal amounts); export-only, import stays JSON.
-- Import parses and validates the file first, then replaces all entries and settings atomically after an explicit confirmation dialog; malformed or unsupported files show a localized error without writing anything.
+- Import parses and validates the file first, then replaces all entries and settings after an explicit confirmation dialog with compensated Room/DataStore rollback on failure; malformed or unsupported files show a localized error without writing anything.
 - Export/import streams are owned by the view model so a slow write cannot race stream close and fail the operation.
 
 ### Settings layout

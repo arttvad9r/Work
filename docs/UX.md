@@ -123,7 +123,7 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 - `Export data` asks for the format, then opens the system save dialog — `worktime-backup-YYYY-MM-DD.json` for JSON (a versioned file containing every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme)) or `worktime-YYYY-MM-DD.csv` for CSV (a spreadsheet-friendly table: `date,duration,hourly_rate,bonus,penalty,total`, one row per entry, dot-decimal amounts, `H:MM` durations). CSV is export-only; import stays JSON.
 - `Import data` opens the system file picker, parses and validates the file first, then asks for confirmation: the dialog states how many entries the file holds and that current entries and settings will be replaced.
-- Confirming an import replaces all entries and settings atomically in one transaction; a failed replace keeps the parsed file so the replace can be retried. Imports have no undo — the confirmation dialog is the safety gate.
+- Confirming an import validates the full file first, then replaces Room/DataStore state with compensation snapshots. If the second store fails or the operation is cancelled after replacement, the previous state is restored where possible; rollback failure is reported separately. The parsed file remains available for retry until import succeeds or is cancelled. Imports have no undo — the confirmation dialog is the safety gate.
 - A malformed or unsupported file shows a localized error in the settings sheet and writes nothing.
 - Export/import success confirms through the root Snackbar; failures surface in the settings sheet like other operation errors.
 

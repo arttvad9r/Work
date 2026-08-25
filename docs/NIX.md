@@ -12,7 +12,7 @@ nix develop
 
 ## Provided tools
 
-The default dev shell provides:
+The supported dev shell targets Linux/NixOS and provides:
 
 - JDK 17;
 - Gradle 9 series;

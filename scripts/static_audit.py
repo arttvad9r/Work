@@ -144,6 +144,19 @@ for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
 
 build_file = (APP / "build.gradle.kts").read_text(encoding="utf-8")
 catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
+wrapper_file = (ROOT / "gradle/wrapper/gradle-wrapper.properties").read_text(encoding="utf-8")
+workflow_file = (ROOT / ".github/workflows/android.yml").read_text(encoding="utf-8")
+flake_file = (ROOT / "flake.nix").read_text(encoding="utf-8")
+if "distributionSha256Sum=" not in wrapper_file:
+    fail("Gradle wrapper distributionSha256Sum is missing")
+if re.search(r"release\s*\{[^}]*signingConfig\s*=\s*signingConfigs\.getByName\(\"debug\"\)", build_file, re.DOTALL):
+    fail("Release build must not use debug signing")
+for action, sha in re.findall(r"uses:\s*([^@\s]+)@([0-9a-fA-F]+)", workflow_file):
+    if len(sha) != 40:
+        fail(f"GitHub Action is not pinned to a full commit SHA: {action}@{sha}")
+if "x86_64-darwin" in flake_file or "aarch64-darwin" in flake_file:
+    if "steam-run" in flake_file:
+        fail("Darwin is declared while the flake unconditionally uses Linux-only steam-run")
 if 'testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"' not in build_file:
     fail("AndroidJUnitRunner is not configured")
 if 'androidx.test:runner' not in build_file and 'androidx.test:runner' not in catalog_file:

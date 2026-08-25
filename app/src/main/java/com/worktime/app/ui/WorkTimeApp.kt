@@ -53,6 +53,7 @@ fun WorkTimeApp(container: AppContainer) {
     val undoFailedMessage = stringResource(R.string.undo_failed)
     val backupExportedMessage = stringResource(R.string.backup_exported)
     val backupImportedMessage = stringResource(R.string.backup_imported)
+    val defaultRateAdoptionFailedMessage = stringResource(R.string.default_rate_adoption_failed)
     // Channel has no replay, so restarting this collector (e.g. on locale change)
     // cannot redisplay an already-consumed event.
     LaunchedEffect(
@@ -63,6 +64,7 @@ fun WorkTimeApp(container: AppContainer) {
         undoFailedMessage,
         backupExportedMessage,
         backupImportedMessage,
+        defaultRateAdoptionFailedMessage,
     ) {
         viewModel.operationEvents.collect { event ->
             when (event) {
@@ -77,8 +79,12 @@ fun WorkTimeApp(container: AppContainer) {
                 // Undo fires from a consumed root snackbar after every sheet is gone,
                 // so it is the only error with no owning surface to display it.
                 is CalendarOperationEvent.Error ->
-                    if (event.kind == CalendarOperationError.UNDO) {
-                        snackbarHostState.showSnackbar(undoFailedMessage, duration = SnackbarDuration.Long)
+                    when (event.kind) {
+                        CalendarOperationError.UNDO ->
+                            snackbarHostState.showSnackbar(undoFailedMessage, duration = SnackbarDuration.Long)
+                        CalendarOperationError.DEFAULT_RATE_ADOPTION ->
+                            snackbarHostState.showSnackbar(defaultRateAdoptionFailedMessage, duration = SnackbarDuration.Long)
+                        else -> Unit
                     }
                 else -> Unit
             }
@@ -132,8 +138,6 @@ fun WorkTimeApp(container: AppContainer) {
             state.selectedDate?.let { date ->
                 val operationErrorMessage = when (state.operationError) {
                     CalendarOperationError.SAVE_ENTRY -> stringResource(R.string.save_entry_failed)
-                    CalendarOperationError.DEFAULT_RATE_ADOPTION ->
-                        stringResource(R.string.default_rate_adoption_failed)
                     CalendarOperationError.DELETE_ENTRY -> stringResource(R.string.delete_entry_failed)
                     CalendarOperationError.BULK_RATE -> stringResource(R.string.bulk_rate_failed)
                     CalendarOperationError.UNDO -> stringResource(R.string.undo_failed)

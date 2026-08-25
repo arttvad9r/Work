@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -253,14 +254,11 @@ class CalendarViewModel(
         runOperation(CalendarOperationError.SAVE_ENTRY, body = {
             workEntryRepository.save(entry)
             selectedDate.value = null
-        }, onSuccess = {
-            viewModelScope.launch {
-                try {
-                    adoptDefaultRateFrom(entry)
-                } catch (error: Exception) {
-                    if (error is CancellationException) throw error
-                    reportOperationError(CalendarOperationError.DEFAULT_RATE_ADOPTION)
-                }
+            try {
+                adoptDefaultRateFrom(entry)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                reportOperationError(CalendarOperationError.DEFAULT_RATE_ADOPTION)
             }
         })
     }
@@ -268,7 +266,7 @@ class CalendarViewModel(
     // First ever entry sets the default rate; an existing default is never overwritten.
     private suspend fun adoptDefaultRateFrom(entry: WorkEntry) {
         if (entry.hourlyRateMicros <= 0L) return
-        userPreferencesRepository.adoptDefaultHourlyRateIfUnset(entry.hourlyRateMicros)
+        userPreferencesRepository.adoptDefaultHourlyRateIfUninitialized(entry.hourlyRateMicros)
     }
 
     fun deleteEntry(date: LocalDate) {
@@ -322,7 +320,9 @@ class CalendarViewModel(
         operationError.value = null
         viewModelScope.launch {
             try {
-                userPreferencesRepository.updateThemeMode(themeMode)
+                operationMutex.withLock {
+                    userPreferencesRepository.updateThemeMode(themeMode)
+                }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 operationError.value = CalendarOperationError.SAVE_SETTINGS
@@ -335,7 +335,9 @@ class CalendarViewModel(
         operationError.value = null
         viewModelScope.launch {
             try {
-                userPreferencesRepository.updateDefaultHourlyRate(defaultHourlyRateMicros)
+                operationMutex.withLock {
+                    userPreferencesRepository.updateDefaultHourlyRate(defaultHourlyRateMicros)
+                }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 operationError.value = CalendarOperationError.SAVE_SETTINGS
@@ -383,6 +385,7 @@ class CalendarViewModel(
         runOperation(CalendarOperationError.BACKUP_IMPORT, body = {
             val oldEntries = workEntryRepository.getAll()
             val oldPreferences = userPreferencesRepository.preferences.first()
+            val oldDefaultRateInitialized = userPreferencesRepository.defaultRateInitialized.first()
             var replaced = false
             try {
                 workEntryRepository.replaceAll(data.entries)
@@ -392,15 +395,17 @@ class CalendarViewModel(
                     themeMode = data.preferences.themeMode,
                 )
             } catch (error: Exception) {
-                if (error is CancellationException) throw error
                 if (!replaced) throw error
                 try {
-                    workEntryRepository.replaceAll(oldEntries)
+                    withContext(NonCancellable) {
+                        workEntryRepository.replaceAll(oldEntries)
                     userPreferencesRepository.update(
                         defaultHourlyRateMicros = oldPreferences.defaultHourlyRateMicros,
                         themeMode = oldPreferences.themeMode,
+                        defaultRateInitialized = oldDefaultRateInitialized,
                     )
-                } catch (rollbackError: Exception) {
+                    }
+                } catch (rollbackError: Throwable) {
                     throw ImportRollbackException(rollbackError)
                 }
                 throw error

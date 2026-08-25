@@ -27,7 +27,7 @@ It is a modern salary calendar, not a project tracker, shift planner, timer, HR 
 - The calendar uses a minimal horizontal safety margin so the seven columns have as much usable width as practical on a portrait phone.
 - Filled cells show a centered compact duration and a rounded whole-number daily amount with no fractional digits.
 - Bonus and penalty have distinct centered markers.
-- An empty month offers a prompt that opens today's editor directly.
+- Empty months remain visually empty; the calendar is the entry point for choosing a date.
 - Application orientation remains locked to portrait.
 
 ### Day editor
@@ -61,9 +61,9 @@ The draggable report shows:
 
 The report opens by tap or drag. Holding its handle must not show Material's drag-handle tooltip.
 
-### Settings
+### Settings screens
 
-The sheet is grouped into `Calculation`, `Statistics`, `Appearance` and `Data and operations`:
+Settings use full-screen pages grouped into `Calculation`, `Statistics`, `Appearance` and `Data and operations`:
 
 - default hourly rate and change rate for period (Calculation);
 - year totals with a twelve-month breakdown (Statistics);
@@ -85,7 +85,7 @@ The year summary is view-only: it aggregates one selected year (total income, wo
 - Historical records retain their saved hourly rate.
 - A bulk rate change affects every record in the inclusive period regardless of each record's current rate, and updates only the stored hourly rate; the default rate is never modified.
 - Entry deletion and bulk rate changes can be undone through the success Snackbar. Undo covers only the most recent such operation, lives in memory for the process lifetime and does not survive process death.
-- Numeric amounts are neutral values; there is no currency setting or exchange-rate behavior.
+- The UI uses fixed `₽` and `₽/h` labels; there is no currency selector or exchange-rate behavior.
 - User-entered amounts accept at most two fractional digits.
 - Normal amount displays use at most two fractional digits and omit a zero fractional part; compact calendar day cells intentionally show only a rounded whole number.
 - Domain/data calculations store integer micros (six decimal places of internal precision) and never use persisted binary floating point.

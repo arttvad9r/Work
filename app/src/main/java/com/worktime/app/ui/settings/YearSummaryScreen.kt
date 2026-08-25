@@ -13,7 +13,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -75,7 +76,7 @@ fun YearSummaryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(36.dp),
+                    .heightIn(min = 48.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onPreviousYear, modifier = Modifier.size(40.dp)) {
@@ -113,6 +114,7 @@ fun YearSummaryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .verticalScroll(rememberScrollState())
                         .padding(horizontal = 16.dp)
                         .navigationBarsPadding()
                         .padding(bottom = 8.dp),
@@ -121,7 +123,7 @@ fun YearSummaryScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(30.dp),
+                            .heightIn(min = 40.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -149,12 +151,12 @@ fun YearSummaryScreen(
                     LabelValueRow(
                         label = stringResource(R.string.shift_count_label),
                         value = summary.total.shiftCount.toString(),
-                        modifier = Modifier.height(28.dp),
+                        modifier = Modifier.heightIn(min = 40.dp),
                     )
                     LabelValueRow(
                         label = stringResource(R.string.worked_duration),
                         value = formatDurationCompact(summary.total.workedMinutes),
-                        modifier = Modifier.height(28.dp),
+                        modifier = Modifier.heightIn(min = 40.dp),
                     )
                     if (summary.monthsWithData > 0) {
                         LabelValueRow(
@@ -163,7 +165,7 @@ fun YearSummaryScreen(
                                 summary.total.totalPayMicros / summary.monthsWithData,
                                 locale,
                             ),
-                            modifier = Modifier.height(28.dp),
+                            modifier = Modifier.heightIn(min = 40.dp),
                         )
                         if (summary.total.shiftCount > 0) {
                             LabelValueRow(
@@ -171,7 +173,7 @@ fun YearSummaryScreen(
                                 value = formatDurationCompact(
                                     summary.total.workedMinutes / summary.total.shiftCount,
                                 ),
-                                modifier = Modifier.height(28.dp),
+                                modifier = Modifier.heightIn(min = 40.dp),
                             )
                         }
                     }
@@ -179,14 +181,14 @@ fun YearSummaryScreen(
                         LabelValueRow(
                             label = stringResource(R.string.year_bonuses),
                             value = "+${formatWholeAmountMicros(summary.total.bonusMicros, locale)}",
-                            modifier = Modifier.height(28.dp),
+                            modifier = Modifier.heightIn(min = 40.dp),
                         )
                     }
                     if (summary.total.penaltyMicros > 0L) {
                         LabelValueRow(
                             label = stringResource(R.string.calculation_penalty),
                             value = "−${formatWholeAmountMicros(summary.total.penaltyMicros, locale)}",
-                            modifier = Modifier.height(28.dp),
+                            modifier = Modifier.heightIn(min = 40.dp),
                         )
                     }
 
@@ -201,18 +203,13 @@ fun YearSummaryScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                    ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Month.entries.forEachIndexed { index, month ->
                             val monthTotal = summary.months[month.value - 1]
                             val empty = !summary.monthHasData.getOrElse(index) { false }
                             MonthLine(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 28.dp),
+                                    .heightIn(min = 40.dp),
                                 label = monthDisplayName(month, locale),
                                 detail = if (empty) {
                                     null
@@ -249,24 +246,26 @@ private fun MonthLine(
             text = label,
             modifier = Modifier.alpha(alpha).weight(1f),
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
-            maxLines = 1,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = detail ?: "—",
-            modifier = Modifier.width(100.dp).alpha(alpha),
+            modifier = Modifier.weight(1.2f).alpha(alpha),
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = if (detail == null) TextAlign.Center else TextAlign.End,
-            maxLines = 1,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = if (dimmed) "—" else amount,
-            modifier = Modifier.width(100.dp).alpha(alpha),
+            modifier = Modifier.weight(1f).alpha(alpha),
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
             fontWeight = FontWeight.Medium,
             textAlign = if (dimmed) TextAlign.Center else TextAlign.End,
-            maxLines = 1,
-            overflow = TextOverflow.Clip,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

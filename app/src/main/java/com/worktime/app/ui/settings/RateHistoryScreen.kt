@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.ui.calendar.RatePeriodUi
@@ -95,9 +96,7 @@ fun RateHistoryScreen(
                             }
                             RatePeriodRow(
                                 period = period,
-                                isLatest = index == periods.lastIndex,
-                                isOldest = index == 0 && periods.size > 1,
-                                currentYear = currentYear,
+                                 currentYear = currentYear,
                                 onClick = { onEditPeriod(period) },
                             )
                         }
@@ -120,8 +119,6 @@ fun RateHistoryScreen(
 @Composable
 private fun RatePeriodRow(
     period: RatePeriodUi,
-    isLatest: Boolean,
-    isOldest: Boolean,
     currentYear: Int,
     onClick: () -> Unit,
 ) {
@@ -133,11 +130,12 @@ private fun RatePeriodRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = periodLabel(period, isLatest, isOldest, currentYear),
+            text = periodLabel(period, currentYear),
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
+             maxLines = 2,
+             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = stringResource(
@@ -146,7 +144,8 @@ private fun RatePeriodRow(
             ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
+             maxLines = 2,
+             overflow = TextOverflow.Ellipsis,
         )
         Spacer(modifier = Modifier.size(width = 12.dp, height = 1.dp))
         Icon(
@@ -158,12 +157,7 @@ private fun RatePeriodRow(
 }
 
 @Composable
-private fun periodLabel(
-    period: RatePeriodUi,
-    isLatest: Boolean,
-    isOldest: Boolean,
-    currentYear: Int,
-): String {
+private fun periodLabel(period: RatePeriodUi, currentYear: Int): String {
     val locale = LocalLocale.current.platformLocale
     val date = { value: LocalDate ->
         value.format(
@@ -173,11 +167,12 @@ private fun periodLabel(
             ),
         )
     }
-    return when {
-        isLatest -> stringResource(R.string.rate_period_since, date(period.start))
-        isOldest -> stringResource(R.string.rate_period_until, date(period.end))
-        else -> stringResource(R.string.rate_period_range, date(period.start), date(period.end))
-    }
+    return stringResource(
+        R.string.rate_entries_range,
+        period.entryCount,
+        date(period.start),
+        date(period.end),
+    )
 }
 
 @Composable

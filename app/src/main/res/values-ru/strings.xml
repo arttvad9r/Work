@@ -39,7 +39,7 @@
 
     <string name="section_calculation">РАСЧЁТ</string>
     <string name="settings_rate">Ставка</string>
-    <string name="rate_history">История ставок</string>
+    <string name="rate_history">Ставки по записанным сменам</string>
     <string name="section_appearance">ВНЕШНИЙ ВИД</string>
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
@@ -50,7 +50,7 @@
     <string name="back">Назад</string>
 
     <string name="rate_for_period">Ставка за период</string>
-    <string name="add_period">Добавить период</string>
+    <string name="add_period">Изменить ставку за период</string>
     <string name="rate_history_empty">Пока нет записей со ставками</string>
     <string name="current_month">Текущий месяц</string>
     <string name="custom_period">Свой период</string>
@@ -60,9 +60,7 @@
     <string name="change_rate">Изменить ставку</string>
     <string name="change_rate_confirmation_title">Изменить ставку?</string>
     <string name="change_rate_confirmation_text">Ставка за час будет обновлена для всех записей выбранного периода. Ставка по умолчанию не изменится.</string>
-    <string name="rate_period_since">с %1$s</string>
-    <string name="rate_period_until">до %1$s</string>
-    <string name="rate_period_range">%1$s — %2$s</string>
+    <string name="rate_entries_range">Записанные смены (%1$d): %2$s — %3$s</string>
 
     <string name="year_summary">Итоги за год</string>
     <string name="year_income">Доход за год</string>

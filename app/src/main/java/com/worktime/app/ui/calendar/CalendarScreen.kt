@@ -778,7 +778,7 @@ private fun DayCell(
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     softWrap = false,
-                    overflow = TextOverflow.Clip,
+                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     modifier = Modifier
@@ -800,7 +800,7 @@ private fun DayCell(
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     softWrap = false,
-                    overflow = TextOverflow.Clip,
+                     overflow = TextOverflow.Ellipsis,
                 )
             }
         }

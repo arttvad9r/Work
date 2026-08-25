@@ -33,7 +33,7 @@
 - [ ] Save is reachable after keyboard dismissal.
 - [ ] Narrow portrait screen and 200% font-scale passes complete.
 - [ ] Light/dark contrast and TalkBack checks complete.
-- [ ] No currency text/symbol appears.
+- [ ] Fixed `₽` and `₽/h` labels are readable in the supported locales.
 - [ ] Final launcher/store assets approved.
 
 ## Privacy/release

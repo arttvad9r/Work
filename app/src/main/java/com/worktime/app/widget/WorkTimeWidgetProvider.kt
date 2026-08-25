@@ -23,10 +23,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
 class WorkTimeWidgetProvider : AppWidgetProvider() {
@@ -42,12 +46,25 @@ class WorkTimeWidgetProvider : AppWidgetProvider() {
             }
         }
     }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action in TIME_INVALIDATION_ACTIONS) {
+            widgetTimeInvalidations.tryEmit(Unit)
+        }
+    }
 }
 
 // Widget data flows:
 // - process alive: Application observes the current month and pushes on every change;
 // - process dead: system refreshes at least every updatePeriodMillis (30 min).
 private val WorkTimeWidgetScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+private val widgetTimeInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+private val TIME_INVALIDATION_ACTIONS = setOf(
+    Intent.ACTION_DATE_CHANGED,
+    Intent.ACTION_TIME_CHANGED,
+    Intent.ACTION_TIMEZONE_CHANGED,
+)
 
 suspend fun refresh(context: Context, repository: WorkEntryRepository) {
     // ponytail: month is captured per read; a stale home-screen process catches up
@@ -74,18 +91,22 @@ internal fun currentMonthFlow(
             .coerceAtLeast(1_000L)
         delay(waitMillis)
     },
-) = flow {
-    var current = now()
-    emit(current)
-    while (true) {
-        waitUntilNextMonth(current)
-        val next = now()
-        if (next != current) {
-            current = next
-            emit(current)
+    invalidations: kotlinx.coroutines.flow.Flow<Unit> = widgetTimeInvalidations,
+) = merge(
+    flow {
+        var current = now()
+        emit(current)
+        while (true) {
+            waitUntilNextMonth(current)
+            val next = now()
+            if (next != current) {
+                current = next
+                emit(current)
+            }
         }
-    }
-}
+    },
+    invalidations.map { now() },
+).distinctUntilChanged()
 
 private fun push(context: Context, summary: MonthSummary) {
     val appContext = context.applicationContext

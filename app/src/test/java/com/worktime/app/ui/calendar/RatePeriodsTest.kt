@@ -20,7 +20,7 @@ class RatePeriodsTest {
     @Test
     fun `single entry forms one period`() {
         val periods = buildRatePeriods(listOf(entry(LocalDate.of(2026, 8, 3), 370_000_000)))
-        assertEquals(listOf(RatePeriodUi(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 3), 370_000_000)), periods)
+        assertEquals(listOf(RatePeriodUi(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 3), 370_000_000, 1)), periods)
     }
 
     @Test
@@ -33,7 +33,7 @@ class RatePeriodsTest {
             ),
         )
         assertEquals(
-            listOf(RatePeriodUi(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 17), 370_000_000)),
+            listOf(RatePeriodUi(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 17), 370_000_000, 3)),
             periods,
         )
     }
@@ -50,9 +50,9 @@ class RatePeriodsTest {
         )
         assertEquals(
             listOf(
-                RatePeriodUi(LocalDate.of(2026, 4, 2), LocalDate.of(2026, 4, 2), 320_000_000),
-                RatePeriodUi(LocalDate.of(2026, 5, 4), LocalDate.of(2026, 7, 30), 350_000_000),
-                RatePeriodUi(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 3), 370_000_000),
+                RatePeriodUi(LocalDate.of(2026, 4, 2), LocalDate.of(2026, 4, 2), 320_000_000, 1),
+                RatePeriodUi(LocalDate.of(2026, 5, 4), LocalDate.of(2026, 7, 30), 350_000_000, 2),
+                RatePeriodUi(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 3), 370_000_000, 1),
             ),
             periods,
         )
@@ -68,8 +68,8 @@ class RatePeriodsTest {
         )
         assertEquals(
             listOf(
-                RatePeriodUi(LocalDate.of(2026, 5, 4), LocalDate.of(2026, 5, 4), 350_000_000),
-                RatePeriodUi(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 3), 370_000_000),
+                RatePeriodUi(LocalDate.of(2026, 5, 4), LocalDate.of(2026, 5, 4), 350_000_000, 1),
+                RatePeriodUi(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 3), 370_000_000, 1),
             ),
             periods,
         )
@@ -87,5 +87,20 @@ class RatePeriodsTest {
         assertEquals(3, periods.size)
         assertEquals(300_000_000L, periods.first().rateMicros)
         assertEquals(300_000_000L, periods.last().rateMicros)
+    }
+
+    @Test
+    fun `sparse same-rate entries remain recorded-entry range, not continuous period`() {
+        val periods = buildRatePeriods(
+            listOf(
+                entry(LocalDate.of(2026, 1, 1), 500_000_000),
+                entry(LocalDate.of(2026, 6, 1), 500_000_000),
+            ),
+        )
+
+        assertEquals(1, periods.size)
+        assertEquals(LocalDate.of(2026, 1, 1), periods.single().start)
+        assertEquals(LocalDate.of(2026, 6, 1), periods.single().end)
+        assertEquals(2, periods.single().entryCount)
     }
 }

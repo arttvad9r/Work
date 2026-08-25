@@ -18,7 +18,7 @@ This document supersedes the earlier broad v0.2 draft. The canonical short speci
 | Operational errors | Save/delete/settings failures remain recoverable and are shown without resizing the active sheet |
 | Settings | Compact hourly-rate field plus system/light/dark theme; focusing initial zero selects it instead of clearing it |
 | Amount input | At most two fractional digits |
-| Amount display | No currency labels; normal displays use at most two fractional digits; calendar day cells intentionally show a rounded whole number only |
+| Amount display | Fixed `₽`/`₽/h` labels; normal displays use at most two fractional digits; calendar day cells intentionally show a rounded whole number only |
 | Internal money | Integer micros for deterministic six-decimal internal precision; no persisted `Float`/`Double` calculations |
 | Removed scope | Currency, notes, quick-duration presets, validation helper text and landscape support stay absent |
 

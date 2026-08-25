@@ -8,7 +8,7 @@
 python3 scripts/static_audit.py
 ```
 
-Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback and known interaction regressions around the report handle and persistent numeric editor.
+Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback, pinned CI actions, wrapper checksum, release signing and supported Nix platforms.
 
 ### JVM tests
 
@@ -44,7 +44,7 @@ Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`,
 - bonus/penalty-only entry does not increment work days.
 - amount fractions display only when non-zero.
 - compact calendar amounts use the same rounding rules without grouping separators.
-- no currency string/symbol in current UI resources.
+- fixed `₽` and `₽/h` presentation strings remain consistent in EN/RU resources.
 - numeric validation uses red outline only; obsolete helper-text resources stay removed.
 - adjacent-month dates cannot open the current-month editor.
 - monthly report opens by tap and drag and contains no duplicate total.
@@ -56,6 +56,10 @@ Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`,
 - after expanding adjustments, repeated `Время -> Ставка -> Премия -> Штраф -> Время` switching uses the same persistent editor/input session and does not cause an IME hide/restart/show cycle.
 - values remain attached to their logical fields across repeated switches and survive save/reopen.
 - persistence failures keep the relevant sheet open and surface transient Snackbar feedback without layout reflow.
+- import cancellation after Room replacement restores the previous Room/DataStore snapshot or reports `BACKUP_IMPORT_ROLLBACK`.
+- initial default-rate adoption runs once; manually clearing the rate to zero does not re-enable it.
+- sparse same-rate entries are labelled as recorded-entry groups, not continuous effective periods.
+- concurrent theme and default-rate updates preserve both independent preference values.
 - portrait orientation remains enforced.
 
 ## Current evidence

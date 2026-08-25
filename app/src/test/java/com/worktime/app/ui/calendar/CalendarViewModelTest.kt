@@ -100,7 +100,7 @@ class CalendarViewModelTest {
         )
         val repository = FakeWorkEntryRepository(entries)
         val preferencesRepository = FakeUserPreferencesRepository()
-        preferencesRepository.update(defaultHourlyRateMicros = 12_500_000L, themeMode = ThemeMode.DARK)
+        preferencesRepository.update(defaultHourlyRateMicros = 12_500_000L, themeMode = ThemeMode.DARK, defaultRateInitialized = true)
         val viewModel = CalendarViewModel(repository, preferencesRepository)
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
@@ -225,6 +225,64 @@ class CalendarViewModelTest {
     }
 
     @Test
+    fun `cancellation after replaceAll restores old state and stays cancellation`() = runTest {
+        val oldEntry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val importedEntry = WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)
+        val repository = FakeWorkEntryRepository(listOf(oldEntry))
+        val preferences = FakeUserPreferencesRepository().apply {
+            cancelUpdatesRemaining = 1
+        }
+        val viewModel = CalendarViewModel(repository, preferences)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.importBackup(
+            ByteArrayInputStream(BackupCodec.encode(listOf(importedEntry), UserPreferences()).toByteArray()),
+        )
+        viewModel.state.first { it.pendingImportCount != null }
+        viewModel.confirmImport()
+        advanceUntilIdle()
+
+        assertEquals(listOf(oldEntry), repository.entries.value)
+        assertEquals(UserPreferences(), preferences.preferences.first())
+        assertFalse(preferences.initialized)
+        assertEquals(1, viewModel.state.value.pendingImportCount)
+        assertEquals(null, viewModel.state.value.operationError)
+        assertEquals(null, withTimeoutOrNull(50) { viewModel.operationEvents.first() })
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `cancellation during import rollback reports rollback error`() = runTest {
+        val oldEntry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val repository = FakeWorkEntryRepository(listOf(oldEntry))
+        val preferences = FakeUserPreferencesRepository().apply {
+            cancelUpdatesRemaining = 2
+        }
+        val viewModel = CalendarViewModel(repository, preferences)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.importBackup(
+            ByteArrayInputStream(
+                BackupCodec.encode(
+                    listOf(WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)),
+                    UserPreferences(),
+                ).toByteArray(),
+            ),
+        )
+        viewModel.state.first { it.pendingImportCount != null }
+        viewModel.confirmImport()
+
+        assertEquals(
+            CalendarOperationEvent.Error(CalendarOperationError.BACKUP_IMPORT_ROLLBACK),
+            viewModel.operationEvents.first(),
+        )
+        assertEquals(1, viewModel.state.value.pendingImportCount)
+        stateJob.cancel()
+    }
+
+    @Test
     fun `deleting an existing entry stores exact entry and undo restores it`() = runTest {
         val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000, note = "original")
         val repository = FakeWorkEntryRepository(listOf(entry))
@@ -242,6 +300,26 @@ class CalendarViewModelTest {
 
         assertEquals(listOf(entry), repository.restoredEntries)
         assertFalse(viewModel.state.first { !it.canUndo }.canUndo)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `export does not invalidate a pending delete undo`() = runTest {
+        val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val repository = FakeWorkEntryRepository(listOf(entry))
+        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.entries[entry.date] == entry }
+
+        viewModel.deleteEntry(entry.date)
+        assertEquals(CalendarOperationEvent.Success.ENTRY_DELETED, viewModel.operationEvents.first())
+        viewModel.exportBackup(ByteArrayOutputStream())
+        assertEquals(CalendarOperationEvent.Success.BACKUP_EXPORTED, viewModel.operationEvents.first())
+        assertTrue(viewModel.state.first { it.canUndo }.canUndo)
+
+        viewModel.undoLastOperation()
+        assertEquals(CalendarOperationEvent.Success.OPERATION_UNDONE, viewModel.operationEvents.first())
+        assertEquals(listOf(entry), repository.entries.value)
         stateJob.cancel()
     }
 
@@ -405,7 +483,7 @@ class CalendarViewModelTest {
     fun `saving an entry keeps an existing default rate untouched`() = runTest {
         val repository = FakeWorkEntryRepository(emptyList())
         val preferencesRepository = FakeUserPreferencesRepository()
-        preferencesRepository.update(defaultHourlyRateMicros = 300_000_000L, themeMode = ThemeMode.DARK)
+        preferencesRepository.update(defaultHourlyRateMicros = 300_000_000L, themeMode = ThemeMode.DARK, defaultRateInitialized = true)
         val viewModel = CalendarViewModel(repository, preferencesRepository)
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
@@ -420,6 +498,77 @@ class CalendarViewModelTest {
             preferencesRepository.updates,
         )
         assertEquals(300_000_000L, preferencesRepository.preferences.first().defaultHourlyRateMicros)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `adoption failure leaves saved entry successful and emits one global adoption error`() = runTest {
+        val entry = WorkEntry(LocalDate.of(2026, 8, 10), 720, 370_000_000L)
+        val repository = FakeWorkEntryRepository(emptyList())
+        val preferences = FakeUserPreferencesRepository().apply { adoptionError = IllegalStateException() }
+        val viewModel = CalendarViewModel(repository, preferences)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.saveEntry(entry)
+
+        assertEquals(entry, repository.entries.first { it.isNotEmpty() }.single())
+        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.DEFAULT_RATE_ADOPTION), viewModel.operationEvents.first())
+        assertEquals(null, withTimeoutOrNull(50) { viewModel.operationEvents.first() })
+        assertEquals(null, viewModel.state.value.selectedDate)
+        assertEquals(CalendarOperationError.DEFAULT_RATE_ADOPTION, viewModel.state.value.operationError)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `clearing default rate prevents later automatic adoption`() = runTest {
+        val repository = FakeWorkEntryRepository(emptyList())
+        val preferences = FakeUserPreferencesRepository()
+        val viewModel = CalendarViewModel(repository, preferences)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 10), 60, 370_000_000L))
+        repository.observeMonth(YearMonth.now()).first { it.isNotEmpty() }
+        viewModel.updateDefaultRate(0L)
+        preferences.preferences.first { it.defaultHourlyRateMicros == 0L && preferences.initialized }
+        viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 11), 60, 420_000_000L))
+        repository.observeMonth(YearMonth.now()).first { it.size == 2 }
+
+        assertEquals(0L, preferences.preferences.first().defaultHourlyRateMicros)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `two quick eligible saves adopt the first serialized rate`() = runTest {
+        val preferences = FakeUserPreferencesRepository()
+        val repository = FakeWorkEntryRepository(emptyList())
+        val viewModel = CalendarViewModel(repository, preferences)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 10), 60, 370_000_000L))
+        viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 11), 60, 420_000_000L))
+
+        repository.observeMonth(YearMonth.now()).first { it.size == 2 }
+        assertEquals(370_000_000L, preferences.preferences.first { it.defaultHourlyRateMicros > 0L }.defaultHourlyRateMicros)
+        stateJob.cancel()
+    }
+
+    @Test
+    fun `concurrent theme and rate updates preserve both values`() = runTest {
+        val preferences = FakeUserPreferencesRepository()
+        val viewModel = CalendarViewModel(FakeWorkEntryRepository(emptyList()), preferences)
+        val stateJob = launch { viewModel.state.collect() }
+        viewModel.state.first { it.isReady }
+
+        viewModel.updateThemeMode(ThemeMode.DARK)
+        viewModel.updateDefaultRate(123_000_000L)
+
+        assertEquals(
+            UserPreferences(123_000_000L, ThemeMode.DARK),
+            preferences.preferences.first { it == UserPreferences(123_000_000L, ThemeMode.DARK) },
+        )
         stateJob.cancel()
     }
 
@@ -473,7 +622,7 @@ class CalendarViewModelTest {
 
         viewModel.undoLastOperation()
         assertEquals(CalendarOperationEvent.Error(CalendarOperationError.UNDO), viewModel.operationEvents.first())
-        assertTrue(viewModel.state.value.canUndo)
+        assertTrue(viewModel.state.first { it.canUndo }.canUndo)
         repository.restoreError = null
         viewModel.undoLastOperation()
         assertEquals(CalendarOperationEvent.Success.OPERATION_UNDONE, viewModel.operationEvents.first())
@@ -673,11 +822,24 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
 private class FakeUserPreferencesRepository : UserPreferencesRepository {
     private val _preferences = MutableStateFlow(UserPreferences())
     override val preferences: Flow<UserPreferences> = _preferences
+    override val defaultRateInitialized: Flow<Boolean>
+        get() = flowOf(initialized)
     val updates = mutableListOf<UserPreferences>()
+    var initialized = false
     var updateError: Exception? = null
     var updateFailuresRemaining = 0
-    override suspend fun update(defaultHourlyRateMicros: Long, themeMode: ThemeMode) {
+    var cancelUpdatesRemaining = 0
+    var adoptionError: Exception? = null
+    override suspend fun update(
+        defaultHourlyRateMicros: Long,
+        themeMode: ThemeMode,
+        defaultRateInitialized: Boolean,
+    ) {
         updateError?.let { throw it }
+        if (cancelUpdatesRemaining > 0) {
+            cancelUpdatesRemaining--
+            throw kotlinx.coroutines.CancellationException("cancelled")
+        }
         if (updateFailuresRemaining > 0) {
             updateFailuresRemaining--
             throw IllegalStateException("datastore")
@@ -685,22 +847,26 @@ private class FakeUserPreferencesRepository : UserPreferencesRepository {
         val value = UserPreferences(defaultHourlyRateMicros, themeMode)
         updates += value
         _preferences.value = value
+        initialized = defaultRateInitialized
     }
 
     override suspend fun updateThemeMode(themeMode: ThemeMode) {
         val value = _preferences.value.copy(themeMode = themeMode)
         updates += value
         _preferences.value = value
+        initialized = true
     }
 
     override suspend fun updateDefaultHourlyRate(defaultHourlyRateMicros: Long) {
         val value = _preferences.value.copy(defaultHourlyRateMicros = defaultHourlyRateMicros)
         updates += value
         _preferences.value = value
+        initialized = true
     }
 
-    override suspend fun adoptDefaultHourlyRateIfUnset(defaultHourlyRateMicros: Long): Boolean {
-        if (_preferences.value.defaultHourlyRateMicros != 0L) return false
+    override suspend fun adoptDefaultHourlyRateIfUninitialized(defaultHourlyRateMicros: Long): Boolean {
+        adoptionError?.let { throw it }
+        if (initialized) return false
         updateDefaultHourlyRate(defaultHourlyRateMicros)
         return true
     }
