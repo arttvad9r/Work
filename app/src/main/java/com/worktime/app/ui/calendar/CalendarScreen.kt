@@ -241,12 +241,11 @@ private fun CalendarHeader(
 ) {
     val monthTitle = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
     val largeFont = LocalDensity.current.fontScale >= 1.5f
-    val headerHeight = if (largeFont) 64.dp else 48.dp
     val titleFontSize = if (largeFont) 18.sp else 22.sp
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = headerHeight)
+            .height(48.dp)
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -596,12 +595,13 @@ private fun CalendarGrid(
     val currentOnSwipeToPrevious by rememberUpdatedState(onSwipeToPrevious)
     val currentOnSwipeToNext by rememberUpdatedState(onSwipeToNext)
     val largeFont = LocalDensity.current.fontScale >= 1.5f
-    val weekRowHeight = if (largeFont) 76.dp else WeekRowHeight
-    val weekdayRowHeight = if (largeFont) 36.dp else 28.dp
-    val dateAreaHeight = if (largeFont) 36.dp else 28.dp
+    val weekRowHeight = WeekRowHeight
+    val weekdayRowHeight = 28.dp
+    val dateAreaHeight = 28.dp
     Box(
         modifier = modifier
-            .height(calendarGridHeight(largeFont))
+            .height(calendarGridHeight())
+            .testTag("calendar-grid")
             .pointerInput(Unit) {
                 val swipeThresholdPx = MonthSwipeThreshold.toPx()
                 var totalDrag = Offset.Zero
@@ -653,7 +653,7 @@ private fun CalendarGrid(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            cells.chunked(7).forEach { week ->
+            cells.chunked(7).forEachIndexed { weekIndex, week ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -675,6 +675,7 @@ private fun CalendarGrid(
                                 onClick = { onDayClick(date) },
                                 locale = locale,
                                 dateAreaHeight = dateAreaHeight,
+                                isLastGridRow = weekIndex == CalendarWeekCount - 1,
                             )
                         }
                     }
@@ -687,8 +688,7 @@ private fun CalendarGrid(
 private const val CalendarWeekCount = 6
 private val WeekRowHeight = 64.dp
 
-@Suppress("UNUSED_PARAMETER")
-internal fun calendarGridHeight(largeFont: Boolean): Dp =
+internal fun calendarGridHeight(): Dp =
     WeekRowHeight * CalendarWeekCount + 28.dp + 8.dp
 
 @Composable
@@ -701,6 +701,7 @@ private fun DayCell(
     onClick: () -> Unit,
     locale: Locale,
     dateAreaHeight: Dp,
+    isLastGridRow: Boolean,
 ) {
     val visibleEntry = entry.takeIf { isInVisibleMonth }
     val largeFont = LocalDensity.current.fontScale >= 1.5f
@@ -764,6 +765,10 @@ private fun DayCell(
                 },
             )
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
+            .then(
+                if (isLastGridRow && isInVisibleMonth) Modifier.testTag("calendar-last-row-day")
+                else Modifier,
+            )
             .clickable(enabled = isInVisibleMonth, onClick = onClick),
     ) {
         Box(

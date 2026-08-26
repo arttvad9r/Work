@@ -29,6 +29,7 @@ import java.time.LocalDate
 import java.time.Month
 import java.time.YearMonth
 import java.time.format.TextStyle
+import kotlin.math.abs
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -118,10 +119,10 @@ class LargeFontUiTest {
                 Box(Modifier.size(280.dp, 800.dp)) {
                     CalendarScreen(
                         state = CalendarUiState(
-                            visibleMonth = YearMonth.of(2026, 1),
+                            visibleMonth = YearMonth.of(2026, 8),
                             entries = mapOf(
-                                LocalDate.of(2026, 1, 15) to WorkEntry(
-                                    date = LocalDate.of(2026, 1, 15),
+                                LocalDate.of(2026, 8, 31) to WorkEntry(
+                                    date = LocalDate.of(2026, 8, 31),
                                     workedMinutes = 480,
                                     hourlyRateMicros = 10_000_000L,
                                 ),
@@ -143,7 +144,7 @@ class LargeFontUiTest {
         composeRule.onNodeWithContentDescription(context.getString(R.string.next_month)).assertIsDisplayed()
         composeRule.onNodeWithContentDescription(context.getString(R.string.settings)).assertIsDisplayed()
         composeRule.onNodeWithTag("calendar-month-title").assertIsDisplayed()
-        composeRule.onNodeWithText("15", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("calendar-last-row-day").assertIsDisplayed()
         composeRule.onNodeWithContentDescription(context.getString(R.string.has_entry), substring = true)
             .assertIsDisplayed()
         composeRule.onNodeWithContentDescription(context.getString(R.string.duration_hours, 8), substring = true)
@@ -175,6 +176,33 @@ class LargeFontUiTest {
         composeRule.onNodeWithTag("monthly-summary-strip")
             .performTouchInput { swipeUp() }
         composeRule.onNodeWithTag("monthly-report-panel").assertIsDisplayed()
+    }
+
+    @Test
+    fun calendarMacroHeightIsUnchangedAtLargeFontScale() {
+        composeRule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
+                Box(Modifier.size(320.dp, 800.dp)) {
+                    CalendarScreen(
+                        state = CalendarUiState(
+                            visibleMonth = YearMonth.of(2026, 8),
+                            isReady = true,
+                        ),
+                        onPreviousMonth = {},
+                        onNextMonth = {},
+                        onSelectMonth = {},
+                        onDayClick = {},
+                        onSettingsClick = {},
+                        onOpenYearSummary = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        val largeHeight = composeRule.onNodeWithTag("calendar-grid").fetchSemanticsNode().boundsInRoot.height
+
+        assert(abs(largeHeight - 420f) < 1f) { "calendar grid height changed: $largeHeight" }
     }
 
     private fun summary() = YearSummary(
