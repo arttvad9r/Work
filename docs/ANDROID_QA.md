@@ -83,4 +83,4 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] Narrow portrait phone does not produce overlapping text.
 - [ ] TalkBack announces dates, selected/today state, duration and adjustments.
 - [ ] Fixed `₽` and `₽/h` labels are readable and do not overlap at narrow width or 200% font scale.
-- [ ] Rate history says recorded entries/ranges and the action says change rate for period; it does not imply a continuous effective-rate history.
+- [ ] Settings exposes `Change rate for period`; no recorded-entry rate history is shown.

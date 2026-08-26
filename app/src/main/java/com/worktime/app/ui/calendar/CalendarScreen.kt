@@ -49,7 +49,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -60,7 +59,6 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
@@ -105,8 +103,8 @@ fun CalendarScreen(
     val locale = LocalLocale.current.platformLocale
     var monthPickerOpen by rememberSaveable { mutableStateOf(false) }
     val summarySheetState = rememberStandardBottomSheetState(
-        initialValue = SheetValue.PartiallyExpanded,
-        skipHiddenState = true,
+        initialValue = SheetValue.Hidden,
+        skipHiddenState = false,
     )
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = summarySheetState,
@@ -114,25 +112,23 @@ fun CalendarScreen(
     val scope = rememberCoroutineScope()
     val summaryTargetExpanded = summarySheetState.targetValue == SheetValue.Expanded
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
-        val shouldCollapse =
-            summarySheetState.currentValue == SheetValue.Expanded ||
-                summarySheetState.targetValue == SheetValue.Expanded
+        val shouldHide = summarySheetState.currentValue != SheetValue.Hidden ||
+            summarySheetState.targetValue != SheetValue.Hidden
 
         action()
 
-        if (shouldCollapse) {
+        if (shouldHide) {
             scope.launch {
-                runCatching { summarySheetState.partialExpand() }
+                runCatching { summarySheetState.hide() }
             }
         }
     }
     val toggleSummary: () -> Unit = {
         scope.launch {
-            if (
-                summarySheetState.currentValue == SheetValue.Expanded ||
+            if (summarySheetState.currentValue == SheetValue.Expanded ||
                 summarySheetState.targetValue == SheetValue.Expanded
             ) {
-                summarySheetState.partialExpand()
+                summarySheetState.hide()
             } else {
                 summarySheetState.expand()
             }
@@ -142,7 +138,7 @@ fun CalendarScreen(
     BottomSheetScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
-        sheetPeekHeight = 80.dp,
+        sheetPeekHeight = 0.dp,
         // Material wraps every non-null handle slot in DragHandleWithTooltip. Keep
         // the slot null and render our handle as stable sheet content instead.
         sheetDragHandle = null,
@@ -153,15 +149,6 @@ fun CalendarScreen(
         sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         sheetContent = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                SummaryStrip(
-                    state = state,
-                    expanded = summaryTargetExpanded,
-                    locale = locale,
-                    onClick = toggleSummary,
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .padding(top = 8.dp, bottom = 8.dp),
-                )
                 if (summaryTargetExpanded) {
                     PlainDragHandle(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -215,6 +202,17 @@ fun CalendarScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.weight(1f))
+                SummaryStrip(
+                    state = state,
+                    locale = locale,
+                    onClick = toggleSummary,
+                    onSwipeUp = {
+                        scope.launch { summarySheetState.expand() }
+                    },
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
+                )
             }
         }
     }
@@ -299,9 +297,9 @@ private fun CalendarHeader(
 @Composable
 private fun SummaryStrip(
     state: CalendarUiState,
-    expanded: Boolean,
     locale: Locale,
     onClick: () -> Unit,
+    onSwipeUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
@@ -314,15 +312,34 @@ private fun SummaryStrip(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .alpha(if (expanded) 0f else 1f)
-                .then(if (expanded) Modifier.clearAndSetSemantics { } else Modifier)
+                .pointerInput(Unit) {
+                    val threshold = 40.dp.toPx()
+                    var totalDrag = 0f
+                    var triggered = false
+                    detectDragGestures(
+                        onDragStart = {
+                            totalDrag = 0f
+                            triggered = false
+                        },
+                        onDrag = { change, dragAmount ->
+                            totalDrag += dragAmount.y
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            if (!triggered && totalDrag <= -threshold) {
+                                triggered = true
+                                onSwipeUp()
+                            }
+                        },
+                    )
+                }
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.secondaryContainer)
                 .clickable(
-                    enabled = !expanded,
                     onClickLabel = stringResource(R.string.monthly_summary),
                     onClick = onClick,
                 )
+                .testTag("monthly-summary-strip")
                 .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -346,18 +363,6 @@ private fun SummaryStrip(
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
-        // Expanded state: the report header in the same slot.
-        Text(
-            text = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale)),
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(horizontal = 12.dp)
-                .alpha(if (expanded) 1f else 0f)
-                .then(if (expanded) Modifier else Modifier.clearAndSetSemantics { }),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
     }
 }
 
@@ -389,7 +394,8 @@ private fun MonthlySummaryPanel(
     val summary = state.summary
     Column(
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .testTag("monthly-report-panel"),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
@@ -595,7 +601,7 @@ private fun CalendarGrid(
     val dateAreaHeight = if (largeFont) 36.dp else 28.dp
     Box(
         modifier = modifier
-            .height(weekRowHeight * CalendarWeekCount + weekdayRowHeight + 8.dp)
+            .height(calendarGridHeight(largeFont))
             .pointerInput(Unit) {
                 val swipeThresholdPx = MonthSwipeThreshold.toPx()
                 var totalDrag = Offset.Zero
@@ -680,6 +686,10 @@ private fun CalendarGrid(
 
 private const val CalendarWeekCount = 6
 private val WeekRowHeight = 64.dp
+
+@Suppress("UNUSED_PARAMETER")
+internal fun calendarGridHeight(largeFont: Boolean): Dp =
+    WeekRowHeight * CalendarWeekCount + 28.dp + 8.dp
 
 @Composable
 private fun DayCell(

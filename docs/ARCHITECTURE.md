@@ -57,7 +57,6 @@ Parsing rejects malformed/exponent input. `MoneyLimits` bounds user-entered comp
 - `CalendarScreen`: fixed calendar, fixed summary, standard draggable report sheet.
 - `DayEditorSheet`: draft validation and create/edit/delete actions.
 - `SettingsScreen`: default rate, theme and data operations.
-- `RateHistoryScreen`: grouped ranges of recorded entries, not continuous effective-rate periods.
 - `YearSummaryScreen`: view-only yearly statistics.
 - `MoneyFormatting` and `DurationFormatting`: presentation-boundary formatting only.
 

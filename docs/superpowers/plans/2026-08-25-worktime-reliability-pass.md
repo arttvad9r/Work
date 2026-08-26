@@ -90,32 +90,28 @@
 - [ ] Add `bonus == penalty != 0` year-summary coverage and assert `monthsWithData`, dimmed rows, and averages use entry presence rather than net total.
 - [ ] Set `yearSummaryYear` from `visibleMonth.year` in `openYearSummary()` and test opening from a historical month.
 
-### Task 6: Rate-history semantics and UI interaction
+### Task 6: Change-rate UI interaction
 
 **Files:**
-- Modify: `app/src/main/java/com/worktime/app/ui/calendar/CalendarUiState.kt`
-- Modify: `app/src/main/java/com/worktime/app/ui/settings/RateHistoryScreen.kt`
 - Modify: `app/src/main/java/com/worktime/app/ui/settings/ChangeRateSheet.kt`
 - Modify: `app/src/main/java/com/worktime/app/ui/settings/SettingsScreen.kt`
-- Tests: existing `RatePeriodsTest.kt` plus new semantic tests.
+- Tests: change-rate flow tests.
 
-- [ ] Replace misleading continuous-period labels with sparse-record wording unless a real rate-period model is demonstrably required; do not add a database table.
-- [ ] Ensure Add/Edit actions describe and perform the existing sparse WorkEntry update behavior.
+- [ ] Expose the existing ChangeRateSheet directly from Settings; do not add a rate-history model or database table.
+- [ ] Keep current-month/custom-period selection and existing-entry-only bulk updates.
 - [ ] Convert `Settings` rate to the same compact editor interaction as day-editor rate/bonus/penalty and remove blue-only value styling.
-- [ ] Use one neutral text color for rate history, theme selection, and summary arrows while retaining accessible secondary color for labels/chevrons.
 
 ### Task 7: Monthly sheet and font-scale/runtime UI safety
 
 **Files:**
 - Modify: `app/src/main/java/com/worktime/app/ui/calendar/CalendarScreen.kt`
 - Modify: `app/src/main/java/com/worktime/app/ui/settings/YearSummaryScreen.kt`
-- Modify: `app/src/main/java/com/worktime/app/ui/settings/RateHistoryScreen.kt`
 - Modify: `app/src/main/java/com/worktime/app/ui/settings/SettingsScreen.kt`
 - Add/modify: Compose UI tests for monthly sheet anchors and large text fallback.
 
-- [ ] Restore a single draggable monthly sheet surface with visible collapsed content owned by its `BottomSheetScaffold`; keep one handle and preserve tap/upward/downward drag anchors.
+- [ ] Keep the collapsed SummaryStrip stationary above navigation insets; the monthly report sheet moves independently over it with one handle and tap/upward/downward drag anchors.
 - [ ] Remove duplicate collapsed surfaces and verify no custom handle tooltip appears on long press.
-- [ ] Replace fixed-height/clipped important text with minimum-safe sizes and fallback scrolling/layout at large font scale; preserve 6×7 calendar at normal scale.
+- [ ] Replace fixed-height/clipped important text with minimum-safe sizes and fallback layout at large font scale; preserve 6×7 calendar at normal scale.
 - [ ] Add Compose tests for tap/open and collapsed/expanded semantics where feasible; document physical drag as emulator/device QA.
 
 ### Task 8: CompactMoneyField, release, supply chain, and Nix

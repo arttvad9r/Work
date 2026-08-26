@@ -30,7 +30,6 @@ import com.worktime.app.ui.calendar.CalendarScreen
 import com.worktime.app.ui.calendar.CalendarViewModel
 import com.worktime.app.ui.dayeditor.DayEditorSheet
 import com.worktime.app.ui.settings.ChangeRateSheet
-import com.worktime.app.ui.settings.RateHistoryScreen
 import com.worktime.app.ui.settings.SettingsScreen
 import com.worktime.app.ui.settings.YearSummaryScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
@@ -170,7 +169,7 @@ fun WorkTimeApp(container: AppContainer) {
                     onDismiss = viewModel::dismissSettings,
                     onThemeChange = viewModel::updateThemeMode,
                     onRateChange = viewModel::updateDefaultRate,
-                    onOpenRateHistory = viewModel::openRateHistory,
+                    onOpenChangeRate = { viewModel.openChangeRate(null) },
                     onExportData = {
                         exportLauncher.launch("worktime-backup-" + LocalDate.now() + ".json")
                     },
@@ -185,16 +184,6 @@ fun WorkTimeApp(container: AppContainer) {
                 )
             }
 
-            if (state.isRateHistoryOpen) {
-                RateHistoryScreen(
-                    periods = state.ratePeriods,
-                    onDismiss = viewModel::dismissRateHistory,
-                    onEditPeriod = { period ->
-                        viewModel.openRatePeriodEditor(period.start..period.end)
-                    },
-                    onAddPeriod = { viewModel.openRatePeriodEditor(null) },
-                )
-            }
 
             if (state.isYearSummaryOpen) {
                 YearSummaryScreen(

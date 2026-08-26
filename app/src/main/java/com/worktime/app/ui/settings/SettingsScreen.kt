@@ -58,7 +58,7 @@ fun SettingsScreen(
     onDismiss: () -> Unit,
     onThemeChange: (ThemeMode) -> Unit,
     onRateChange: (Long) -> Unit,
-    onOpenRateHistory: () -> Unit,
+    onOpenChangeRate: () -> Unit,
     onExportData: () -> Unit,
     onExportCsv: () -> Unit,
     onImportData: () -> Unit,
@@ -104,8 +104,8 @@ fun SettingsScreen(
                 onRateChange = onRateChange,
             )
             SettingsRow(
-                label = stringResource(R.string.rate_history),
-                onClick = onOpenRateHistory,
+                label = stringResource(R.string.change_rate_for_period),
+                onClick = onOpenChangeRate,
             )
 
             SectionDivider()

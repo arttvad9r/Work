@@ -14,8 +14,6 @@ data class CalendarUiState(
     val defaultHourlyRateMicros: Long = 0L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isSettingsOpen: Boolean = false,
-    val isRateHistoryOpen: Boolean = false,
-    val ratePeriods: List<RatePeriodUi> = emptyList(),
     val isChangeRateSheetOpen: Boolean = false,
     val changeRateInitialRange: ClosedRange<LocalDate>? = null,
     val isYearSummaryOpen: Boolean = false,
@@ -42,14 +40,6 @@ data class YearSummary(
         get() = monthHasData.count { it }
 }
 
-/** A grouped view of recorded entries sharing one hourly rate, not an effective period. */
-data class RatePeriodUi(
-    val start: LocalDate,
-    val end: LocalDate,
-    val rateMicros: Long,
-    val entryCount: Int,
-)
-
 enum class CalendarOperationError {
     SAVE_ENTRY,
     DELETE_ENTRY,
@@ -73,23 +63,4 @@ sealed interface CalendarOperationEvent {
     }
 
     data class Error(val kind: CalendarOperationError) : CalendarOperationEvent
-}
-
-/**
- * Groups chronologically sorted entries into same-rate runs for display.
- * The dates are the first and last recorded entries in each group; gaps are not
- * treated as evidence that the rate was continuously effective.
- */
-internal fun buildRatePeriods(entries: List<WorkEntry>): List<RatePeriodUi> {
-    if (entries.isEmpty()) return emptyList()
-    val periods = mutableListOf<RatePeriodUi>()
-    for (entry in entries.sortedBy { it.date }) {
-        val last = periods.lastOrNull()
-        if (last != null && last.rateMicros == entry.hourlyRateMicros) {
-            periods[periods.lastIndex] = last.copy(end = entry.date, entryCount = last.entryCount + 1)
-        } else {
-            periods += RatePeriodUi(entry.date, entry.date, entry.hourlyRateMicros, entryCount = 1)
-        }
-    }
-    return periods
 }

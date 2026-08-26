@@ -702,23 +702,18 @@ class CalendarViewModelTest {
     }
 
     @Test
-    fun `opening rate period editor keeps settings and history open`() = runTest {
+    fun `opening rate period editor is a separate change rate flow`() = runTest {
         val repository = FakeWorkEntryRepository(emptyList())
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
 
         viewModel.openSettings()
-        viewModel.openRateHistory()
-        viewModel.openRatePeriodEditor(null)
+        viewModel.openChangeRate(null)
         advanceUntilIdle()
 
-        // Flags propagate through separate combine chains; wait for all of them.
-        val state = viewModel.state.first {
-            it.isChangeRateSheetOpen && it.isRateHistoryOpen && it.isSettingsOpen
-        }
+        val state = viewModel.state.first { it.isChangeRateSheetOpen }
         assertTrue(state.isSettingsOpen)
-        assertTrue(state.isRateHistoryOpen)
         assertTrue(state.isChangeRateSheetOpen)
 
         viewModel.dismissChangeRateSheet()
@@ -733,7 +728,7 @@ class CalendarViewModelTest {
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
-        viewModel.openRatePeriodEditor(null)
+        viewModel.openChangeRate(null)
         advanceUntilIdle()
 
         viewModel.changeRateForPeriod(entry.date, entry.date, 20_000_000)
@@ -748,7 +743,7 @@ class CalendarViewModelTest {
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
-        viewModel.openRatePeriodEditor(null)
+        viewModel.openChangeRate(null)
         advanceUntilIdle()
 
         viewModel.changeRateForPeriod(LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 10), 20_000_000)

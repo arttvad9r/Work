@@ -39,7 +39,7 @@
 
     <string name="section_calculation">CALCULATION</string>
     <string name="settings_rate">Rate</string>
-    <string name="rate_history">Rates in recorded entries</string>
+    <string name="change_rate_for_period">Change rate for period</string>
     <string name="section_appearance">APPEARANCE</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
@@ -50,8 +50,6 @@
     <string name="back">Back</string>
 
     <string name="rate_for_period">Rate for period</string>
-    <string name="add_period">Change rate for period</string>
-    <string name="rate_history_empty">No rated entries yet</string>
     <string name="current_month">Current month</string>
     <string name="custom_period">Custom period</string>
     <string name="start_date">Start date</string>
@@ -60,7 +58,6 @@
     <string name="change_rate">Change rate</string>
     <string name="change_rate_confirmation_title">Change the rate?</string>
     <string name="change_rate_confirmation_text">The hourly rate will be updated for every entry in the selected period. The default rate stays unchanged.</string>
-    <string name="rate_entries_range">%1$d recorded entries: %2$s — %3$s</string>
 
     <string name="year_summary">Year summary</string>
     <string name="year_income">Income for the year</string>

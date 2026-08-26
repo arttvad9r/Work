@@ -9,7 +9,7 @@ All notable changes are documented here.
 - Import compensation now runs in a short non-cancellable rollback section after a Room replacement; cancellation remains cancellation after successful rollback and rollback failures have a separate error state.
 - First-entry default-rate adoption is persisted as a one-time decision, including an explicit user reset to zero; concurrent preference updates are serialized.
 - Adoption failures are global transient events, while the saved entry remains successful.
-- Rate history now describes grouped recorded entries rather than implying continuous effective periods.
+- Rate management is now a direct Change rate for period flow; no recorded-entry history is shown.
 - Widget month observation reacts to system date/time/timezone invalidation broadcasts.
 - CI actions are pinned to commit SHAs; the Nix flake declares Linux-only support because its Android FHS wrapper uses `steam-run`.
 

@@ -6,13 +6,12 @@
 Calendar
 |- tap day -> Day editor sheet
 |- tap settings -> full-screen SettingsScreen
-|  |- rate history -> full-screen RateHistoryScreen
 |  |- year summary -> full-screen YearSummaryScreen
 |  `- change rate for period -> ChangeRateSheet
 `- drag/tap summary area -> monthly report inside BottomSheetScaffold
 ```
 
-The day editor and change-rate flow are modal sheets. Settings, rate history and year summary are full-screen surfaces. The monthly report belongs to the calendar scaffold and does not replace the fixed summary card. The application is portrait-only by product decision.
+The day editor and change-rate flow are modal sheets. Settings and year summary are full-screen surfaces. The monthly report belongs to the calendar scaffold and does not replace the fixed summary card. The application is portrait-only by product decision.
 
 ## Calendar screen
 

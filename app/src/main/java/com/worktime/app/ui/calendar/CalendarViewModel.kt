@@ -49,7 +49,6 @@ class CalendarViewModel(
     private val visibleMonth = MutableStateFlow(YearMonth.now())
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
     private val settingsOpen = MutableStateFlow(false)
-    private val rateHistoryOpen = MutableStateFlow(false)
     private val changeRateSheetOpen = MutableStateFlow(false)
     private val changeRateInitialRange = MutableStateFlow<ClosedRange<LocalDate>?>(null)
     private val yearSummaryOpen = MutableStateFlow(false)
@@ -111,16 +110,6 @@ class CalendarViewModel(
         }
     }
 
-    private val rateHistoryData = rateHistoryOpen.flatMapLatest { open ->
-        when (open) {
-            false -> flowOf(RateHistoryUi(isOpen = false, periods = emptyList()))
-            true -> workEntryRepository.observeDateRange(LocalDate.MIN, LocalDate.MAX)
-                .map { entries ->
-                    RateHistoryUi(isOpen = true, periods = buildRatePeriods(entries))
-                }
-        }
-    }
-
     private data class ChangeRateUi(
         val open: Boolean,
         val initialRange: ClosedRange<LocalDate>?,
@@ -136,8 +125,7 @@ class CalendarViewModel(
         undoSnapshot,
         pendingImport,
         yearSummaryData,
-        rateHistoryData,
-    ) { changeRate, snapshot, import, yearUi, historyUi ->
+    ) { changeRate, snapshot, import, yearUi ->
         OverlayState(
             isChangeRateSheetOpen = changeRate.open,
             changeRateInitialRange = changeRate.initialRange,
@@ -145,8 +133,6 @@ class CalendarViewModel(
             pendingImportCount = import?.entries?.size,
             isYearSummaryOpen = yearUi.isOpen,
             yearSummary = yearUi.summary,
-            isRateHistoryOpen = historyUi.isOpen,
-            ratePeriods = historyUi.periods,
         )
     }
 
@@ -157,8 +143,6 @@ class CalendarViewModel(
         val pendingImportCount: Int?,
         val isYearSummaryOpen: Boolean,
         val yearSummary: YearSummary?,
-        val isRateHistoryOpen: Boolean,
-        val ratePeriods: List<RatePeriodUi>,
     )
 
     val state: StateFlow<CalendarUiState> = combine(
@@ -172,8 +156,6 @@ class CalendarViewModel(
             pendingImportCount = overlay.pendingImportCount,
             isYearSummaryOpen = overlay.isYearSummaryOpen,
             yearSummary = overlay.yearSummary,
-            isRateHistoryOpen = overlay.isRateHistoryOpen,
-            ratePeriods = overlay.ratePeriods,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -190,7 +172,6 @@ class CalendarViewModel(
     fun selectDate(date: LocalDate) {
         operationError.value = null
         settingsOpen.value = false
-        rateHistoryOpen.value = false
         selectedDate.value = date
     }
 
@@ -210,18 +191,7 @@ class CalendarViewModel(
         settingsOpen.value = false
     }
 
-    fun openRateHistory() {
-        operationError.value = null
-        selectedDate.value = null
-        rateHistoryOpen.value = true
-    }
-
-    fun dismissRateHistory() {
-        operationError.value = null
-        rateHistoryOpen.value = false
-    }
-
-    fun openRatePeriodEditor(range: ClosedRange<LocalDate>?) {
+    fun openChangeRate(range: ClosedRange<LocalDate>?) {
         operationError.value = null
         selectedDate.value = null
         changeRateInitialRange.value = range
@@ -503,10 +473,6 @@ private data class YearSummaryUi(
     val summary: YearSummary?,
 )
 
-private data class RateHistoryUi(
-    val isOpen: Boolean,
-    val periods: List<RatePeriodUi>,
-)
 
 internal fun buildYearSummary(year: Int, entries: List<WorkEntry>): YearSummary {
     val byMonth = entries.groupBy { YearMonth.from(it.date) }
