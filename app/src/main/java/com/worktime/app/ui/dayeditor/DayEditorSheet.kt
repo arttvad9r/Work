@@ -4,18 +4,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -27,19 +24,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldLabelPosition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,24 +43,28 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.model.WorkEntry
+import com.worktime.app.ui.components.AppDimens
+import com.worktime.app.ui.components.AppDestructiveAction
+import com.worktime.app.ui.components.AppFieldValueSlot
 import com.worktime.app.ui.components.AppModalBottomSheet
+import com.worktime.app.ui.components.AppPrimaryButton
+import com.worktime.app.ui.components.CompactInputChrome
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.formatDurationCompact
@@ -101,16 +96,16 @@ fun DayEditorSheet(
     }
 }
 
-private enum class NumericField {
-    Duration,
-    Rate,
-    Bonus,
-    Penalty,
+internal enum class NumericField(val labelTextRes: Int) {
+    Duration(R.string.worked),
+    Rate(R.string.at_rate),
+    Bonus(R.string.bonus),
+    Penalty(R.string.penalty),
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun DayEditorSheetContent(
+internal fun DayEditorSheetContent(
     date: LocalDate,
     existing: WorkEntry?,
     defaultHourlyRateMicros: Long,
@@ -198,6 +193,19 @@ private fun DayEditorSheetContent(
         }
     }
 
+    // A cleared adjustment collapses back into its inactive navigation-row look.
+    LaunchedEffect(editorHasFocus) {
+        if (!editorHasFocus) {
+            when (activeField) {
+                NumericField.Bonus ->
+                    if (bonusState.text.isBlank()) bonusVisible = false
+                NumericField.Penalty ->
+                    if (penaltyState.text.isBlank()) penaltyVisible = false
+                else -> Unit
+            }
+        }
+    }
+
     val showBonus = {
         bonusVisible = true
         activateField(NumericField.Bonus)
@@ -268,8 +276,12 @@ private fun DayEditorSheetContent(
     val bonusHasError = parsedBonus == null || parsedBonus > MoneyLimits.MAX_COMPONENT_MICROS
     val penaltyHasError = parsedPenalty == null || parsedPenalty > MoneyLimits.MAX_COMPONENT_MICROS
     val totalMicros = draft?.let { runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull() }
+
     AppModalBottomSheet(
         onDismissRequest = onDismiss,
+        title = date.format(
+            DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale),
+        ),
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(
@@ -277,16 +289,8 @@ private fun DayEditorSheetContent(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
             ) {
-                Text(
-                    text = date.format(
-                        DateTimeFormatter.ofPattern("EEEE, d MMMM", LocalLocale.current.platformLocale),
-                    ),
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp),
-                    fontWeight = FontWeight.SemiBold,
-                )
-
                 NumericEditorSection(
                     durationState = durationState,
                     rateState = rateState,
@@ -328,25 +332,16 @@ private fun DayEditorSheetContent(
                     totalMicros = totalMicros,
                 )
 
-                Button(
+                AppPrimaryButton(
+                    text = stringResource(R.string.save),
                     onClick = { draft?.let(onSave) },
                     enabled = draft != null && totalMicros != null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 52.dp),
-                ) {
-                    Text(stringResource(R.string.save))
-                }
+                )
                 if (existing != null) {
-                    TextButton(
+                    AppDestructiveAction(
+                        text = stringResource(R.string.delete_entry),
                         onClick = { confirmDelete = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                    ) {
-                        Text(stringResource(R.string.delete_entry))
-                    }
+                    )
                 }
             }
 
@@ -355,7 +350,7 @@ private fun DayEditorSheetContent(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(16.dp),
+                    .padding(AppDimens.screenHorizontalPadding),
             )
         }
     }
@@ -406,138 +401,130 @@ private fun NumericEditorSection(
     editorFocusRequester: FocusRequester,
     onEditorFocusChanged: (Boolean) -> Unit,
 ) {
-    val fieldHeight = 58.dp
-    val gap = 8.dp
-    val rateY = fieldHeight + gap
-    // Duration occupies row one; the rate row sits below as a secondary line.
-    val adjustmentTop = rateY + fieldHeight + gap
+    val rowHeight = 48.dp
+    // Rows sit flush against each other so the editor reads as one compact list; the
+    // row height still meets the 48 dp minimum touch target.
+    val rateY = rowHeight
+    val adjustmentTop = rateY + rowHeight
     val expandedAdjustments = bonusVisible || penaltyVisible
-    val bonusSlotHeight = fieldHeight
-    val penaltySlotHeight = fieldHeight
-    val penaltyTop = adjustmentTop + bonusSlotHeight + gap
-    val sectionHeight = adjustmentTop + bonusSlotHeight + gap + penaltySlotHeight
+    val penaltyTop = adjustmentTop + rowHeight
+    val sectionHeight = penaltyTop + rowHeight
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(sectionHeight),
     ) {
         if (activeField != NumericField.Duration) {
-            PassiveDurationField(
-                state = durationState,
-                label = stringResource(R.string.worked),
+            EditorValueRow(
+                label = stringResource(NumericField.Duration.labelTextRes),
+                valueText = durationState.text.toString().ifBlank { null },
+                placeholderText = stringResource(R.string.duration_placeholder),
                 isError = durationHasError,
+                showChevron = false,
                 onClick = { onActivateField(NumericField.Duration) },
                 modifier = Modifier
+                    .offset(y = 0.dp)
+                    .testTag("day-editor-row-duration")
                     .fillMaxWidth()
-                    .height(fieldHeight),
+                    .height(rowHeight),
             )
         }
         if (activeField != NumericField.Rate) {
-            RateSummaryRow(
-                rateText = rateState.text.toString(),
+            EditorValueRow(
+                label = stringResource(NumericField.Rate.labelTextRes),
+                valueText = rateState.text.toString().ifBlank { null },
+                placeholderText = "—",
                 isError = rateHasError,
+                showChevron = false,
                 onClick = { onActivateField(NumericField.Rate) },
                 modifier = Modifier
                     .offset(y = rateY)
+                    .testTag("day-editor-row-rate")
                     .fillMaxWidth()
-                    .height(fieldHeight),
+                    .height(rowHeight),
             )
         }
 
         if (!expandedAdjustments) {
-            AdjustmentSummaryRow(
+            AdjustmentNavRow(
                 label = stringResource(R.string.bonus),
                 onClick = onShowBonus,
                 modifier = Modifier
                     .offset(y = adjustmentTop)
+                    .testTag("day-editor-row-bonus")
                     .fillMaxWidth()
-                    .height(fieldHeight),
+                    .height(rowHeight),
             )
-            AdjustmentSummaryRow(
+            AdjustmentNavRow(
                 label = stringResource(R.string.penalty),
                 onClick = onShowPenalty,
                 modifier = Modifier
                     .offset(y = penaltyTop)
+                    .testTag("day-editor-row-penalty")
                     .fillMaxWidth()
-                    .height(fieldHeight),
+                    .height(rowHeight),
             )
         } else {
             if (bonusVisible) {
                 if (activeField != NumericField.Bonus) {
-                    PassiveMoneyField(
-                        state = bonusState,
-                        label = stringResource(R.string.bonus),
+                    EditorValueRow(
+                        label = stringResource(NumericField.Bonus.labelTextRes),
+                        valueText = bonusState.text.toString().ifBlank { null },
+                        placeholderText = null,
                         isError = bonusHasError,
+                        showChevron = false,
                         onClick = { onActivateField(NumericField.Bonus) },
                         modifier = Modifier
                             .offset(y = adjustmentTop)
-                    .fillMaxWidth()
-                    .height(fieldHeight),
+                            .testTag("day-editor-row-bonus")
+                            .fillMaxWidth()
+                            .height(rowHeight),
                     )
                 }
             } else {
-                AdjustmentSummaryRow(
+                AdjustmentNavRow(
                     label = stringResource(R.string.bonus),
                     onClick = onShowBonus,
                     modifier = Modifier
                         .offset(y = adjustmentTop)
+                        .testTag("day-editor-row-bonus")
                         .fillMaxWidth()
-                    .height(fieldHeight),
+                        .height(rowHeight),
                 )
             }
 
             if (penaltyVisible) {
                 if (activeField != NumericField.Penalty) {
-                    PassiveMoneyField(
-                        state = penaltyState,
-                        label = stringResource(R.string.penalty),
+                    EditorValueRow(
+                        label = stringResource(NumericField.Penalty.labelTextRes),
+                        valueText = penaltyState.text.toString().ifBlank { null },
+                        placeholderText = null,
                         isError = penaltyHasError,
+                        showChevron = false,
                         onClick = { onActivateField(NumericField.Penalty) },
                         modifier = Modifier
                             .offset(y = penaltyTop)
-                    .fillMaxWidth()
-                    .height(fieldHeight),
+                            .testTag("day-editor-row-penalty")
+                            .fillMaxWidth()
+                            .height(rowHeight),
                     )
                 }
             } else {
-                AdjustmentSummaryRow(
+                AdjustmentNavRow(
                     label = stringResource(R.string.penalty),
                     onClick = onShowPenalty,
                     modifier = Modifier
                         .offset(y = penaltyTop)
+                        .testTag("day-editor-row-penalty")
                         .fillMaxWidth()
-                    .height(fieldHeight),
+                        .height(rowHeight),
                 )
             }
         }
 
-        val editorX: Dp
-        val editorY: Dp
-        val editorWidth: Dp
-        when (activeField) {
-            NumericField.Duration -> {
-                editorX = 0.dp
-                editorY = 0.dp
-                editorWidth = maxWidth
-            }
-            NumericField.Rate -> {
-                editorX = 0.dp
-                editorY = rateY
-                editorWidth = maxWidth
-            }
-            NumericField.Bonus -> {
-                editorX = 0.dp
-                editorY = adjustmentTop
-                editorWidth = maxWidth
-            }
-            NumericField.Penalty -> {
-                editorX = 0.dp
-                editorY = adjustmentTop + bonusSlotHeight + gap
-                editorWidth = maxWidth
-            }
-        }
-
+        // The single focusable editor node moves between fixed row slots; moving the
+        // node (not recreating it) preserves the platform input session across switches.
         PersistentNumericEditor(
             state = editorState,
             activeField = activeField,
@@ -549,83 +536,100 @@ private fun NumericEditorSection(
             penaltyHasError = penaltyHasError,
             keyboardOptions = numericKeyboardOptions,
             onNext = onNext,
+            editorFocusRequester = editorFocusRequester,
+            onEditorFocusChanged = onEditorFocusChanged,
             modifier = Modifier
-                .offset(x = editorX, y = editorY)
-                .width(editorWidth)
-                .height(fieldHeight)
-                .focusRequester(editorFocusRequester)
-                .onFocusChanged { onEditorFocusChanged(it.isFocused) },
-        )
-    }
-}
-
-/** Inactive rate line: visually secondary, tap to edit the rate for this shift. */
-@Composable
-private fun RateSummaryRow(
-    rateText: String,
-    isError: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.at_rate),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.width(120.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = if (rateText.isBlank()) {
-                        "—"
-                    } else {
-                        stringResource(R.string.rate_with_currency, rateText)
+                .offset(
+                    y = when (activeField) {
+                        NumericField.Duration -> 0.dp
+                        NumericField.Rate -> rateY
+                        NumericField.Bonus -> adjustmentTop
+                        NumericField.Penalty -> penaltyTop
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (isError) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
                 )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+                .testTag("day-editor-active-field")
+                .fillMaxWidth()
+                .height(rowHeight),
+        )
     }
 }
 
+/**
+ * Flat read-only presentation of an editable numeric row: label left, value in the
+ * shared trailing slot, optional chevron. Tapping activates the inline editor.
+ */
 @Composable
-private fun AdjustmentSummaryRow(
+private fun EditorValueRow(
     label: String,
+    valueText: String?,
+    placeholderText: String?,
+    isError: Boolean,
+    showChevron: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = 0.dp),
+        modifier = modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick,
+        ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AppFieldValueSlot {
+                Text(
+                    text = valueText ?: placeholderText.orEmpty(),
+                    modifier = Modifier.padding(end = 8.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = when {
+                        isError -> MaterialTheme.colorScheme.error
+                        valueText != null -> MaterialTheme.colorScheme.onSurface
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    maxLines = 1,
+                )
+            }
+            if (showChevron) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** Inactive bonus/penalty line: plain navigation affordance with a chevron. */
+@Composable
+private fun AdjustmentNavRow(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Row(
+        modifier = modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick,
+        ),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
         Icon(
@@ -636,6 +640,10 @@ private fun AdjustmentSummaryRow(
     }
 }
 
+/**
+ * The persistent editor rendered as the active row itself: label left, compact
+ * inline field right. Same height and slot geometry as [EditorValueRow].
+ */
 @Composable
 private fun PersistentNumericEditor(
     state: TextFieldState,
@@ -648,14 +656,15 @@ private fun PersistentNumericEditor(
     penaltyHasError: Boolean,
     keyboardOptions: KeyboardOptions,
     onNext: () -> Unit,
+    editorFocusRequester: FocusRequester,
+    onEditorFocusChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isDuration = activeField == NumericField.Duration
-    val label = when (activeField) {
-        NumericField.Duration -> stringResource(R.string.worked)
-        NumericField.Rate -> stringResource(R.string.hourly_rate)
-        NumericField.Bonus -> stringResource(R.string.bonus)
-        NumericField.Penalty -> stringResource(R.string.penalty)
+    val label = if (activeField == NumericField.Rate) {
+        stringResource(R.string.hourly_rate)
+    } else {
+        stringResource(activeField.labelTextRes)
     }
     val isError = when (activeField) {
         NumericField.Duration -> durationHasError
@@ -664,101 +673,44 @@ private fun PersistentNumericEditor(
         NumericField.Penalty -> penaltyHasError
     }
 
-    OutlinedTextField(
-        state = state,
-        inputTransformation = if (isDuration) durationInputTransformation else moneyInputTransformation,
-        label = { Text(label, maxLines = 1) },
-        labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
-        placeholder = if (isDuration) {
-            {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
+        CompactInputChrome(isError = isError) {
+            BasicTextField(
+                state = state,
+                inputTransformation = if (isDuration) durationInputTransformation else moneyInputTransformation,
+                textStyle = MaterialTheme.typography.titleMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    lineHeight = MaterialTheme.typography.titleMedium.fontSize,
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                lineLimits = TextFieldLineLimits.SingleLine,
+                keyboardOptions = keyboardOptions,
+                onKeyboardAction = { onNext() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(editorFocusRequester)
+                    .onFocusChanged { onEditorFocusChanged(it.isFocused) },
+            )
+            if (isDuration && state.text.isEmpty()) {
                 Text(
                     text = stringResource(R.string.duration_placeholder),
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.46f),
                     style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.46f),
                     maxLines = 1,
                 )
             }
-        } else {
-            null
-        },
-        textStyle = MaterialTheme.typography.titleMedium.copy(
-            textAlign = TextAlign.Center,
-            lineHeight = 20.sp,
-        ),
-        contentPadding = NumericFieldContentPadding,
-        isError = isError,
-        modifier = modifier,
-        lineLimits = TextFieldLineLimits.SingleLine,
-        keyboardOptions = keyboardOptions,
-        onKeyboardAction = { onNext() },
-    )
-}
-
-@Composable
-private fun PassiveDurationField(
-    state: TextFieldState,
-    label: String,
-    isError: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(modifier = modifier) {
-        DurationField(
-            state = state,
-            inputTransformation = null,
-            label = label,
-            isError = isError,
-            keyboardOptions = KeyboardOptions.Default,
-            readOnly = true,
-            modifier = Modifier
-                .matchParentSize()
-                .focusProperties { canFocus = false },
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                ),
-        )
-    }
-}
-
-@Composable
-private fun PassiveMoneyField(
-    state: TextFieldState,
-    label: String,
-    isError: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(modifier = modifier) {
-        MoneyField(
-            state = state,
-            inputTransformation = null,
-            label = label,
-            isError = isError,
-            keyboardOptions = KeyboardOptions.Default,
-            readOnly = true,
-            modifier = Modifier
-                .matchParentSize()
-                .focusProperties { canFocus = false },
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                ),
-        )
+        }
     }
 }
 
@@ -830,6 +782,11 @@ private fun CalculationRow(
         MaterialTheme.typography.bodyMedium
     }
     val fontWeight = if (emphasized) FontWeight.SemiBold else null
+    val labelColor = if (emphasized) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -838,12 +795,14 @@ private fun CalculationRow(
             text = label,
             style = textStyle,
             fontWeight = fontWeight,
+            color = labelColor,
             maxLines = 1,
         )
         Text(
             text = value,
             style = textStyle,
             fontWeight = fontWeight,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
     }
@@ -901,76 +860,3 @@ private fun parseDurationInput(text: String): DurationInput? {
 }
 
 private fun parseMoneyOrNull(text: String): Long? = runCatching { parseDecimalMicros(text) }.getOrNull()
-
-@Composable
-private fun DurationField(
-    state: TextFieldState,
-    inputTransformation: InputTransformation?,
-    label: String,
-    isError: Boolean,
-    keyboardOptions: KeyboardOptions,
-    modifier: Modifier = Modifier,
-    readOnly: Boolean = false,
-) {
-    OutlinedTextField(
-        state = state,
-        inputTransformation = inputTransformation,
-        label = { Text(label, maxLines = 1) },
-        labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
-        placeholder = {
-            Text(
-                text = stringResource(R.string.duration_placeholder),
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.46f),
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-            )
-        },
-        textStyle = MaterialTheme.typography.titleMedium.copy(
-            textAlign = TextAlign.Center,
-            lineHeight = 20.sp,
-        ),
-        contentPadding = NumericFieldContentPadding,
-        isError = isError,
-        modifier = modifier,
-        readOnly = readOnly,
-        lineLimits = TextFieldLineLimits.SingleLine,
-        keyboardOptions = keyboardOptions,
-    )
-}
-
-@Composable
-private fun MoneyField(
-    state: TextFieldState,
-    inputTransformation: InputTransformation?,
-    label: String,
-    isError: Boolean,
-    keyboardOptions: KeyboardOptions,
-    modifier: Modifier = Modifier,
-    readOnly: Boolean = false,
-) {
-    OutlinedTextField(
-        state = state,
-        inputTransformation = inputTransformation,
-        label = { Text(label, maxLines = 1) },
-        labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
-        textStyle = MaterialTheme.typography.titleMedium.copy(
-            textAlign = TextAlign.Center,
-            lineHeight = 20.sp,
-        ),
-        contentPadding = NumericFieldContentPadding,
-        isError = isError,
-        modifier = modifier.fillMaxWidth(),
-        readOnly = readOnly,
-        lineLimits = TextFieldLineLimits.SingleLine,
-        keyboardOptions = keyboardOptions,
-    )
-}
-
-private val NumericFieldContentPadding = PaddingValues(
-    start = 16.dp,
-    top = 0.dp,
-    end = 16.dp,
-    bottom = 16.dp,
-)

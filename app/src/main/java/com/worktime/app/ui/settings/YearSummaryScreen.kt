@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -77,7 +76,7 @@ fun YearSummaryScreen(
                     .heightIn(min = 48.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onPreviousYear, modifier = Modifier.size(40.dp)) {
+                IconButton(onClick = onPreviousYear) {
                     Icon(
                         Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                         contentDescription = stringResource(R.string.previous_year),
@@ -90,7 +89,7 @@ fun YearSummaryScreen(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
-                IconButton(onClick = onNextYear, modifier = Modifier.size(40.dp)) {
+                IconButton(onClick = onNextYear) {
                     Icon(
                         Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = stringResource(R.string.next_year),

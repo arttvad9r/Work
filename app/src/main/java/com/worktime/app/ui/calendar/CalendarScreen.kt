@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -71,6 +70,7 @@ import androidx.compose.ui.unit.sp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
+import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.LabelValueRow
 import com.worktime.app.ui.components.AppSheetShape
 import com.worktime.app.ui.components.PlainDragHandle
@@ -211,7 +211,11 @@ fun CalendarScreen(
                     },
                     modifier = Modifier
                         .navigationBarsPadding()
-                        .padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
+                        .padding(
+                            start = AppDimens.screenHorizontalPadding,
+                            end = AppDimens.screenHorizontalPadding,
+                            bottom = 8.dp,
+                        ),
                 )
             }
         }
@@ -332,7 +336,7 @@ private fun SummaryStrip(
                         },
                     )
                 }
-                .clip(RoundedCornerShape(16.dp))
+                .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.secondaryContainer)
                 .clickable(
                     onClickLabel = stringResource(R.string.monthly_summary),
@@ -397,7 +401,10 @@ private fun MonthlySummaryPanel(
             .testTag("monthly-report-panel"),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+            modifier = Modifier.padding(
+                horizontal = AppDimens.screenHorizontalPadding,
+                vertical = 6.dp,
+            ),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
@@ -474,14 +481,14 @@ private fun MonthlySummaryPanel(
 
 @Composable
 private fun YearNavRow(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = AppDimens.rowMinHeight)
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .clickable(onClick = onClick)
+                .padding(horizontal = AppDimens.screenHorizontalPadding),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

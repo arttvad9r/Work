@@ -17,11 +17,16 @@ import androidx.compose.ui.unit.dp
 
 val AppSheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
+/**
+ * The only modal bottom sheet wrapper: fixed shape, drag handle, optional sentence-case
+ * title, navigation-bar padding and horizontal padding. Sheets must not restyle this.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppModalBottomSheet(
     onDismissRequest: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    title: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ModalBottomSheet(
@@ -34,12 +39,15 @@ fun AppModalBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = AppDimens.screenHorizontalPadding)
                 .padding(bottom = 16.dp),
         ) {
             PlainDragHandle(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
+            if (title != null) {
+                AppSheetTitle(text = title)
+            }
             content()
         }
     }

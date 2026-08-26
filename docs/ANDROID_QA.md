@@ -43,13 +43,13 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 ## Day editor
 
 - [ ] Closed-keyboard form fits without a required scroll in the normal state.
-- [ ] Duration is on the first editor row and rate is on the separate row below it.
-- [ ] Labels for `Время`, `Ставка за час`, `Премия` and `Штраф` always stay minimized on the field outline; an empty unfocused field never moves its label into the input area.
-- [ ] A new empty day starts with an empty duration field and shows the centered `00:00` hint rather than a literal `0`.
+- [ ] Duration is on the first flat row and rate is on the separate row below it (`370 ₽/h` + chevron).
+- [ ] Inactive bonus/penalty are plain navigation rows with a chevron; activating one swaps only its trailing slot to a compact inline field — no row changes height or position, and no full-width text field appears.
+- [ ] A new empty day starts with an empty duration slot and shows the centered `00:00` hint rather than a literal `0`.
 - [ ] Typing `12` into a new duration field produces `12`, never `01:2` or another leading-zero variant.
 - [ ] Defensive leading-zero normalization also makes pasted/typed `012` resolve to `12`.
 - [ ] `0`, `15`, `530`, `1530`, `24:00` behave as specified.
-- [ ] `24:01`, invalid minutes and zero rate with worked time mark the affected field with a red outline only; no validation helper text appears.
+- [ ] `24:01`, invalid minutes and zero rate with worked time mark the affected row's value/editor red only; no validation helper text appears.
 - [ ] Opening the numeric keyboard lifts the modal editor above the keyboard; the fields/actions are not left underneath the IME.
 - [ ] First tap on any visible numeric slot focuses/activates it and opens the numeric keyboard immediately when the editor was previously unfocused; a second tap is never required.
 - [ ] The active logical field shows exactly one label/value/placeholder; no overlapping duplicate text is visible.
@@ -67,7 +67,7 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 
 ## Settings
 
-- [ ] Rate field is compact and centered.
+- [ ] Rate row reads as a value row (formatted rate on the right) and switches to the compact centered field in the same slot when tapped; neighboring rows do not move.
 - [ ] Focusing an initial `0` selects it instead of deleting it; the sheet height remains unchanged.
 - [ ] Invalid rate marks only the field outline red; no helper text appears.
 - [ ] Opening/closing the numeric keyboard does not produce a second inset jump.
@@ -75,6 +75,14 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] Save is reachable with keyboard closed and after keyboard dismissal.
 - [ ] Theme selection persists.
 - [ ] Failed settings persistence keeps the sheet open and shows a transient localized Snackbar.
+
+## UI consistency
+
+- [ ] Navigation rows (`Change rate for period`, `Export data`, `Import data`, export format options, ChangeRate date rows) share one height, chevron, typography and padding.
+- [ ] Theme and rate-period selectors use the same segmented component and selected style.
+- [ ] All modal sheets (day editor, change rate, export format) share shape, drag handle, sentence-case title, horizontal padding and bottom spacing; no uppercase section-style sheet titles.
+- [ ] Primary buttons (`Save`, `Change rate`) share height/radius/typography; delete uses the shared destructive pattern.
+- [ ] Calculation blocks in the day editor and monthly report use the same label/value/divider presentation.
 
 ## Visual/accessibility
 

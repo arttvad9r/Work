@@ -1,27 +1,21 @@
 package com.worktime.app.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -34,18 +28,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalLocale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.width
 import com.worktime.app.R
 import com.worktime.app.domain.model.MoneyLimits
+import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppModalBottomSheet
+import com.worktime.app.ui.components.AppNavigationRow
+import com.worktime.app.ui.components.AppPrimaryButton
+import com.worktime.app.ui.components.AppSegmentedControl
 import com.worktime.app.ui.components.CompactMoneyField
 import com.worktime.app.ui.format.parseDecimalMicros
 import java.time.Instant
@@ -107,6 +99,7 @@ fun ChangeRateSheet(
 
     AppModalBottomSheet(
         onDismissRequest = onDismiss,
+        title = stringResource(R.string.rate_for_period),
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(
@@ -114,110 +107,68 @@ fun ChangeRateSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
             ) {
-                Text(
-                    text = stringResource(R.string.rate_for_period),
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp),
-                    fontWeight = FontWeight.SemiBold,
+                AppSegmentedControl(
+                    options = listOf(
+                        stringResource(R.string.current_month),
+                        stringResource(R.string.custom_period),
+                    ),
+                    selectedIndex = if (period == RatePeriod.CURRENT_MONTH) 0 else 1,
+                    onSelect = { index ->
+                        period = if (index == 0) RatePeriod.CURRENT_MONTH else RatePeriod.CUSTOM
+                    },
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    FilterChip(
-                        selected = period == RatePeriod.CURRENT_MONTH,
-                        onClick = { period = RatePeriod.CURRENT_MONTH },
-                        label = {
-                            Text(
-                                text = stringResource(R.string.current_month),
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.Center,
-                                 style = MaterialTheme.typography.labelMedium,
-                                 color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                    FilterChip(
-                        selected = period == RatePeriod.CUSTOM,
-                        onClick = { period = RatePeriod.CUSTOM },
-                        label = {
-                            Text(
-                                text = stringResource(R.string.custom_period),
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.Center,
-                                 style = MaterialTheme.typography.labelMedium,
-                                 color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-
-                if (period == RatePeriod.CUSTOM) {
-                    Surface(
+                if (period == RatePeriod.CURRENT_MONTH) {
+                    // The month itself is the period; no empty date rows to edit.
+                    Text(
+                        text = visibleMonth.format(
+                            DateTimeFormatter.ofPattern("LLLL yyyy", LocalLocale.current.platformLocale),
+                        ),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            DateRow(
-                                label = stringResource(R.string.start_date),
-                                value = customStart?.format(dateFormatter),
-                                onClick = { pickingDate = DateField.Start },
-                            )
-                            DateRow(
-                                label = stringResource(R.string.end_date),
-                                value = customEnd?.format(dateFormatter),
-                                onClick = { pickingDate = DateField.End },
-                            )
-                        }
-                    }
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    AppNavigationRow(
+                        label = stringResource(R.string.start_date),
+                        value = customStart?.format(dateFormatter) ?: "—",
+                        onClick = { pickingDate = DateField.Start },
+                    )
+                    AppNavigationRow(
+                        label = stringResource(R.string.end_date),
+                        value = customEnd?.format(dateFormatter) ?: "—",
+                        onClick = { pickingDate = DateField.End },
+                    )
                 }
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = rateLabel,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        CompactMoneyField(
-                            text = rate,
-                            onTextChange = { rate = it },
-                            isError = rate.isNotEmpty() && !rateValid,
-                            contentDescription = rateLabel,
-                        )
-                    }
-                }
-
-                Button(
-                    onClick = { confirmChange = true },
-                    enabled = canChange,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 52.dp),
+                        .padding(vertical = AppDimens.rowGap),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.change_rate))
+                    Text(
+                        text = rateLabel,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                    CompactMoneyField(
+                        text = rate,
+                        onTextChange = { rate = it },
+                        isError = rate.isNotEmpty() && !rateValid,
+                        contentDescription = rateLabel,
+                    )
                 }
+
+                AppPrimaryButton(
+                    text = stringResource(R.string.change_rate),
+                    onClick = { confirmChange = true },
+                    enabled = canChange,
+                )
             }
 
             SnackbarHost(
@@ -225,7 +176,7 @@ fun ChangeRateSheet(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(16.dp),
+                    .padding(AppDimens.screenHorizontalPadding),
             )
         }
     }
@@ -275,43 +226,6 @@ fun ChangeRateSheet(
                     Text(stringResource(R.string.cancel))
                 }
             },
-        )
-    }
-}
-
-@Composable
-private fun DateRow(
-    label: String,
-    value: String?,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .semantics(mergeDescendants = true) {}
-            .padding(horizontal = 4.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = value ?: "—",
-            modifier = Modifier.width(120.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (value == null) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Clip,
         )
     }
 }

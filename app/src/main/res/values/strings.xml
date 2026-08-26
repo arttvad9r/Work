@@ -96,7 +96,6 @@
     <string name="replace">Replace</string>
 
     <string name="amount_with_currency">%1$s ₽</string>
-    <string name="rate_with_currency">%1$s ₽/h</string>
 
     <plurals name="shifts_short">
         <item quantity="one">%1$d shift</item>

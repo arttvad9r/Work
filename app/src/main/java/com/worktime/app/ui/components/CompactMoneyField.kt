@@ -2,6 +2,8 @@ package com.worktime.app.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -38,9 +40,45 @@ import com.worktime.app.ui.format.sanitizeMoneyInput
 private val FieldShape = RoundedCornerShape(12.dp)
 
 /**
- * Compact pill-shaped money input (~40dp tall) that fits settings rows instead of
- * dominating them like a full Material text field. Owns the editor-value plumbing:
- * sanitization, trailing-cursor placement, select-all on refocusing a bare `0`.
+ * Shared visual chrome for every compact inline numeric editor (~120×40dp pill that
+ * sits in the trailing slot of a standard row). Guarantees that editing a value never
+ * swaps the interface for a full-width form field.
+ */
+@Composable
+fun CompactInputChrome(
+    isError: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Surface(
+        modifier = modifier
+            .width(AppDimens.compactFieldWidth)
+            .height(AppDimens.compactFieldHeight),
+        shape = FieldShape,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isError) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            },
+        ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center,
+            content = content,
+        )
+    }
+}
+
+/**
+ * Compact pill-shaped money input that fits settings rows instead of dominating them.
+ * Owns the editor-value plumbing: sanitization, trailing-cursor placement,
+ * select-all on refocusing a bare `0`.
  */
 @Composable
 fun CompactMoneyField(
@@ -64,63 +102,44 @@ fun CompactMoneyField(
     LaunchedEffect(autoFocus) {
         if (autoFocus) focusRequester.requestFocus()
     }
-    Surface(
-        modifier = modifier.width(120.dp),
-        shape = FieldShape,
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isError) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.outlineVariant
+    CompactInputChrome(isError = isError, modifier = modifier) {
+        BasicTextField(
+            value = fieldValue,
+            onValueChange = { updated ->
+                val sanitized = sanitizeMoneyInput(updated.text)
+                fieldValue = TextFieldValue(
+                    text = sanitized,
+                    selection = TextRange(sanitized.length),
+                )
+                onTextChange(sanitized)
             },
-        ),
-    ) {
-        Box(
             modifier = Modifier
-                .height(40.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            BasicTextField(
-                value = fieldValue,
-                onValueChange = { updated ->
-                    val sanitized = sanitizeMoneyInput(updated.text)
-                    fieldValue = TextFieldValue(
-                        text = sanitized,
-                        selection = TextRange(sanitized.length),
-                    )
-                    onTextChange(sanitized)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
-                    .onFocusChanged { focusState ->
-                        if (focusState.isFocused) {
-                            hadFocus = true
-                            if (fieldValue.text == "0") {
-                                fieldValue = fieldValue.copy(selection = TextRange(0, 1))
-                            }
-                        }
-                        if (onLostFocus != null && hadFocus && !focusState.isFocused && !focusState.hasFocus) {
-                            onLostFocus()
+                .focusRequester(focusRequester)
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused) {
+                        hadFocus = true
+                        if (fieldValue.text == "0") {
+                            fieldValue = fieldValue.copy(selection = TextRange(0, 1))
                         }
                     }
-                    .semantics { this.contentDescription = contentDescription },
-                textStyle = MaterialTheme.typography.titleMedium.copy(
-                    textAlign = TextAlign.Center,
-                    lineHeight = MaterialTheme.typography.titleMedium.fontSize,
-                ),
-                singleLine = true,
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Decimal,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-            )
-        }
+                    if (onLostFocus != null && hadFocus && !focusState.isFocused && !focusState.hasFocus) {
+                        onLostFocus()
+                    }
+                }
+                .semantics { this.contentDescription = contentDescription },
+            textStyle = MaterialTheme.typography.titleMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                lineHeight = MaterialTheme.typography.titleMedium.fontSize,
+            ),
+            singleLine = true,
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+        )
     }
 }

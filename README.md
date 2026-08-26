@@ -23,6 +23,8 @@ open month -> tap a day -> enter duration and hourly rate -> save
 
 There is no currency selector or conversion model; the current presentation uses the fixed `₽` and `₽/h` labels. Notes and quick-duration presets are intentionally not part of the product. A fractional part is shown only when it is non-zero. Durations are displayed as `0`, `15` or `15:30`.
 
+The interface follows one shared component/dimension contract ([UI system](docs/UI_SYSTEM.md)): identical entities look and behave identically on every screen, and editing a value never swaps a row for a full-width form field.
+
 Numeric validation is deliberately compact: invalid input is indicated by the red field outline without helper text. Persistence failures are separate operational errors and are shown transiently without changing sheet geometry.
 
 ## Product rules
@@ -71,6 +73,7 @@ See the [Android QA checklist](docs/ANDROID_QA.md).
 
 - [Product](docs/PRODUCT.md)
 - [UX](docs/UX.md)
+- [UI system](docs/UI_SYSTEM.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Decisions](docs/DECISIONS.md)
 - [Testing](docs/TESTING.md)

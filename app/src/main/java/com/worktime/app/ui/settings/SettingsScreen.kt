@@ -15,15 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -37,16 +30,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.preferences.ThemeMode
+import com.worktime.app.ui.components.AppDimens
+import com.worktime.app.ui.components.AppFieldValueSlot
+import com.worktime.app.ui.components.AppModalBottomSheet
+import com.worktime.app.ui.components.AppNavigationRow
+import com.worktime.app.ui.components.AppSegmentedControl
+import com.worktime.app.ui.components.AppSectionHeader
 import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.CompactMoneyField
-import com.worktime.app.ui.components.AppModalBottomSheet
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
 
@@ -85,60 +81,61 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .statusBarsPadding(),
         ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-        ) {
-            AppTopBar(
-                title = stringResource(R.string.settings),
-                onBack = onDismiss,
-            )
-            SectionLabel(stringResource(R.string.section_calculation))
-            RateRow(
-                rateMicros = defaultHourlyRateMicros,
-                editing = rateEditing,
-                onEdit = { rateEditing = true },
-                onDone = { rateEditing = false },
-                onRateChange = onRateChange,
-            )
-            SettingsRow(
-                label = stringResource(R.string.change_rate_for_period),
-                onClick = onOpenChangeRate,
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = AppDimens.screenHorizontalPadding),
+            ) {
+                AppTopBar(
+                    title = stringResource(R.string.settings),
+                    onBack = onDismiss,
+                )
+                AppSectionHeader(stringResource(R.string.section_calculation))
+                RateRow(
+                    rateMicros = defaultHourlyRateMicros,
+                    editing = rateEditing,
+                    onEdit = { rateEditing = true },
+                    onDone = { rateEditing = false },
+                    onRateChange = onRateChange,
+                )
+                AppNavigationRow(
+                    label = stringResource(R.string.change_rate_for_period),
+                    onClick = onOpenChangeRate,
+                )
 
-            SectionDivider()
+                SectionDivider()
 
-            SectionLabel(stringResource(R.string.section_appearance))
-            ThemeSegmentedControl(
-                selected = themeMode,
-                onSelect = onThemeChange,
-                modifier = Modifier.padding(vertical = 8.dp),
+                AppSectionHeader(stringResource(R.string.section_appearance))
+                AppSegmentedControl(
+                    options = ThemeMode.entries.map { themeLabel(it) },
+                    selectedIndex = ThemeMode.entries.indexOf(themeMode),
+                    onSelect = { index -> onThemeChange(ThemeMode.entries[index]) },
+                    modifier = Modifier.padding(vertical = AppDimens.rowGap),
+                )
+
+                SectionDivider()
+
+                AppSectionHeader(stringResource(R.string.section_data))
+                AppNavigationRow(
+                    label = stringResource(R.string.export_data),
+                    onClick = { exportFormatOpen = true },
+                )
+                AppNavigationRow(
+                    label = stringResource(R.string.import_data),
+                    onClick = onImportData,
+                )
+
+                Box(modifier = Modifier.navigationBarsPadding().height(24.dp))
+            }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(AppDimens.screenHorizontalPadding),
             )
-
-            SectionDivider()
-
-            SectionLabel(stringResource(R.string.section_data))
-            SettingsRow(
-                label = stringResource(R.string.export_data),
-                onClick = { exportFormatOpen = true },
-            )
-            SettingsRow(
-                label = stringResource(R.string.import_data),
-                onClick = onImportData,
-            )
-
-            Box(modifier = Modifier.navigationBarsPadding().height(24.dp))
-        }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(16.dp),
-        )
         }
     }
 
@@ -158,16 +155,6 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier.padding(top = 16.dp, bottom = 6.dp),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
-@Composable
 private fun SectionDivider() {
     HorizontalDivider(
         modifier = Modifier.padding(top = 8.dp),
@@ -175,6 +162,10 @@ private fun SectionDivider() {
     )
 }
 
+/**
+ * The default-rate row: reads as a value row, edits inline through a compact field.
+ * Both states share the same trailing slot so nothing shifts when editing starts.
+ */
 @Composable
 private fun RateRow(
     rateMicros: Long,
@@ -183,44 +174,49 @@ private fun RateRow(
     onDone: () -> Unit,
     onRateChange: (Long) -> Unit,
 ) {
-    var rateInput by rememberSaveable(editing) {
-        mutableStateOf(formatDecimalMicros(rateMicros))
-    }
+    val label = stringResource(R.string.settings_rate)
     if (!editing) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 56.dp)
+                .heightIn(min = AppDimens.rowMinHeight)
                 .clickable(onClick = onEdit),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(R.string.settings_rate),
+                text = label,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            AppFieldValueSlot {
+                Text(
+                    text = formatDecimalMicros(rateMicros),
+                    modifier = Modifier.padding(end = 8.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
+            }
         }
         return
+    }
+    var rateInput by rememberSaveable(editing) {
+        mutableStateOf(formatDecimalMicros(rateMicros))
     }
     val parsed = runCatching { parseDecimalMicros(rateInput) }.getOrNull()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .heightIn(min = AppDimens.rowMinHeight),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.settings_rate),
-            modifier = Modifier.weight(1f),
+            text = label,
             style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
         )
         CompactMoneyField(
             text = rateInput,
@@ -232,72 +228,9 @@ private fun RateRow(
                 }
             },
             isError = parsed == null || parsed > MoneyLimits.MAX_COMPONENT_MICROS,
-            contentDescription = stringResource(R.string.settings_rate),
+            contentDescription = label,
             autoFocus = true,
             onLostFocus = onDone,
-        )
-    }
-}
-
-@Composable
-private fun ThemeSegmentedControl(
-    selected: ThemeMode,
-    onSelect: (ThemeMode) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SingleChoiceSegmentedButtonRow(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(44.dp),
-    ) {
-        ThemeMode.entries.forEachIndexed { index, mode ->
-            SegmentedButton(
-                selected = selected == mode,
-                onClick = { onSelect(mode) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeMode.entries.size),
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    activeContentColor = MaterialTheme.colorScheme.onSurface,
-                    activeBorderColor = Color.Transparent,
-                    inactiveContainerColor = Color.Transparent,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
-                ),
-                icon = {},
-                label = {
-                    Text(
-                        text = themeLabel(mode),
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                    )
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingsRow(
-    label: String,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -309,7 +242,7 @@ private fun themeLabel(themeMode: ThemeMode): String = when (themeMode) {
     ThemeMode.DARK -> stringResource(R.string.theme_dark)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun ExportFormatDialog(
     onSelectJson: () -> Unit,
@@ -318,61 +251,17 @@ private fun ExportFormatDialog(
 ) {
     AppModalBottomSheet(
         onDismissRequest = onDismiss,
+        title = stringResource(R.string.export_format_title),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.export_format_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            ExportFormatOption(
-                title = stringResource(R.string.export_json_option),
-                subtitle = stringResource(R.string.export_json_hint),
-                onClick = onSelectJson,
-            )
-            ExportFormatOption(
-                title = stringResource(R.string.export_csv_option),
-                subtitle = stringResource(R.string.export_csv_hint),
-                onClick = onSelectCsv,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ExportFormatOption(
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        AppNavigationRow(
+            label = stringResource(R.string.export_json_option),
+            subtitle = stringResource(R.string.export_json_hint),
+            onClick = onSelectJson,
+        )
+        AppNavigationRow(
+            label = stringResource(R.string.export_csv_option),
+            subtitle = stringResource(R.string.export_csv_hint),
+            onClick = onSelectCsv,
         )
     }
 }

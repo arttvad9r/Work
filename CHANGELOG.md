@@ -4,6 +4,15 @@ All notable changes are documented here.
 
 ## [Unreleased] - 2026-08-22
 
+### UI consistency pass — 2026-08-26
+
+- Introduced a shared component contract (`docs/UI_SYSTEM.md`, `ui/components`): `AppDimens`, `AppSectionHeader`, `AppNavigationRow`, `AppSheetTitle`, `AppSegmentedControl`, `AppPrimaryButton`, `AppDestructiveAction`, `CompactInputChrome` and a fixed value slot for inline editing.
+- Day editor: full-width `OutlinedTextField`s replaced by flat label/value rows with one persistent compact inline editor (120×40 dp) that moves between fixed row slots; the single-platform-input-session IME architecture is unchanged; inactive bonus/penalty are navigation rows, and clearing an expanded adjustment collapses it back; calculation block flattened to the shared value-row presentation.
+- Settings: default rate reads as a value row and edits inline in the same trailing slot without moving neighboring rows; rows/sections use shared primitives.
+- Change rate: theme-style segmented control replaces filter chips; current-month mode hides empty date rows behind a month summary line; custom-period dates and the rate row are flat shared rows.
+- Export format: sentence-case sheet title with subtitle navigation rows (no uppercase section heading).
+- Monthly report/year summary/calendar: harmonized paddings to shared tokens, standard year-selector touch targets, token-based radii. Calendar macro geometry untouched.
+
 ### Reliability follow-up — 2026-08-26
 
 - Import compensation now runs in a short non-cancellable rollback section after a Room replacement; cancellation remains cancellation after successful rollback and rollback failures have a separate error state.

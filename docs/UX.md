@@ -55,30 +55,29 @@ The day editor and change-rate flow are modal sheets. Settings and year summary 
 
 Normal closed-keyboard state should fit as one compact sheet.
 
-1. Localized date.
-2. Duration row, followed by a separate hourly-rate row.
-3. Bonus/penalty controls.
-4. Calculation card.
-5. Save.
-6. Delete for an existing entry.
+1. Localized sentence-case date as the sheet title.
+2. Flat `Duration` row, followed by a flat `At rate` row (numeric value in the shared right-aligned slot).
+3. Bonus/penalty rows: inactive ones are plain navigation rows with a chevron;
+   activated ones become the same row with a compact inline field in the trailing slot.
+4. Flat calculation block (no card).
+5. Save as the shared primary button.
+6. Delete for an existing entry as the shared destructive action.
 
-The duration field is labeled `Время` and shows a faint `00:00` format hint while empty. A new day starts with an empty duration field rather than a literal `0`, so typing `12` yields `12` immediately. Duration sanitization also removes accidental leading zeroes defensively, so input such as `012` cannot become `01:2`. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`.
+The duration editor shows a faint `00:00` format hint while empty. A new day starts with an empty duration field rather than a literal `0`, so typing `12` yields `12` immediately. Duration sanitization also removes accidental leading zeroes defensively, so input such as `012` cannot become `01:2`. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`.
 
-Zero-valued numeric editor fields are represented as empty editor text and parsed as zero. Focus changes must not clear or rewrite field text. Numeric validation is intentionally minimal: invalid duration/rate/bonus/penalty values are indicated by the field's red error outline only. Validation helper text is not shown and must not change sheet height.
+Zero-valued numeric editor fields are represented as empty editor text and parsed as zero. Focus changes must not clear or rewrite field text. Clearing an expanded bonus/penalty field collapses it back into its inactive navigation-row look when focus leaves. Numeric validation is intentionally minimal: invalid values tint the affected row's value/editor outline red only. Validation helper text is not shown and must not change sheet height.
 
-All four logical numeric fields — `Время`, `Ставка за час`, `Премия`, `Штраф` — share one persistent state-based editable `OutlinedTextField`, one `TextFieldState` and one platform text-input session. The same editable node is repositioned between the logical slots; inactive visible slots are read-only Material shells. This architecture is required because physical-device ADB traces showed that a normal focus handoff between separate editable TextFields caused client-side IME hide, a temporary empty `EditorInfo`, `restartInput`, and a visible Gboard hide/show cycle.
+All four logical numeric fields — duration, rate, bonus, penalty — share one persistent state-based editable node, one `TextFieldState` and one platform text-input session. The same editable node is repositioned between fixed 48 dp semantic row slots and renders there as the shared compact inline editor (`CompactInputChrome`, 120×40 dp) inside its row. This architecture is required because physical-device ADB traces showed that a normal focus handoff between separate editable TextFields caused client-side IME hide, a temporary empty `EditorInfo`, `restartInput`, and a visible Gboard hide/show cycle.
 
-Every numeric Material field uses `TextFieldLabelPosition.Attached(alwaysMinimize = true)`. This is the Material3 1.4 API for forcing the attached label to remain minimized, so `Время`, `Ставка за час`, `Премия` and `Штраф` stay on the outline even when empty and unfocused. The duration placeholder `00:00` is a separate centered hint inside the field and must never replace or displace the `Время` label.
-
-Only the active logical slot renders the persistent editable field. Every other visible numeric slot renders a passive read-only Material field with invisible click indication, so there is no duplicate label/value and no gray rectangular ripple. If the persistent editor is not currently focused, the first tap on any passive slot both activates that logical field and focuses/shows the numeric keyboard. If it is already focused, switching logical fields does not issue another focus request and does not replace the input session.
+Only the active logical slot renders the persistent editable node. Every other visible numeric slot renders a flat read-only value row (label left, value in the same trailing slot, optional chevron) with invisible click indication, so there is no duplicate label/value and no gray rectangular ripple, and activating a field never changes any row's height or position. If the persistent editor is not currently focused, the first tap on any passive slot both activates that logical field and focuses/shows the numeric keyboard. If it is already focused, switching logical fields does not issue another focus request and does not replace the input session.
 
 Input sanitization remains synchronous through `InputTransformation`. Logical duration/rate/bonus/penalty values are copied to and from the persistent editor without replacing its focus node. All logical fields use the same decimal `KeyboardOptions` and `ImeAction.Next`; IME Next advances among visible logical fields without an editable-field focus handoff.
 
-Bonus is always the first adjustment slot and penalty the second. With neither expanded, both buttons share a row. Once either adjustment is expanded, bonus occupies the first full-width slot and penalty the second; an unexpanded adjustment remains a full-width button in its slot. Expanding bonus or penalty activates the same persistent editor instead of creating/focusing another TextField.
+Bonus is always the first adjustment slot and penalty the second. With neither visible, both render as navigation rows. Once either adjustment is revealed, bonus occupies the first full-width slot and penalty the second. Revealing bonus or penalty activates the same persistent editor instead of creating/focusing another TextField; clearing the value and losing focus hides the row again.
 
 The modal editor uses normal `ModalBottomSheet` window-inset handling so the sheet lifts above the software keyboard instead of remaining underneath it. The content stays vertically scrollable when required. Repeated switching among all currently visible numeric fields must keep Gboard continuously presented and the sheet stationary apart from the intentional layout expansion when bonus/penalty controls are first revealed.
 
-The calculation card uses `At hourly rate` / `По ставке`, then optional bonus/penalty rows, then total. Before any value is entered it shows only the `Total` / `Итого` label; zero adjustment rows are omitted.
+The calculation block uses `At hourly rate` / `По ставке`, then optional bonus/penalty rows, then total — all rendered with the shared read-only value-row contract (secondary labels, onSurface values), divider, and a SemiBold total; zero adjustment rows are omitted.
 
 Save/delete persistence failures keep the draft open and are shown as transient localized Snackbar feedback layered over the sheet. Error feedback must not insert/remove layout rows or resize the sheet.
 
@@ -91,23 +90,23 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 ## Settings
 
-- Full-screen `SettingsScreen` organized into four titled groups: `Calculation`, `Statistics`, `Appearance`, `Data and operations`.
-- All rows share one recipe: ~52 dp touch height, label on the left, value or control on the right.
-- `Calculation`: hourly-rate row with a compact 120x40 dp pill input (`CompactMoneyField`), followed by the `Change rate for period` action row — every rate-related action lives in one group.
+- Full-screen `SettingsScreen` organized into three titled groups: `Calculation`, `Appearance`, `Data`.
+- All rows share one recipe: ~56 dp touch height, label on the left, value or control on the right; navigation rows use `AppNavigationRow` with a trailing chevron.
+- `Calculation`: the default-rate row reads as a value row (formatted rate in the shared 120 dp trailing slot) and edits inline through the compact pill input (`CompactMoneyField`) without moving neighboring rows, followed by the `Change rate for period` action row.
 - Initial zero is selected on focus instead of being replaced by an empty value.
 - Invalid input uses red outline only; no helper text is inserted below the field.
-- `Appearance`: theme chips fill the section directly; the redundant inner `Theme` caption is not used.
+- `Appearance`: theme options render through the shared `AppSegmentedControl`; the redundant inner `Theme` caption is not used.
 - Selecting light or dark immediately previews and persists the theme; there is no separate settings Save action.
 - A valid default rate is autosaved as it is entered.
-- `Data and operations`: contains `Export data` and `Import data` actions. `Export data` first asks for the format in a dialog — `JSON` (backup that can be imported back) or `CSV` (spreadsheet).
+- `Data`: contains `Export data` and `Import data` actions. `Export data` first asks for the format in a modal sheet — `JSON` (backup that can be imported back) or `CSV` (spreadsheet) — rendered as subtitle navigation rows under a sentence-case title.
 - The screen relies on normal window/inset handling and scrolls vertically when content or keyboard height requires it.
 - Persistence failure is shown with an overlay Snackbar and does not resize the screen.
 
 ## Change rate for period
 
-- Opens from the settings `Calculation` group or the rate-history flow as its own modal sheet.
-- Period choices: `Current month` pre-fills start/end from the visible month; `Custom period` exposes start/end date fields opened through native Material date picker dialogs.
-- One rate input drives the operation; invalid values use the red outline only.
+- Opens from the settings `Calculation` group as its own modal sheet.
+- Period choices render through the same `AppSegmentedControl` as the theme setting: `Current month` uses the visible month directly (date rows stay hidden and one secondary line names the month); `Custom period` exposes start/end date navigation rows opened through native Material date picker dialogs.
+- One rate input drives the operation as a flat label + compact-field row; invalid values use the red outline only.
 - `Change rate` asks for confirmation first: an alert dialog states that every entry in the selected period will be updated and that the default rate stays unchanged.
 - On success the sheet closes and a root Snackbar confirms `Rate changed`; a period containing no entries is a silent no-op (the sheet still closes) with nothing to undo.
 - Failure keeps the sheet open and shows localized error feedback without resizing it.
@@ -143,8 +142,10 @@ Save/delete persistence failures keep the draft open and are shown as transient 
 
 ## Visual system
 
+The canonical component/dimension contract lives in [UI system](UI_SYSTEM.md). Summary:
+
 - Controlled calm blue-neutral palettes in light and dark modes. The expanded monthly report uses a distinct elevated surface color so its edge remains visible over the calendar.
-- 24 dp major-card radius, 16-20 dp compact-card radius, 8-12 dp cell/input radius.
+- Shape tokens come from `MaterialTheme.shapes` (8/12/16/24/28) plus the fixed 28 dp sheet top radius.
 - Regular body weight for comparable labels/values; medium/semi-bold for titles/totals and bold for calendar day numbers.
 - Error red is reserved for invalid input, persistence feedback, delete and penalty semantics.
 - Report expansion may use short Material easing. Month title/date-grid changes are immediate and must not crossfade; editor controls never animate sheet height or move it while the persistent numeric editor changes logical field.
