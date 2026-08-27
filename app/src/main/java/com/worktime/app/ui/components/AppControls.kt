@@ -3,7 +3,6 @@ package com.worktime.app.ui.components
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -16,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 
 /**
  * The one segmented presentation for mutually exclusive options (theme, period).
@@ -32,7 +30,7 @@ fun AppSegmentedControl(
     SingleChoiceSegmentedButtonRow(
         modifier = modifier
             .fillMaxWidth()
-            .height(44.dp),
+            .height(AppDimens.compactControlHeight),
     ) {
         options.forEachIndexed { index, option ->
             SegmentedButton(
@@ -75,7 +73,11 @@ fun AppPrimaryButton(
             .fillMaxWidth()
             .heightIn(min = AppDimens.primaryButtonMinHeight),
     ) {
-        Text(text = text)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
 
@@ -93,6 +95,10 @@ fun AppDestructiveAction(
             .heightIn(min = AppDimens.rowMinHeight),
         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
     ) {
-        Text(text = text, fontWeight = FontWeight.Medium)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
