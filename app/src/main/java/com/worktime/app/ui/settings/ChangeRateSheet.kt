@@ -122,16 +122,20 @@ fun ChangeRateSheet(
                 )
 
                 if (period == RatePeriod.CURRENT_MONTH) {
-                    Text(
-                        text = visibleMonth.format(
-                            DateTimeFormatter.ofPattern("LLLL yyyy", LocalLocale.current.platformLocale),
-                        ),
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = AppDimens.rowMinHeight),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = visibleMonth.format(
+                                DateTimeFormatter.ofPattern("LLLL yyyy", LocalLocale.current.platformLocale),
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 } else {
                     AppNavigationRow(
                         label = stringResource(R.string.start_date),
