@@ -19,6 +19,7 @@ entities must always look and behave identically, on every screen.
 | `sectionSpacing` | 16 dp | above section headers / between sections |
 | `rowGap` | 8 dp | vertical gap between rows and small blocks |
 | `rowMinHeight` | 48 dp | compact accessible interactive row across screens and sheets |
+| `rowWithSubtitleMinHeight` | 56 dp | navigation rows with explanatory copy |
 | `compactControlHeight` | 44 dp | segmented controls and inline editors |
 | `compactFieldWidth/Height` | 120×44 dp | inline numeric editor slot |
 | `primaryButtonMinHeight` | 52 dp | primary actions |
@@ -39,13 +40,26 @@ Only `MaterialTheme.typography` (all styles carry tabular numerals):
 
 ## Colors (semantic roles)
 
-- `primary` — focus caret/today outline only, not decorative text.
-- `onSurface` — content values and row labels.
-- `onSurfaceVariant` — secondary labels, subtitles, chevrons, placeholders.
+- `primary` — focus/today and compact data emphasis, never broad decorative fills.
+- `onSurface` — primary content values and row labels.
+- `onSurfaceVariant` — secondary labels, subtitles, chevrons, placeholders and dates.
 - `outlineVariant` — dividers and field borders.
 - `secondaryContainer` / `onSecondaryContainer` — selected segmented option,
   SummaryStrip, secondary CTA surfaces (e.g. year-summary navigation).
 - `error` — invalid input outline, negative totals, destructive actions.
+
+### Calendar hierarchy
+
+Calendar color is semantic rather than decorative. The three data levels must remain
+visually distinct without turning the grid into a heatmap:
+
+- date → `onSurfaceVariant` (today uses `primary` plus a primary outline);
+- worked duration → `onSurface`, the strongest text inside a populated cell;
+- amount → restrained `primary`; negative amounts → `error`;
+- populated cells get only a very light `secondaryContainer` tint;
+- selected state is carried by `primaryContainer` + cell geometry, not by recoloring
+  every piece of data;
+- out-of-month dates are reduced by alpha.
 
 ## Shapes
 
@@ -90,10 +104,10 @@ chooses one of 2–4 mutually exclusive options → `AppSegmentedControl`.
 ## Explicit exceptions
 
 - **Calendar** — data-dense grid with fixed macro geometry (6×7, 64 dp week rows,
-  28 dp weekday/date areas, 48 dp header). It does not adopt settings-row styling;
-  only icon/typography sources and shared tokens are harmonized.
-- **Year summary** — non-scrolling screen showing all twelve months at once via
-  `weight`; it keeps its dense month-line presentation but uses the shared typography
-  scale instead of local font-size variants.
+  28 dp weekday/date areas, 48 dp header). It keeps its own compact typography and the
+  calendar hierarchy above instead of adopting settings-row styling.
+- **Year summary** — non-scrolling screen showing all twelve months at once. Populated
+  years use the available height; an entirely empty year uses compact fixed month rows
+  so missing data does not look like stretched content.
 - **Month picker dialog** — grid of month chips inside an AlertDialog; a deliberate
   picker pattern, not a segmented control.
