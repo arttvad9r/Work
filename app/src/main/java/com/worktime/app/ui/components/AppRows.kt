@@ -45,12 +45,21 @@ fun AppNavigationRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = AppDimens.rowMinHeight)
+            .heightIn(
+                min = if (subtitle == null) {
+                    AppDimens.rowMinHeight
+                } else {
+                    AppDimens.rowWithSubtitleMinHeight
+                },
+            )
             .clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyLarge,
@@ -62,6 +71,7 @@ fun AppNavigationRow(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                 )
             }
         }
@@ -97,7 +107,7 @@ fun AppFieldValueSlot(
 fun AppSheetTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        modifier = modifier.padding(top = 4.dp, bottom = 12.dp),
+        modifier = modifier.padding(top = 2.dp, bottom = 8.dp),
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Medium,
         maxLines = 1,
