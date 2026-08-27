@@ -17,8 +17,8 @@ object AppDimens {
     /** Vertical gap between rows and small blocks. */
     val rowGap: Dp = 8.dp
 
-    /** Standard interactive row height. */
-    val rowMinHeight: Dp = 56.dp
+    /** Compact but accessible interactive row height used across screens and sheets. */
+    val rowMinHeight: Dp = 48.dp
 
     /** Shared compact control height for segmented controls and inline editors. */
     val compactControlHeight: Dp = 44.dp
