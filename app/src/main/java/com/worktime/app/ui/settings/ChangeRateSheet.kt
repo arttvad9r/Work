@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -121,12 +122,13 @@ fun ChangeRateSheet(
                 )
 
                 if (period == RatePeriod.CURRENT_MONTH) {
-                    // The month itself is the period; no empty date rows to edit.
                     Text(
                         text = visibleMonth.format(
                             DateTimeFormatter.ofPattern("LLLL yyyy", LocalLocale.current.platformLocale),
                         ),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = AppDimens.rowMinHeight),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -146,7 +148,7 @@ fun ChangeRateSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = AppDimens.rowGap),
+                        .heightIn(min = AppDimens.rowMinHeight),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
