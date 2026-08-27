@@ -53,7 +53,7 @@ fun CompactInputChrome(
         targetValue = if (isError) {
             MaterialTheme.colorScheme.error
         } else {
-            MaterialTheme.colorScheme.outlineVariant
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f)
         },
         animationSpec = tween(AppDimens.feedbackAnimationMillis),
         label = "compact-input-border",
