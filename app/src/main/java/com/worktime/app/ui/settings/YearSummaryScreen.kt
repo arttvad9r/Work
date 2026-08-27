@@ -67,30 +67,32 @@ fun YearSummaryScreen(
                 onBack = onDismiss,
             )
 
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = AppDimens.rowMinHeight),
-                verticalAlignment = Alignment.CenterVertically,
+                    .height(AppDimens.rowMinHeight),
+                contentAlignment = Alignment.Center,
             ) {
-                IconButton(onClick = onPreviousYear) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                        contentDescription = stringResource(R.string.previous_year),
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onPreviousYear) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            contentDescription = stringResource(R.string.previous_year),
+                        )
+                    }
+                    Text(
+                        text = (summary?.year ?: "").toString(),
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Medium,
                     )
-                }
-                Text(
-                    text = (summary?.year ?: "").toString(),
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Medium,
-                )
-                IconButton(onClick = onNextYear) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = stringResource(R.string.next_year),
-                    )
+                    IconButton(onClick = onNextYear) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = stringResource(R.string.next_year),
+                        )
+                    }
                 }
             }
 
