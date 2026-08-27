@@ -8,8 +8,8 @@ The implementation lives in `app/src/main/java/com/worktime/app/ui/components/`.
 Flat UI + typography + whitespace. Screens are built from plain rows on a clean
 background, not from stacked cards. A container (fill/border) is justified only when
 it carries state: an editable value, a selected segmented option, a primary action,
-the summary strip, or a modal sheet. Navigation/value rows stay flat. Identical
-entities must always look and behave identically, on every screen.
+the persistent summary strip, or a modal sheet. Navigation/value rows stay flat.
+Identical entities must always look and behave identically, on every screen.
 
 ## Spacing (`AppDimens`)
 
@@ -33,7 +33,8 @@ Only `MaterialTheme.typography` (all styles carry tabular numerals):
   never sheet titles).
 - Primary row label → `bodyLarge` onSurface; secondary/subtitle → `bodySmall` /
   `bodyMedium` onSurfaceVariant.
-- Numeric values → `bodyLarge`; emphasized totals → `titleMedium` SemiBold.
+- Numeric values and compact editors → `bodyLarge`; emphasized totals →
+  `titleMedium` SemiBold.
 - The monthly-report headline amount (20 sp) is the one sanctioned large total.
 - Calendar day cells keep their own compact sizes: Calendar is a data-dense
   special case.
@@ -43,9 +44,11 @@ Only `MaterialTheme.typography` (all styles carry tabular numerals):
 - `primary` — focus/today and compact data emphasis, never broad decorative fills.
 - `onSurface` — primary content values and row labels.
 - `onSurfaceVariant` — secondary labels, subtitles, chevrons, placeholders and dates.
+- `surfaceContainerHigh` — quiet separation of populated calendar cells from empty days.
 - `outlineVariant` — dividers and field borders.
-- `secondaryContainer` / `onSecondaryContainer` — selected segmented option,
-  SummaryStrip, secondary CTA surfaces (e.g. year-summary navigation).
+- `secondaryContainer` / `onSecondaryContainer` — selected segmented options and the
+  persistent monthly SummaryStrip; not generic navigation rows.
+- `primaryContainer` — selected calendar cell and other explicit selected state.
 - `error` — invalid input outline, negative totals, destructive actions.
 
 ### Calendar hierarchy
@@ -53,23 +56,26 @@ Only `MaterialTheme.typography` (all styles carry tabular numerals):
 Calendar color is semantic rather than decorative. The three data levels must remain
 visually distinct without turning the grid into a heatmap:
 
-- date → `onSurfaceVariant` (today uses `primary` plus a primary outline);
-- worked duration → `onSurface`, the strongest text inside a populated cell;
+- date → quiet `onSurfaceVariant` (today uses `primary` plus a primary outline);
+- worked duration → `onSurface`, SemiBold, the strongest text inside a populated cell;
 - amount → restrained `primary`; negative amounts → `error`;
-- populated cells get only a very light `secondaryContainer` tint;
-- selected state is carried by `primaryContainer` + cell geometry, not by recoloring
-  every piece of data;
-- out-of-month dates are reduced by alpha.
+- populated cells use a neutral `surfaceContainerHigh` tint so work days separate from
+  empty days without competing with the blue amount;
+- selected state is carried by `primaryContainer`; today is carried by outline/date,
+  so state and data do not reuse the same signal;
+- out-of-month dates are reduced strongly by alpha;
+- grid lines stay quieter than populated-cell surfaces and text.
 
 ## Shapes
 
 Use `MaterialTheme.shapes` (8/12/16/24/28). Sheets use `AppSheetShape` (28 top
 corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
 
-## Motion
+## Motion and interaction feedback
 
-Motion is feedback, not decoration. Shared Material controls keep their normal press
-feedback. Visual state changes may use the shared short
+Motion is feedback, not decoration. Shared Material controls and tappable rows keep
+their normal press indication. Do not suppress ripple/press feedback on one row while
+similar rows retain it. Visual state changes may use the shared short
 `AppDimens.feedbackAnimationMillis` (120 ms) transition for color only. Do not animate
 row sizes, spacing, data layout, or add delays before an action. Modal sheets keep the
 platform Material motion they already provide.
@@ -82,14 +88,16 @@ platform Material motion they already provide.
 - **`AppSheetTitle`** — sentence-case sheet title below the handle. Never uppercase.
 - **`AppSectionHeader`** — uppercase section label (РАСЧЁТ / ВНЕШНИЙ ВИД / ДАННЫЕ).
 - **`AppNavigationRow(label, value?, subtitle?)`** — flat tappable row with trailing
-  chevron for "go somewhere / choose something" actions (Change rate, Export JSON/CSV,
-  Import, date pickers in ChangeRate).
+  chevron only for "go somewhere / choose something" actions (Change rate, Export,
+  Import, date pickers, Year summary).
 - **`LabelValueRow`** — read-only "label … value" line (reports, summaries,
   calculation blocks). Label onSurfaceVariant, value onSurface.
 - **`AppFieldValueSlot` + `CompactInputChrome` (+ `CompactMoneyField`)** — the editable
   value contract: a fixed 120×44 slot at the row's trailing edge that shows either the
   read-only value or the compact bordered editor. Activating editing never swaps the
   row for a full-width form field and never changes the row height.
+- **Optional numeric adjustments** (bonus/penalty) use an Add affordance while hidden;
+  a chevron is not used because revealing an inline editor is not navigation.
 - **`AppSegmentedControl(options, selectedIndex)`** — the only segmented presentation
   for mutually exclusive options (theme mode, rate period). Selected option uses
   secondaryContainer.
@@ -97,9 +105,10 @@ platform Material motion they already provide.
 - **`AppDestructiveAction`** — full-width error-colored text action (Delete entry).
 - **`PlainDragHandle`** — tooltip-free drag handle shared by all sheets.
 
-Row decision guide: opens another screen/sheet → `AppNavigationRow`; shows a computed
-or stored value → `LabelValueRow`; edits a number in place → value-slot contract;
-chooses one of 2–4 mutually exclusive options → `AppSegmentedControl`.
+Row decision guide: opens another screen/sheet or picker → `AppNavigationRow`; shows a
+computed/stored value → `LabelValueRow`; edits a number in place → value-slot contract;
+reveals an optional inline field → Add affordance; chooses one of 2–4 mutually exclusive
+options → `AppSegmentedControl`.
 
 ## Explicit exceptions
 
@@ -111,3 +120,6 @@ chooses one of 2–4 mutually exclusive options → `AppSegmentedControl`.
   so missing data does not look like stretched content.
 - **Month picker dialog** — grid of month chips inside an AlertDialog; a deliberate
   picker pattern, not a segmented control.
+- **Material date picker** — keep the official Material3 picker behavior, but suppress
+  its large default title/headline and mode toggle in WorkTime, and apply the app's
+  shape/color semantics so it does not look like a foreign screen.
