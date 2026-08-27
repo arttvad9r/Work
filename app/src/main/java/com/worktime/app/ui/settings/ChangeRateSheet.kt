@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -246,6 +247,17 @@ private fun DatePickerSheetDialog(
     val pickerState = rememberDatePickerState(
         initialSelectedDateMillis = initialDate.toUtcMillis(),
     )
+    val pickerColors = DatePickerDefaults.colors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        navigationContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        dayContentColor = MaterialTheme.colorScheme.onSurface,
+        selectedDayContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        selectedDayContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        todayContentColor = MaterialTheme.colorScheme.primary,
+        todayDateBorderColor = MaterialTheme.colorScheme.primary,
+        dividerColor = MaterialTheme.colorScheme.outlineVariant,
+    )
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -259,8 +271,17 @@ private fun DatePickerSheetDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
+        shape = MaterialTheme.shapes.extraLarge,
+        tonalElevation = 0.dp,
+        colors = pickerColors,
     ) {
-        DatePicker(state = pickerState)
+        DatePicker(
+            state = pickerState,
+            title = null,
+            headline = null,
+            showModeToggle = false,
+            colors = pickerColors,
+        )
     }
 }
 
