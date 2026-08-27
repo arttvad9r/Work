@@ -205,7 +205,7 @@ fun YearSummaryScreen(
                             val monthTotal = summary.months[month.value - 1]
                             val empty = !summary.monthHasData.getOrElse(index) { false }
                             val rowModifier = if (summary.monthsWithData == 0) {
-                                Modifier.height(40.dp)
+                                Modifier.height(24.dp)
                             } else {
                                 Modifier.weight(1f)
                             }
