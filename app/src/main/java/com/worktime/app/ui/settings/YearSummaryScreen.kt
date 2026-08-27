@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -185,11 +186,12 @@ fun YearSummaryScreen(
                     }
 
                     HorizontalDivider(
-                        modifier = Modifier.padding(top = 4.dp),
+                        modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                     Text(
                         text = stringResource(R.string.by_month),
+                        modifier = Modifier.padding(bottom = 2.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -202,8 +204,13 @@ fun YearSummaryScreen(
                         Month.entries.forEachIndexed { index, month ->
                             val monthTotal = summary.months[month.value - 1]
                             val empty = !summary.monthHasData.getOrElse(index) { false }
+                            val rowModifier = if (summary.monthsWithData == 0) {
+                                Modifier.height(40.dp)
+                            } else {
+                                Modifier.weight(1f)
+                            }
                             MonthLine(
-                                modifier = Modifier.weight(1f),
+                                modifier = rowModifier,
                                 label = monthDisplayName(month, locale),
                                 detail = if (empty) {
                                     null
@@ -229,7 +236,7 @@ private fun MonthLine(
     amount: String,
     dimmed: Boolean,
 ) {
-    val alpha = if (dimmed) 0.45f else 1f
+    val alpha = if (dimmed) 0.38f else 1f
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
