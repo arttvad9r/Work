@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,7 +34,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -54,13 +52,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,8 +69,9 @@ import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.components.AppDimens
-import com.worktime.app.ui.components.LabelValueRow
+import com.worktime.app.ui.components.AppNavigationRow
 import com.worktime.app.ui.components.AppSheetShape
+import com.worktime.app.ui.components.LabelValueRow
 import com.worktime.app.ui.components.PlainDragHandle
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
@@ -468,35 +467,11 @@ private fun MonthlySummaryPanel(
                 )
             }
 
-            YearNavRow(onClick = onOpenYearSummary)
+            AppNavigationRow(
+                label = stringResource(R.string.year_stats_title),
+                onClick = onOpenYearSummary,
+            )
         }
-    }
-}
-
-@Composable
-private fun YearNavRow(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = AppDimens.rowMinHeight)
-            .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.68f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = AppDimens.screenHorizontalPadding),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.year_stats_title),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-        )
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-        )
     }
 }
 
@@ -594,7 +569,6 @@ private fun CalendarGrid(
 ) {
     val currentOnSwipeToPrevious by rememberUpdatedState(onSwipeToPrevious)
     val currentOnSwipeToNext by rememberUpdatedState(onSwipeToNext)
-    val largeFont = LocalDensity.current.fontScale >= 1.5f
     val weekRowHeight = WeekRowHeight
     val weekdayRowHeight = 28.dp
     val dateAreaHeight = 28.dp
@@ -644,7 +618,7 @@ private fun CalendarGrid(
                         text = day.getDisplayName(TextStyle.SHORT, locale),
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.86f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                     )
@@ -652,7 +626,7 @@ private fun CalendarGrid(
             }
 
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f),
             )
 
             cells.chunked(7).forEachIndexed { weekIndex, week ->
@@ -740,14 +714,14 @@ private fun DayCell(
         },
     )
     val dateColor = when {
-        !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f)
+        !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.24f)
         isToday -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.86f)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
     }
     val amountColor = if ((totalMicros ?: 0L) < 0L) {
         MaterialTheme.colorScheme.error
     } else {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.82f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.90f)
     }
 
     Box(
@@ -759,15 +733,15 @@ private fun DayCell(
                     if (isToday && isInVisibleMonth) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f)
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
                     },
                 ),
                 shape = RectangleShape,
             )
             .background(
                 when {
-                    isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.78f)
-                    visibleEntry != null -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f)
+                    isSelected -> MaterialTheme.colorScheme.primaryContainer
+                    visibleEntry != null -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
                     else -> Color.Transparent
                 },
             )
@@ -811,7 +785,7 @@ private fun DayCell(
                             fontSize = 10.sp,
                             lineHeight = 11.sp,
                         ),
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         softWrap = false,
@@ -827,6 +801,7 @@ private fun DayCell(
                             fontSize = 7.sp,
                             lineHeight = 8.sp,
                         ),
+                        fontWeight = FontWeight.Medium,
                         color = amountColor,
                         maxLines = 1,
                         softWrap = false,
@@ -848,7 +823,7 @@ private fun DayCell(
                         fontSize = 15.sp,
                         lineHeight = 18.sp,
                     ),
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
