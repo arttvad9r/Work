@@ -19,7 +19,8 @@ entities must always look and behave identically, on every screen.
 | `sectionSpacing` | 16 dp | above section headers / between sections |
 | `rowGap` | 8 dp | vertical gap between rows and small blocks |
 | `rowMinHeight` | 56 dp | standard interactive row |
-| `compactFieldWidth/Height` | 120×40 dp | inline numeric editor slot |
+| `compactControlHeight` | 44 dp | segmented controls and inline editors |
+| `compactFieldWidth/Height` | 120×44 dp | inline numeric editor slot |
 | `primaryButtonMinHeight` | 52 dp | primary actions |
 
 ## Typography
@@ -51,6 +52,14 @@ Only `MaterialTheme.typography` (all styles carry tabular numerals):
 Use `MaterialTheme.shapes` (8/12/16/24/28). Sheets use `AppSheetShape` (28 top
 corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
 
+## Motion
+
+Motion is feedback, not decoration. Standard Compose/Material press indications stay
+enabled for tappable controls. Visual state changes may use the shared short
+`AppDimens.feedbackAnimationMillis` (120 ms) transition for color only. Do not animate
+row sizes, spacing, data layout, or add delays before an action. Modal sheets keep the
+platform Material motion they already provide.
+
 ## Components
 
 - **`AppTopBar`** — the only top bar for full-screen pages (Settings, Year summary).
@@ -64,7 +73,7 @@ corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
 - **`LabelValueRow`** — read-only "label … value" line (reports, summaries,
   calculation blocks). Label onSurfaceVariant, value onSurface.
 - **`AppFieldValueSlot` + `CompactInputChrome` (+ `CompactMoneyField`)** — the editable
-  value contract: a fixed 120×40 slot at the row's trailing edge that shows either the
+  value contract: a fixed 120×44 slot at the row's trailing edge that shows either the
   read-only value or the compact bordered editor. Activating editing never swaps the
   row for a full-width form field and never changes the row height.
 - **`AppSegmentedControl(options, selectedIndex)`** — the only segmented presentation
@@ -84,6 +93,7 @@ chooses one of 2–4 mutually exclusive options → `AppSegmentedControl`.
   28 dp weekday/date areas, 48 dp header). It does not adopt settings-row styling;
   only icon/typography sources and shared tokens are harmonized.
 - **Year summary** — non-scrolling screen showing all twelve months at once via
-  `weight`; it keeps its dense month-line presentation and its own compact font sizes.
+  `weight`; it keeps its dense month-line presentation but uses the shared typography
+  scale instead of local font-size variants.
 - **Month picker dialog** — grid of month chips inside an AlertDialog; a deliberate
   picker pattern, not a segmented control.
