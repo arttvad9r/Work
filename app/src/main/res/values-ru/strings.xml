@@ -22,7 +22,7 @@
 
     <string name="worked">Длительность</string>
     <string name="hourly_rate">Ставка за час</string>
-    <string name="at_rate">По ставке</string>
+    <string name="at_rate">Ставка за час</string>
     <string name="bonus">Премия</string>
     <string name="penalty">Штраф</string>
     <string name="add_bonus">+ Премия</string>
