@@ -22,7 +22,7 @@
 
     <string name="worked">Duration</string>
     <string name="hourly_rate">Rate per hour</string>
-    <string name="at_rate">At rate</string>
+    <string name="at_rate">Rate per hour</string>
     <string name="bonus">Bonus</string>
     <string name="penalty">Penalty</string>
     <string name="add_bonus">+ Bonus</string>
