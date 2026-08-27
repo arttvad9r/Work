@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -31,17 +30,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.worktime.app.R
 import com.worktime.app.ui.calendar.YearSummary
+import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.LabelValueRow
-import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import com.worktime.app.ui.format.formatWholeAmountMicros
 import java.time.Month
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
 @Composable
@@ -55,7 +51,6 @@ fun YearSummaryScreen(
 
     BackHandler(onBack = onDismiss)
 
-    // Surface sets LocalContentColor=onSurface so titles/icons follow the theme.
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -73,7 +68,7 @@ fun YearSummaryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 48.dp),
+                    .heightIn(min = AppDimens.rowMinHeight),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onPreviousYear) {
@@ -87,7 +82,7 @@ fun YearSummaryScreen(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                 )
                 IconButton(onClick = onNextYear) {
                     Icon(
@@ -101,7 +96,7 @@ fun YearSummaryScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 48.dp),
+                        .padding(vertical = AppDimens.sectionSpacing * 3),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
@@ -111,9 +106,9 @@ fun YearSummaryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = AppDimens.screenHorizontalPadding)
                         .navigationBarsPadding()
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = AppDimens.rowGap),
                     verticalArrangement = Arrangement.spacedBy(0.dp),
                 ) {
                     Row(
@@ -133,7 +128,7 @@ fun YearSummaryScreen(
                                 R.string.amount_with_currency,
                                 formatWholeAmountMicros(summary.total.totalPayMicros, locale),
                             ),
-                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                            style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = if (summary.total.totalPayMicros < 0L) {
                                 MaterialTheme.colorScheme.error
@@ -194,7 +189,6 @@ fun YearSummaryScreen(
                     )
                     Text(
                         text = stringResource(R.string.by_month),
-                        modifier = Modifier.padding(top = 0.dp, bottom = 0.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -208,8 +202,7 @@ fun YearSummaryScreen(
                             val monthTotal = summary.months[month.value - 1]
                             val empty = !summary.monthHasData.getOrElse(index) { false }
                             MonthLine(
-                                modifier = Modifier
-                                    .weight(1f),
+                                modifier = Modifier.weight(1f),
                                 label = monthDisplayName(month, locale),
                                 detail = if (empty) {
                                     null
@@ -237,22 +230,21 @@ private fun MonthLine(
 ) {
     val alpha = if (dimmed) 0.45f else 1f
     Row(
-        modifier = modifier
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
             modifier = Modifier.alpha(alpha).weight(1f),
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+            style = MaterialTheme.typography.bodyLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = detail ?: "—",
             modifier = Modifier.weight(1.2f).alpha(alpha),
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = if (detail == null) TextAlign.Center else TextAlign.End,
             maxLines = 1,
@@ -261,7 +253,7 @@ private fun MonthLine(
         Text(
             text = if (dimmed) "—" else amount,
             modifier = Modifier.weight(1f).alpha(alpha),
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+            style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             textAlign = if (dimmed) TextAlign.Center else TextAlign.End,
             maxLines = 1,
