@@ -82,9 +82,9 @@
 
     <string name="export_format_title">Export format</string>
     <string name="export_json_option">JSON</string>
-    <string name="export_json_hint">Backup file, can be imported back</string>
+    <string name="export_json_hint">Can be imported back</string>
     <string name="export_csv_option">CSV</string>
-    <string name="export_csv_hint">Spreadsheet for Excel / Google Sheets</string>
+    <string name="export_csv_hint">For Excel / Google Sheets</string>
     <string name="backup_exported">Data exported</string>
     <string name="backup_imported">Data restored</string>
     <string name="backup_export_failed">Could not export data. Try again.</string>
