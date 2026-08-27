@@ -82,9 +82,9 @@
 
     <string name="export_format_title">Формат экспорта</string>
     <string name="export_json_option">JSON</string>
-    <string name="export_json_hint">Резервная копия, можно импортировать обратно</string>
+    <string name="export_json_hint">Можно импортировать обратно</string>
     <string name="export_csv_option">CSV</string>
-    <string name="export_csv_hint">Таблица для Excel / Google Sheets</string>
+    <string name="export_csv_hint">Для Excel / Google Sheets</string>
     <string name="backup_exported">Данные экспортированы</string>
     <string name="backup_imported">Данные восстановлены</string>
     <string name="backup_export_failed">Не удалось экспортировать данные. Попробуйте ещё раз.</string>
