@@ -20,10 +20,16 @@ object AppDimens {
     /** Standard interactive row height. */
     val rowMinHeight: Dp = 56.dp
 
+    /** Shared compact control height for segmented controls and inline editors. */
+    val compactControlHeight: Dp = 44.dp
+
     /** Compact inline numeric editor slot (fits inside a [rowMinHeight] row). */
     val compactFieldWidth: Dp = 120.dp
-    val compactFieldHeight: Dp = 40.dp
+    val compactFieldHeight: Dp = compactControlHeight
 
     /** Minimum height of primary actions. */
     val primaryButtonMinHeight: Dp = 52.dp
+
+    /** Short, non-layout motion used only for visual feedback. */
+    const val feedbackAnimationMillis: Int = 120
 }
