@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.ui.calendar.YearSummary
 import com.worktime.app.ui.components.AppDimens
@@ -96,7 +97,7 @@ fun YearSummaryScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = AppDimens.sectionSpacing * 3),
+                        .padding(vertical = AppDimens.sectionSpacing * 3f),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
