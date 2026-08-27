@@ -20,6 +20,9 @@ object AppDimens {
     /** Compact but accessible interactive row height used across screens and sheets. */
     val rowMinHeight: Dp = 48.dp
 
+    /** Rows carrying a secondary explanatory line get a little more breathing room. */
+    val rowWithSubtitleMinHeight: Dp = 56.dp
+
     /** Shared compact control height for segmented controls and inline editors. */
     val compactControlHeight: Dp = 44.dp
 
