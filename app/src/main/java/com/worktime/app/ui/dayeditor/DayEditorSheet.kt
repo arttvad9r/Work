@@ -1,7 +1,6 @@
 package com.worktime.app.ui.dayeditor
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +21,7 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -59,8 +58,8 @@ import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.MoneyLimits
 import com.worktime.app.domain.model.WorkEntry
-import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppDestructiveAction
+import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppFieldValueSlot
 import com.worktime.app.ui.components.AppModalBottomSheet
 import com.worktime.app.ui.components.AppPrimaryButton
@@ -139,10 +138,8 @@ internal fun DayEditorSheetContent(
         )
     }
 
-    // Keep one Android/Compose input session for every numeric logical field. ADB
-    // traces on the target device showed that transferring focus between separate
-    // TextFields caused client-side IME hide -> empty EditorInfo -> restartInput ->
-    // show. The same editable node now moves between all visible numeric slots.
+    // One focusable editor moves between the fixed value slots. Keeping the same
+    // node preserves the platform IME session when the user switches numeric fields.
     val editorState = rememberTextFieldState(initialText = durationState.text.toString())
     var activeField by remember { mutableStateOf(NumericField.Duration) }
     var editorHasFocus by remember { mutableStateOf(false) }
@@ -169,8 +166,6 @@ internal fun DayEditorSheetContent(
             editorState.setTextAndPlaceCursorAtEnd(backingState(target).text.toString())
         }
 
-        // If the persistent editor already owns focus, do not request it again: this
-        // is what preserves the existing platform input session during field switches.
         if (!editorHasFocus) {
             focusEditorOnActivate = true
         }
@@ -193,7 +188,6 @@ internal fun DayEditorSheetContent(
         }
     }
 
-    // A cleared adjustment collapses back into its inactive navigation-row look.
     LaunchedEffect(editorHasFocus) {
         if (!editorHasFocus) {
             when (activeField) {
@@ -401,9 +395,7 @@ private fun NumericEditorSection(
     editorFocusRequester: FocusRequester,
     onEditorFocusChanged: (Boolean) -> Unit,
 ) {
-    val rowHeight = 48.dp
-    // Rows sit flush against each other so the editor reads as one compact list; the
-    // row height still meets the 48 dp minimum touch target.
+    val rowHeight = AppDimens.rowMinHeight
     val rateY = rowHeight
     val adjustmentTop = rateY + rowHeight
     val expandedAdjustments = bonusVisible || penaltyVisible
@@ -421,7 +413,6 @@ private fun NumericEditorSection(
                 valueText = durationState.text.toString().ifBlank { null },
                 placeholderText = stringResource(R.string.duration_placeholder),
                 isError = durationHasError,
-                showChevron = false,
                 onClick = { onActivateField(NumericField.Duration) },
                 modifier = Modifier
                     .offset(y = 0.dp)
@@ -436,7 +427,6 @@ private fun NumericEditorSection(
                 valueText = rateState.text.toString().ifBlank { null },
                 placeholderText = "—",
                 isError = rateHasError,
-                showChevron = false,
                 onClick = { onActivateField(NumericField.Rate) },
                 modifier = Modifier
                     .offset(y = rateY)
@@ -447,7 +437,7 @@ private fun NumericEditorSection(
         }
 
         if (!expandedAdjustments) {
-            AdjustmentNavRow(
+            AdjustmentAddRow(
                 label = stringResource(R.string.bonus),
                 onClick = onShowBonus,
                 modifier = Modifier
@@ -456,7 +446,7 @@ private fun NumericEditorSection(
                     .fillMaxWidth()
                     .height(rowHeight),
             )
-            AdjustmentNavRow(
+            AdjustmentAddRow(
                 label = stringResource(R.string.penalty),
                 onClick = onShowPenalty,
                 modifier = Modifier
@@ -473,7 +463,6 @@ private fun NumericEditorSection(
                         valueText = bonusState.text.toString().ifBlank { null },
                         placeholderText = null,
                         isError = bonusHasError,
-                        showChevron = false,
                         onClick = { onActivateField(NumericField.Bonus) },
                         modifier = Modifier
                             .offset(y = adjustmentTop)
@@ -483,7 +472,7 @@ private fun NumericEditorSection(
                     )
                 }
             } else {
-                AdjustmentNavRow(
+                AdjustmentAddRow(
                     label = stringResource(R.string.bonus),
                     onClick = onShowBonus,
                     modifier = Modifier
@@ -501,7 +490,6 @@ private fun NumericEditorSection(
                         valueText = penaltyState.text.toString().ifBlank { null },
                         placeholderText = null,
                         isError = penaltyHasError,
-                        showChevron = false,
                         onClick = { onActivateField(NumericField.Penalty) },
                         modifier = Modifier
                             .offset(y = penaltyTop)
@@ -511,7 +499,7 @@ private fun NumericEditorSection(
                     )
                 }
             } else {
-                AdjustmentNavRow(
+                AdjustmentAddRow(
                     label = stringResource(R.string.penalty),
                     onClick = onShowPenalty,
                     modifier = Modifier
@@ -523,8 +511,6 @@ private fun NumericEditorSection(
             }
         }
 
-        // The single focusable editor node moves between fixed row slots; moving the
-        // node (not recreating it) preserves the platform input session across switches.
         PersistentNumericEditor(
             state = editorState,
             activeField = activeField,
@@ -554,27 +540,17 @@ private fun NumericEditorSection(
     }
 }
 
-/**
- * Flat read-only presentation of an editable numeric row: label left, value in the
- * shared trailing slot, optional chevron. Tapping activates the inline editor.
- */
 @Composable
 private fun EditorValueRow(
     label: String,
     valueText: String?,
     placeholderText: String?,
     isError: Boolean,
-    showChevron: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     Row(
-        modifier = modifier.clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            onClick = onClick,
-        ),
+        modifier = modifier.clickable(onClick = onClick),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -584,45 +560,30 @@ private fun EditorValueRow(
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AppFieldValueSlot {
-                Text(
-                    text = valueText ?: placeholderText.orEmpty(),
-                    modifier = Modifier.padding(end = 8.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = when {
-                        isError -> MaterialTheme.colorScheme.error
-                        valueText != null -> MaterialTheme.colorScheme.onSurface
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    maxLines = 1,
-                )
-            }
-            if (showChevron) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        AppFieldValueSlot {
+            Text(
+                text = valueText ?: placeholderText.orEmpty(),
+                modifier = Modifier.padding(end = AppDimens.rowGap),
+                style = MaterialTheme.typography.bodyLarge,
+                color = when {
+                    isError -> MaterialTheme.colorScheme.error
+                    valueText != null -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1,
+            )
         }
     }
 }
 
-/** Inactive bonus/penalty line: plain navigation affordance with a chevron. */
 @Composable
-private fun AdjustmentNavRow(
+private fun AdjustmentAddRow(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     Row(
-        modifier = modifier.clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            onClick = onClick,
-        ),
+        modifier = modifier.clickable(onClick = onClick),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -633,17 +594,13 @@ private fun AdjustmentNavRow(
             maxLines = 1,
         )
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            imageVector = Icons.Filled.Add,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-/**
- * The persistent editor rendered as the active row itself: label left, compact
- * inline field right. Same height and slot geometry as [EditorValueRow].
- */
 @Composable
 private fun PersistentNumericEditor(
     state: TextFieldState,
@@ -688,10 +645,11 @@ private fun PersistentNumericEditor(
             BasicTextField(
                 state = state,
                 inputTransformation = if (isDuration) durationInputTransformation else moneyInputTransformation,
-                textStyle = MaterialTheme.typography.titleMedium.copy(
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
-                    lineHeight = MaterialTheme.typography.titleMedium.fontSize,
+                    lineHeight = MaterialTheme.typography.bodyLarge.fontSize,
                 ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 lineLimits = TextFieldLineLimits.SingleLine,
@@ -705,7 +663,7 @@ private fun PersistentNumericEditor(
             if (isDuration && state.text.isEmpty()) {
                 Text(
                     text = stringResource(R.string.duration_placeholder),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.46f),
                     maxLines = 1,
                 )
@@ -719,7 +677,6 @@ private fun CalculationSummary(
     draft: WorkEntry?,
     totalMicros: Long?,
 ) {
-    // No empty "calculation" card while there is nothing to calculate yet.
     if (draft == null || totalMicros == null) return
     val locale = LocalLocale.current.platformLocale
     val entryPay = SalaryCalculator.entryPay(draft)
