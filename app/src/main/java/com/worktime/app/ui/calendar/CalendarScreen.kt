@@ -139,8 +139,6 @@ fun CalendarScreen(
         modifier = modifier,
         scaffoldState = scaffoldState,
         sheetPeekHeight = 0.dp,
-        // Material wraps every non-null handle slot in DragHandleWithTooltip. Keep
-        // the slot null and render our handle as stable sheet content instead.
         sheetDragHandle = null,
         sheetSwipeEnabled = true,
         sheetShape = AppSheetShape,
@@ -162,7 +160,7 @@ fun CalendarScreen(
                     locale = locale,
                     modifier = Modifier
                         .navigationBarsPadding()
-                        .padding(bottom = 12.dp),
+                        .padding(bottom = 10.dp),
                 )
             }
         },
@@ -311,7 +309,6 @@ private fun SummaryStrip(
             .fillMaxWidth()
             .height(56.dp),
     ) {
-        // Collapsed state: the tappable month summary strip.
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -337,13 +334,13 @@ private fun SummaryStrip(
                     )
                 }
                 .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.76f))
                 .clickable(
                     onClickLabel = stringResource(R.string.monthly_summary),
                     onClick = onClick,
                 )
                 .testTag("monthly-summary-strip")
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = AppDimens.screenHorizontalPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -403,9 +400,9 @@ private fun MonthlySummaryPanel(
         Column(
             modifier = Modifier.padding(
                 horizontal = AppDimens.screenHorizontalPadding,
-                vertical = 6.dp,
+                vertical = 4.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale)),
@@ -430,7 +427,6 @@ private fun MonthlySummaryPanel(
                 },
                 maxLines = 1,
             )
-            // The total already sits above; this line carries only shifts and hours.
             Text(
                 text = summaryLine(
                     shiftCount = summary.shiftCount,
@@ -472,23 +468,21 @@ private fun MonthlySummaryPanel(
                 )
             }
 
-            YearNavRow(
-                onClick = onOpenYearSummary,
-            )
+            YearNavRow(onClick = onOpenYearSummary)
         }
     }
 }
 
 @Composable
 private fun YearNavRow(onClick: () -> Unit) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = AppDimens.rowMinHeight)
-                .clip(MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.secondaryContainer)
-                .clickable(onClick = onClick)
-                .padding(horizontal = AppDimens.screenHorizontalPadding),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = AppDimens.rowMinHeight)
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.68f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = AppDimens.screenHorizontalPadding),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -587,7 +581,6 @@ private fun MonthPickerDialog(
     )
 }
 
-// Horizontal distance a drag must cover before it counts as a month switch.
 private val MonthSwipeThreshold = 48.dp
 
 @Composable
@@ -651,14 +644,16 @@ private fun CalendarGrid(
                         text = day.getDisplayName(TextStyle.SHORT, locale),
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.86f),
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                     )
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.9f),
+            )
 
             cells.chunked(7).forEachIndexed { weekIndex, week ->
                 Row(
@@ -745,29 +740,34 @@ private fun DayCell(
         },
     )
     val dateColor = when {
-        !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+        !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.28f)
         isToday -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.86f)
+    }
+    val amountColor = if ((totalMicros ?: 0L) < 0L) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.82f)
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .border(
-                width = 0.5.dp,
+                width = if (isToday && isInVisibleMonth) 1.dp else 0.5.dp,
                 brush = SolidColor(
                     if (isToday && isInVisibleMonth) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f)
                     },
                 ),
                 shape = RectangleShape,
             )
             .background(
                 when {
-                    isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
-                    visibleEntry != null -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f)
+                    isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.78f)
+                    visibleEntry != null -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.24f)
                     else -> Color.Transparent
                 },
             )
@@ -778,9 +778,7 @@ private fun DayCell(
             )
             .clickable(enabled = isInVisibleMonth, onClick = onClick),
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -829,7 +827,7 @@ private fun DayCell(
                             fontSize = 7.sp,
                             lineHeight = 8.sp,
                         ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = amountColor,
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,
@@ -855,7 +853,7 @@ private fun DayCell(
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     softWrap = false,
-                     overflow = TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     modifier = Modifier
@@ -873,11 +871,11 @@ private fun DayCell(
                         lineHeight = 13.sp,
                     ),
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = amountColor,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     softWrap = false,
-                     overflow = TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
