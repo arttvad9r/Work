@@ -18,7 +18,7 @@ entities must always look and behave identically, on every screen.
 | `screenHorizontalPadding` | 16 dp | every full screen and modal sheet |
 | `sectionSpacing` | 16 dp | above section headers / between sections |
 | `rowGap` | 8 dp | vertical gap between rows and small blocks |
-| `rowMinHeight` | 56 dp | standard interactive row |
+| `rowMinHeight` | 48 dp | compact accessible interactive row across screens and sheets |
 | `compactControlHeight` | 44 dp | segmented controls and inline editors |
 | `compactFieldWidth/Height` | 120×44 dp | inline numeric editor slot |
 | `primaryButtonMinHeight` | 52 dp | primary actions |
@@ -54,8 +54,8 @@ corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
 
 ## Motion
 
-Motion is feedback, not decoration. Standard Compose/Material press indications stay
-enabled for tappable controls. Visual state changes may use the shared short
+Motion is feedback, not decoration. Shared Material controls keep their normal press
+feedback. Visual state changes may use the shared short
 `AppDimens.feedbackAnimationMillis` (120 ms) transition for color only. Do not animate
 row sizes, spacing, data layout, or add delays before an action. Modal sheets keep the
 platform Material motion they already provide.
