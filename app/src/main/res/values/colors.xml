@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Launcher icon background stays neutral so the blue time/earnings mark reads under any launcher mask. -->
+    <color name="ic_launcher_background">#F8FAFC</color>
+
     <!-- Widget mirrors the in-app summary plaque (primaryContainer palette). -->
     <color name="widget_surface">#E3EBFA</color>
     <color name="widget_text">#1A1C20</color>
