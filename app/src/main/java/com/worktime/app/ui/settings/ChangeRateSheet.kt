@@ -16,6 +16,7 @@ import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -138,16 +139,21 @@ fun ChangeRateSheet(
                         )
                     }
                 } else {
-                    AppNavigationRow(
-                        label = stringResource(R.string.start_date),
-                        value = customStart?.format(dateFormatter) ?: "—",
-                        onClick = { pickingDate = DateField.Start },
-                    )
-                    AppNavigationRow(
-                        label = stringResource(R.string.end_date),
-                        value = customEnd?.format(dateFormatter) ?: "—",
-                        onClick = { pickingDate = DateField.End },
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        AppNavigationRow(
+                            label = stringResource(R.string.start_date),
+                            value = customStart?.format(dateFormatter) ?: "—",
+                            onClick = { pickingDate = DateField.Start },
+                        )
+                        AppNavigationRow(
+                            label = stringResource(R.string.end_date),
+                            value = customEnd?.format(dateFormatter) ?: "—",
+                            onClick = { pickingDate = DateField.End },
+                        )
+                    }
                 }
 
                 Row(
@@ -191,15 +197,23 @@ fun ChangeRateSheet(
     when (val target = pickingDate) {
         DateField.Start -> DatePickerSheetDialog(
             initialDate = customStart ?: visibleMonth.atDay(1),
-            onSelect = {
-                customStart = it
+            onSelect = { selectedStart ->
+                customStart = selectedStart
+                customEnd?.let { selectedEnd ->
+                    if (selectedEnd < selectedStart) {
+                        customEnd = null
+                    }
+                }
                 pickingDate = null
             },
             onDismiss = { pickingDate = null },
         )
 
         DateField.End -> DatePickerSheetDialog(
-            initialDate = customEnd ?: visibleMonth.atEndOfMonth(),
+            initialDate = customEnd?.takeIf { selectedEnd ->
+                customStart == null || selectedEnd >= customStart
+            } ?: customStart ?: visibleMonth.atEndOfMonth(),
+            minimumDate = customStart,
             onSelect = {
                 customEnd = it
                 pickingDate = null
@@ -241,11 +255,22 @@ fun ChangeRateSheet(
 @Composable
 private fun DatePickerSheetDialog(
     initialDate: LocalDate,
+    minimumDate: LocalDate? = null,
     onSelect: (LocalDate) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val selectableDates = remember(minimumDate) {
+        object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                minimumDate == null || utcTimeMillis.toLocalDate() >= minimumDate
+
+            override fun isSelectableYear(year: Int): Boolean =
+                minimumDate == null || year >= minimumDate.year
+        }
+    }
     val pickerState = rememberDatePickerState(
         initialSelectedDateMillis = initialDate.toUtcMillis(),
+        selectableDates = selectableDates,
     )
     val pickerColors = DatePickerDefaults.colors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
