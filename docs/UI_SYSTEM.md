@@ -48,6 +48,10 @@ Only `MaterialTheme.typography` (all styles carry tabular numerals):
   SummaryStrip, secondary CTA surfaces (e.g. year-summary navigation).
 - `error` — invalid input outline, negative totals, destructive actions.
 
+Theme-mode changes interpolate the visible Material color roles rather than replacing the
+whole palette in one frame. Geometry, typography and content order stay fixed while colors
+cross between the light and dark schemes.
+
 ### Calendar hierarchy
 
 Calendar color is semantic rather than decorative. The three data levels must remain
@@ -76,7 +80,8 @@ should feel responsive rather than animated for its own sake.
 - Full-screen hierarchy changes: roughly 220–300 ms with a short directional slide + fade.
 - Settings enters from the side; Year summary rises from below because it is launched from
   the bottom monthly report and returns toward that source when dismissed.
-- Calendar month changes use a directional transition matching previous/next navigation.
+- Calendar month navigation uses `HorizontalPager`: content follows the finger during a
+  drag and arrows animate the same pager programmatically. Adjacent month data stays warm.
 - The persistent numeric editor may move between its fixed rows with a non-bouncy spring;
   it must remain one focusable node so the OEM IME session is preserved.
 - Bonus/Penalty Add/value states use a short fade-through while that persistent editor
@@ -86,7 +91,11 @@ should feel responsive rather than animated for its own sake.
 - Calendar state colors (selected/today/populated) should interpolate rather than flash;
   entry content may use a short fade/very small scale-in when saved data appears or changes.
 - The monthly summary strip may slightly compress and strengthen its container tone while
-  pressed, while retaining normal indication/ripple feedback.
+  pressed, while retaining normal indication/ripple feedback. Its chevron rotates with the
+  open/closed report state.
+- Month/year numeric summary values may use short fade-through transitions rather than
+  replacing text in one frame.
+- Year-to-year report changes move laterally in time while screen entry/exit remains vertical.
 - Modal sheets keep the Material platform motion and drag physics they already provide.
 - App launch uses the Android SplashScreen API and a short exit fade into real content.
 - Never add looping motion, bounce/overshoot for routine controls, artificial action delays,
@@ -100,12 +109,14 @@ interruptible where practical and must not change business state timing.
 Haptics are sparse and semantic, not a vibration on every tap. They use Compose/platform
 feedback types so device and system settings remain authoritative.
 
-- `SegmentTick` — when the selected segmented option actually changes.
-- `GestureThresholdActivate` — once when a calendar-month or summary swipe crosses the
-  actionable threshold; moving back below the threshold re-arms it.
+- `SegmentTick` — when the selected segmented option actually changes and when a user-driven
+  month pager settles on a different month.
+- `GestureThresholdActivate` — once when an upward monthly-summary drag becomes actionable;
+  moving back below the threshold re-arms it.
 - `Confirm` — only after persistence succeeds for saving/deleting an entry or applying a
   non-empty rate change.
-- Ordinary navigation taps, arrows, day taps and passive scrolling do not add extra haptics.
+- Ordinary navigation taps, arrows, day taps, field focus and passive scrolling do not add
+  extra haptics.
 
 ## Components
 
@@ -125,7 +136,7 @@ feedback types so device and system settings remain authoritative.
   row for a full-width form field and never changes the row height.
 - **`AppSegmentedControl(options, selectedIndex)`** — the only segmented presentation
   for mutually exclusive options (theme mode, rate period). A shared secondaryContainer
-  pill moves between equal-width options.
+  pill moves between equal-width options and emits one light tick on a real selection change.
 - **`AppPrimaryButton`** — full-width ≥52 dp primary action (Save, Change rate).
 - **`AppDestructiveAction`** — full-width error-colored text action (Delete entry).
 - **Contextual quick action** — lightweight `TextButton` with a leading semantic icon,
