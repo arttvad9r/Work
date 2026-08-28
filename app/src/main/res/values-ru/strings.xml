@@ -64,6 +64,8 @@
     <string name="year_income">Доход за год</string>
     <string name="year_stats_title">Сводка за год</string>
     <string name="by_month">По месяцам</string>
+    <string name="year_month_detail_header">смен · ч</string>
+    <string name="year_month_income_header">доход</string>
     <string name="average_working_month">Среднее за рабочий месяц</string>
     <string name="average_shift">Средняя смена</string>
     <string name="average_shift_income">Средний доход за смену</string>
