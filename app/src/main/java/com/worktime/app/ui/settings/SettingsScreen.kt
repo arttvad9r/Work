@@ -1,6 +1,11 @@
 package com.worktime.app.ui.settings
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +51,8 @@ import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.CompactMoneyField
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
+
+private const val InlineEditorFadeMillis = 140
 
 @Composable
 fun SettingsScreen(
@@ -165,8 +172,8 @@ private fun SectionDivider() {
 }
 
 /**
- * The default-rate row: reads as a value row, edits inline through a compact field.
- * Both states share the same trailing slot so nothing shifts when editing starts.
+ * The default-rate row: reads as a value row, edits inline through the same compact slot.
+ * Only the trailing content fades through; the row and every following row stay fixed.
  */
 @Composable
 private fun RateRow(
@@ -177,40 +184,17 @@ private fun RateRow(
     onRateChange: (Long) -> Unit,
 ) {
     val label = stringResource(R.string.settings_rate)
-    if (!editing) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = AppDimens.rowMinHeight)
-                .clickable(onClick = onEdit),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            AppFieldValueSlot {
-                Text(
-                    text = formatDecimalMicros(rateMicros),
-                    modifier = Modifier.padding(end = 8.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                )
-            }
-        }
-        return
-    }
-    var rateInput by rememberSaveable(editing) {
-        mutableStateOf(formatDecimalMicros(rateMicros))
+    var rateInput by rememberSaveable { mutableStateOf(formatDecimalMicros(rateMicros)) }
+    LaunchedEffect(rateMicros, editing) {
+        if (!editing) rateInput = formatDecimalMicros(rateMicros)
     }
     val parsed = runCatching { parseDecimalMicros(rateInput) }.getOrNull()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = AppDimens.rowMinHeight),
+            .heightIn(min = AppDimens.rowMinHeight)
+            .clickable(enabled = !editing, onClick = onEdit),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -220,20 +204,41 @@ private fun RateRow(
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
-        CompactMoneyField(
-            text = rateInput,
-            onTextChange = { text ->
-                rateInput = text
-                val value = runCatching { parseDecimalMicros(text) }.getOrNull()
-                if (value != null && value <= MoneyLimits.MAX_COMPONENT_MICROS) {
-                    onRateChange(value)
-                }
+        AnimatedContent(
+            targetState = editing,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(InlineEditorFadeMillis)) togetherWith
+                    fadeOut(animationSpec = tween(InlineEditorFadeMillis))
             },
-            isError = parsed == null || parsed > MoneyLimits.MAX_COMPONENT_MICROS,
-            contentDescription = label,
-            autoFocus = true,
-            onLostFocus = onDone,
-        )
+            label = "default rate editor",
+        ) { isEditing ->
+            if (isEditing) {
+                CompactMoneyField(
+                    text = rateInput,
+                    onTextChange = { text ->
+                        rateInput = text
+                        val value = runCatching { parseDecimalMicros(text) }.getOrNull()
+                        if (value != null && value <= MoneyLimits.MAX_COMPONENT_MICROS) {
+                            onRateChange(value)
+                        }
+                    },
+                    isError = parsed == null || parsed > MoneyLimits.MAX_COMPONENT_MICROS,
+                    contentDescription = label,
+                    autoFocus = true,
+                    onLostFocus = onDone,
+                )
+            } else {
+                AppFieldValueSlot {
+                    Text(
+                        text = formatDecimalMicros(rateMicros),
+                        modifier = Modifier.padding(end = 8.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
     }
 }
 
