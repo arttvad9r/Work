@@ -161,7 +161,14 @@ internal fun DayEditorSheetContent(
 
     val activateField: (NumericField) -> Unit = { target ->
         if (target != activeField) {
-            backingState(activeField).setTextAndPlaceCursorAtEnd(editorState.text.toString())
+            val previousField = activeField
+            val previousText = editorState.text.toString()
+            backingState(previousField).setTextAndPlaceCursorAtEnd(previousText)
+            when (previousField) {
+                NumericField.Bonus -> if (previousText.isBlank()) bonusVisible = false
+                NumericField.Penalty -> if (previousText.isBlank()) penaltyVisible = false
+                else -> Unit
+            }
             activeField = target
             editorState.setTextAndPlaceCursorAtEnd(backingState(target).text.toString())
         }
