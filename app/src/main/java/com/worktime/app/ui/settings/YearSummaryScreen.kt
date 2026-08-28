@@ -191,13 +191,7 @@ fun YearSummaryScreen(
                         modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
-                    Text(
-                        text = stringResource(R.string.by_month),
-                        modifier = Modifier.padding(bottom = 2.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    MonthColumnHeaders()
+                    MonthSectionHeader()
 
                     Column(
                         modifier = Modifier
@@ -232,15 +226,21 @@ fun YearSummaryScreen(
 }
 
 @Composable
-private fun MonthColumnHeaders() {
+private fun MonthSectionHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 18.dp),
+            .heightIn(min = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(modifier = Modifier.weight(1f))
+        Text(
+            text = stringResource(R.string.by_month),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
         Text(
             text = stringResource(R.string.year_month_detail_header),
             modifier = Modifier.weight(1.2f),
