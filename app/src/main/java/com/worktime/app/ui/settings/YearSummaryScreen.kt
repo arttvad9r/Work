@@ -197,6 +197,7 @@ fun YearSummaryScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    MonthColumnHeaders()
 
                     Column(
                         modifier = Modifier
@@ -227,6 +228,35 @@ fun YearSummaryScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MonthColumnHeaders() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 18.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(modifier = Modifier.weight(1f))
+        Text(
+            text = stringResource(R.string.year_month_detail_header),
+            modifier = Modifier.weight(1.2f),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            textAlign = TextAlign.End,
+            maxLines = 1,
+        )
+        Text(
+            text = stringResource(R.string.year_month_income_header),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            textAlign = TextAlign.End,
+            maxLines = 1,
+        )
     }
 }
 
