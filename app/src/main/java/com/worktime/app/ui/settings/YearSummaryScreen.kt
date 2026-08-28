@@ -136,7 +136,8 @@ fun YearSummaryScreen(
                 }
             }
 
-            if (displayedSummary == null) {
+            val shownSummary = displayedSummary
+            if (shownSummary == null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -147,7 +148,7 @@ fun YearSummaryScreen(
                 }
             } else {
                 AnimatedContent(
-                    targetState = displayedSummary,
+                    targetState = shownSummary,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
