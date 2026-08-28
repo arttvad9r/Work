@@ -21,10 +21,11 @@ The application is portrait-only. Day editing, rate changing and export-format s
 - Header contains previous month, tappable localized month/year, next month and Settings.
 - Tapping month/year opens the month picker. Horizontal swipe switches months; vertical-dominant drags do not.
 - Month changes use a short directional slide/fade matching previous/next navigation; the title fades through instead of flashing to a new value.
+- Crossing the actionable horizontal-swipe threshold gives one light system haptic; arrow taps do not add extra vibration.
 - Adjacent-month dates stay visible but muted and inactive.
 - Populated cells use a neutral `surfaceContainerHigh`-style treatment. Date is secondary, duration is primary content and amount is a restrained `primary` accent; negative amount uses `error`.
 - Selected day uses `primaryContainer`; today uses its own primary outline/date treatment. Selection, today and data emphasis must remain distinguishable.
-- Day-cell state colors interpolate over a short transition instead of hard-swapping.
+- Day-cell state colors interpolate over a short transition instead of hard-swapping. Saved or edited entry content fades/scales in very slightly so the completed edit has a visible destination in the calendar.
 - Grid/divider lines are deliberately quiet so data reads before table chrome.
 - In the current month only, when today has no entry, a lightweight `Fill today` TextButton appears below the calendar. Its appearance/disappearance uses a short fade + vertical reveal/collapse.
 
@@ -32,7 +33,7 @@ The application is portrait-only. Day editing, rate changing and export-format s
 
 The fixed footer is one compact summary strip containing shifts, worked hours and monthly income. It acts as the entry point to the detailed month report and must remain visually subordinate to the calendar.
 
-The summary text uses a short fade-through when its values change; the strip itself keeps stable geometry.
+The summary text uses a short fade-through when its values change; the strip itself keeps stable geometry. Pressing it gives a very small compression/tonal response while retaining normal Material indication. Dragging upward gives one light haptic when the actionable threshold is crossed, then the report follows normal Material sheet motion.
 
 The detailed report sheet contains:
 
@@ -74,7 +75,9 @@ All logical numeric fields share one persistent state-based editable node/input 
 
 ### Bonus and penalty semantics
 
-Collapsed Bonus/Penalty rows show an Add affordance, not a chevron: tapping reveals an inline field rather than navigating elsewhere. If a revealed adjustment is still empty when focus moves away, it collapses back to the Add row.
+Collapsed Bonus/Penalty rows show an Add affordance, not a chevron: tapping reveals an inline field rather than navigating elsewhere. Add/value states fade through while the persistent editor moves into or out of the same fixed slot, so no row geometry changes. If a revealed adjustment is still empty when focus moves away, it collapses back to the Add row.
+
+Saving produces confirmation haptic feedback only after persistence succeeds. Delete and a non-empty bulk-rate update use the same success-only confirmation rule; ordinary field focus and row taps do not vibrate.
 
 ## Settings
 
@@ -86,7 +89,7 @@ Collapsed Bonus/Penalty rows show an Add affordance, not a chevron: tapping reve
 
 All interactive rows follow the shared 48 dp row contract; segmented controls and inline fields use 44 dp height; primary sheet actions are at least 52 dp. Normal Material press feedback is retained.
 
-The shared segmented control uses one moving selected pill rather than unrelated hard-swapped fills.
+The shared segmented control uses one moving selected pill rather than unrelated hard-swapped fills. Changing to a different segment gives a light system segment tick; tapping the already-selected segment does not.
 
 Default rate edits inline and autosaves valid values. It is semantically separate from an individual entry rate. The first saved worked entry may initialize an uninitialized default; later per-day rates do not overwrite an initialized default.
 
@@ -115,7 +118,7 @@ The year summary is a full-screen, view-only screen opened from the monthly repo
 - populated months are normal emphasis; missing months are muted with dashes;
 - an entirely empty year uses compact rows instead of stretching empty content across available height.
 
-Settings and Year summary enter from the right with a restrained slide + fade and reverse that direction on dismiss, preserving the sense of hierarchy without moving a full screen by an exaggerated distance.
+Settings enters from the side with a restrained slide + fade. Year summary rises from below and returns downward because its source is the bottom monthly report; the transition direction preserves the spatial relationship between those surfaces.
 
 ## Export and import
 
@@ -142,4 +145,5 @@ The canonical tokens and component semantics live in [`UI_SYSTEM.md`](UI_SYSTEM.
 - flat rows are preferred over decorative cards;
 - primary/secondary/error colors communicate hierarchy and state, not decoration;
 - dark theme is a readable counterpart of the light theme, while the light theme remains the primary visual target;
-- motion communicates continuity and feedback through short state transitions, non-bouncy springs and directional hierarchy changes; it must not become looping decoration, bounce-heavy feedback or delayed actions.
+- motion communicates continuity and feedback through short state transitions, non-bouncy springs and directional hierarchy changes; it must not become looping decoration, bounce-heavy feedback or delayed actions;
+- haptics are sparse and semantic: discrete selection, gesture threshold, or successful persistence only.
