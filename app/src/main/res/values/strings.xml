@@ -64,6 +64,8 @@
     <string name="year_income">Income for the year</string>
     <string name="year_stats_title">Year summary</string>
     <string name="by_month">By month</string>
+    <string name="year_month_detail_header">shifts · h</string>
+    <string name="year_month_income_header">income</string>
     <string name="average_working_month">Average per working month</string>
     <string name="average_shift">Average shift</string>
     <string name="average_shift_income">Average income per shift</string>
