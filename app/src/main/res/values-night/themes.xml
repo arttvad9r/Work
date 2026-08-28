@@ -5,4 +5,10 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:fontFamily">sans</item>
     </style>
+
+    <style name="Theme.WorkTime.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#121419</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.WorkTime</item>
+    </style>
 </resources>
