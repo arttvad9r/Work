@@ -153,17 +153,22 @@ fun YearSummaryScreen(
                         .fillMaxWidth()
                         .weight(1f),
                     transitionSpec = {
-                        val forward = targetState.year > initialState.year
-                        val enterOffset: (Int) -> Int = { width -> if (forward) width / 5 else -width / 5 }
-                        val exitOffset: (Int) -> Int = { width -> if (forward) -width / 5 else width / 5 }
-                        (slideInHorizontally(
-                            animationSpec = tween(YearMotionMillis),
-                            initialOffsetX = enterOffset,
-                        ) + fadeIn(animationSpec = tween(YearFadeMillis))) togetherWith
-                            (slideOutHorizontally(
+                        if (targetState.year == initialState.year) {
+                            fadeIn(animationSpec = tween(YearFadeMillis)) togetherWith
+                                fadeOut(animationSpec = tween(YearFadeMillis))
+                        } else {
+                            val forward = targetState.year > initialState.year
+                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 5 else -width / 5 }
+                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 5 else width / 5 }
+                            (slideInHorizontally(
                                 animationSpec = tween(YearMotionMillis),
-                                targetOffsetX = exitOffset,
-                            ) + fadeOut(animationSpec = tween(YearFadeMillis)))
+                                initialOffsetX = enterOffset,
+                            ) + fadeIn(animationSpec = tween(YearFadeMillis))) togetherWith
+                                (slideOutHorizontally(
+                                    animationSpec = tween(YearMotionMillis),
+                                    targetOffsetX = exitOffset,
+                                ) + fadeOut(animationSpec = tween(YearFadeMillis)))
+                        }
                     },
                     label = "year summary content",
                 ) { shown ->
