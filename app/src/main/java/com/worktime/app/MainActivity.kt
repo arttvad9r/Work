@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
             provider.view.animate()
                 .alpha(0f)
                 .setDuration(160L)
-                .withEndAction(provider::remove)
+                .withEndAction { provider.remove() }
                 .start()
         }
 
