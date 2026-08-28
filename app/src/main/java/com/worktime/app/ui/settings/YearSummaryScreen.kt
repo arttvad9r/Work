@@ -1,6 +1,13 @@
 package com.worktime.app.ui.settings
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +30,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -42,6 +54,9 @@ import com.worktime.app.ui.format.formatWholeAmountMicros
 import java.time.Month
 import java.time.format.TextStyle
 
+private const val YearMotionMillis = 220
+private const val YearFadeMillis = 150
+
 @Composable
 fun YearSummaryScreen(
     summary: YearSummary?,
@@ -50,6 +65,13 @@ fun YearSummaryScreen(
     onNextYear: () -> Unit,
 ) {
     val locale = LocalLocale.current.platformLocale
+    var displayedSummary by remember { mutableStateOf<YearSummary?>(summary) }
+
+    // A year query briefly reports loading. Keep the previous year on screen until the
+    // new rows arrive so paging reads as one continuous transition instead of a spinner flash.
+    LaunchedEffect(summary) {
+        if (summary != null) displayedSummary = summary
+    }
 
     BackHandler(onBack = onDismiss)
 
@@ -80,13 +102,31 @@ fun YearSummaryScreen(
                             contentDescription = stringResource(R.string.previous_year),
                         )
                     }
-                    Text(
-                        text = (summary?.year ?: "").toString(),
+                    AnimatedContent(
+                        targetState = displayedSummary?.year,
                         modifier = Modifier.padding(horizontal = 12.dp),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Medium,
-                    )
+                        transitionSpec = {
+                            val forward = (targetState ?: Int.MIN_VALUE) > (initialState ?: Int.MIN_VALUE)
+                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 2 else -width / 2 }
+                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 2 else width / 2 }
+                            (slideInHorizontally(
+                                animationSpec = tween(YearMotionMillis),
+                                initialOffsetX = enterOffset,
+                            ) + fadeIn(animationSpec = tween(YearFadeMillis))) togetherWith
+                                (slideOutHorizontally(
+                                    animationSpec = tween(YearMotionMillis),
+                                    targetOffsetX = exitOffset,
+                                ) + fadeOut(animationSpec = tween(YearFadeMillis)))
+                        },
+                        label = "year title",
+                    ) { year ->
+                        Text(
+                            text = year?.toString().orEmpty(),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                     IconButton(onClick = onNextYear) {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -96,7 +136,7 @@ fun YearSummaryScreen(
                 }
             }
 
-            if (summary == null) {
+            if (displayedSummary == null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -106,120 +146,151 @@ fun YearSummaryScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                Column(
+                AnimatedContent(
+                    targetState = displayedSummary,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(horizontal = AppDimens.screenHorizontalPadding)
-                        .navigationBarsPadding()
-                        .padding(bottom = AppDimens.rowGap),
-                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 30.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.year_income),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.amount_with_currency,
-                                formatWholeAmountMicros(summary.total.totalPayMicros, locale),
-                            ),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = if (summary.total.totalPayMicros < 0L) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                            maxLines = 1,
-                        )
-                    }
-
-                    LabelValueRow(
-                        label = stringResource(R.string.shift_count_label),
-                        value = summary.total.shiftCount.toString(),
-                        modifier = Modifier.heightIn(min = 28.dp),
+                        .weight(1f),
+                    transitionSpec = {
+                        val forward = targetState.year > initialState.year
+                        val enterOffset: (Int) -> Int = { width -> if (forward) width / 5 else -width / 5 }
+                        val exitOffset: (Int) -> Int = { width -> if (forward) -width / 5 else width / 5 }
+                        (slideInHorizontally(
+                            animationSpec = tween(YearMotionMillis),
+                            initialOffsetX = enterOffset,
+                        ) + fadeIn(animationSpec = tween(YearFadeMillis))) togetherWith
+                            (slideOutHorizontally(
+                                animationSpec = tween(YearMotionMillis),
+                                targetOffsetX = exitOffset,
+                            ) + fadeOut(animationSpec = tween(YearFadeMillis)))
+                    },
+                    label = "year summary content",
+                ) { shown ->
+                    YearSummaryContent(
+                        summary = shown,
+                        locale = locale,
                     )
-                    LabelValueRow(
-                        label = stringResource(R.string.worked_duration),
-                        value = formatDurationCompact(summary.total.workedMinutes),
-                        modifier = Modifier.heightIn(min = 28.dp),
-                    )
-                    if (summary.monthsWithData > 0) {
-                        LabelValueRow(
-                            label = stringResource(R.string.average_working_month),
-                            value = formatWholeAmountMicros(
-                                summary.total.totalPayMicros / summary.monthsWithData,
-                                locale,
-                            ),
-                            modifier = Modifier.heightIn(min = 28.dp),
-                        )
-                        if (summary.total.shiftCount > 0) {
-                            LabelValueRow(
-                                label = stringResource(R.string.average_shift),
-                                value = formatDurationCompact(
-                                    summary.total.workedMinutes / summary.total.shiftCount,
-                                ),
-                                modifier = Modifier.heightIn(min = 28.dp),
-                            )
-                        }
-                    }
-                    if (summary.total.bonusMicros > 0L) {
-                        LabelValueRow(
-                            label = stringResource(R.string.year_bonuses),
-                            value = "+${formatWholeAmountMicros(summary.total.bonusMicros, locale)}",
-                            modifier = Modifier.heightIn(min = 28.dp),
-                        )
-                    }
-                    if (summary.total.penaltyMicros > 0L) {
-                        LabelValueRow(
-                            label = stringResource(R.string.calculation_penalty),
-                            value = "−${formatWholeAmountMicros(summary.total.penaltyMicros, locale)}",
-                            modifier = Modifier.heightIn(min = 28.dp),
-                        )
-                    }
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    MonthSectionHeader()
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                    ) {
-                        Month.entries.forEachIndexed { index, month ->
-                            val monthTotal = summary.months[month.value - 1]
-                            val empty = !summary.monthHasData.getOrElse(index) { false }
-                            val rowModifier = if (summary.monthsWithData == 0) {
-                                Modifier.height(24.dp)
-                            } else {
-                                Modifier.weight(1f)
-                            }
-                            MonthLine(
-                                modifier = rowModifier,
-                                label = monthDisplayName(month, locale),
-                                detail = if (empty) {
-                                    null
-                                } else {
-                                    "${monthTotal.shiftCount} · ${formatDurationCompact(monthTotal.workedMinutes)}"
-                                },
-                                amount = formatWholeAmountMicros(monthTotal.totalPayMicros, locale),
-                                dimmed = empty,
-                            )
-                        }
-                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun YearSummaryContent(
+    summary: YearSummary,
+    locale: java.util.Locale,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = AppDimens.screenHorizontalPadding)
+            .navigationBarsPadding()
+            .padding(bottom = AppDimens.rowGap),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 30.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.year_income),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(
+                    R.string.amount_with_currency,
+                    formatWholeAmountMicros(summary.total.totalPayMicros, locale),
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = if (summary.total.totalPayMicros < 0L) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                maxLines = 1,
+            )
+        }
+
+        LabelValueRow(
+            label = stringResource(R.string.shift_count_label),
+            value = summary.total.shiftCount.toString(),
+            modifier = Modifier.heightIn(min = 28.dp),
+        )
+        LabelValueRow(
+            label = stringResource(R.string.worked_duration),
+            value = formatDurationCompact(summary.total.workedMinutes),
+            modifier = Modifier.heightIn(min = 28.dp),
+        )
+        if (summary.monthsWithData > 0) {
+            LabelValueRow(
+                label = stringResource(R.string.average_working_month),
+                value = formatWholeAmountMicros(
+                    summary.total.totalPayMicros / summary.monthsWithData,
+                    locale,
+                ),
+                modifier = Modifier.heightIn(min = 28.dp),
+            )
+            if (summary.total.shiftCount > 0) {
+                LabelValueRow(
+                    label = stringResource(R.string.average_shift),
+                    value = formatDurationCompact(
+                        summary.total.workedMinutes / summary.total.shiftCount,
+                    ),
+                    modifier = Modifier.heightIn(min = 28.dp),
+                )
+            }
+        }
+        if (summary.total.bonusMicros > 0L) {
+            LabelValueRow(
+                label = stringResource(R.string.year_bonuses),
+                value = "+${formatWholeAmountMicros(summary.total.bonusMicros, locale)}",
+                modifier = Modifier.heightIn(min = 28.dp),
+            )
+        }
+        if (summary.total.penaltyMicros > 0L) {
+            LabelValueRow(
+                label = stringResource(R.string.calculation_penalty),
+                value = "−${formatWholeAmountMicros(summary.total.penaltyMicros, locale)}",
+                modifier = Modifier.heightIn(min = 28.dp),
+            )
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
+        MonthSectionHeader()
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        ) {
+            Month.entries.forEachIndexed { index, month ->
+                val monthTotal = summary.months[month.value - 1]
+                val empty = !summary.monthHasData.getOrElse(index) { false }
+                val rowModifier = if (summary.monthsWithData == 0) {
+                    Modifier.height(24.dp)
+                } else {
+                    Modifier.weight(1f)
+                }
+                MonthLine(
+                    modifier = rowModifier,
+                    label = monthDisplayName(month, locale),
+                    detail = if (empty) {
+                        null
+                    } else {
+                        "${monthTotal.shiftCount} · ${formatDurationCompact(monthTotal.workedMinutes)}"
+                    },
+                    amount = formatWholeAmountMicros(monthTotal.totalPayMicros, locale),
+                    dimmed = empty,
+                )
             }
         }
     }
