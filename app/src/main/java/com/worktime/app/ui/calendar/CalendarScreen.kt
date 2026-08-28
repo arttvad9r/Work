@@ -10,8 +10,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -34,10 +32,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
@@ -57,18 +58,16 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.graphicsLayer
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
@@ -114,6 +113,8 @@ private const val CalendarMotionMillis = 220
 private const val CalendarFadeMillis = 160
 private const val CellMotionMillis = 150
 private const val PressFeedbackMillis = 90
+private const val PagerPageCount = 24_001
+private const val PagerAnchorPage = PagerPageCount / 2
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,17 +129,23 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalLocale.current.platformLocale
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
     var monthPickerOpen by rememberSaveable { mutableStateOf(false) }
-    val monthEntryCache = remember { mutableStateMapOf<YearMonth, Map<LocalDate, WorkEntry>>() }
-    LaunchedEffect(state.visibleMonth, state.entries) {
-        monthEntryCache[state.visibleMonth] = state.entries
-        val keep = setOf(
-            state.visibleMonth.minusMonths(1),
-            state.visibleMonth,
-            state.visibleMonth.plusMonths(1),
-        )
-        monthEntryCache.keys.retainAll(keep)
-    }
+
+    val originMonthIndex = rememberSaveable { state.visibleMonth.toMonthIndex() }
+    val pagerState = rememberPagerState(
+        initialPage = PagerAnchorPage,
+        pageCount = { PagerPageCount },
+    )
+    var programmaticPage by remember { mutableStateOf<Int?>(null) }
+
+    fun monthForPage(page: Int): YearMonth =
+        yearMonthFromIndex(originMonthIndex + page - PagerAnchorPage)
+
+    fun pageForMonth(month: YearMonth): Int =
+        PagerAnchorPage + month.toMonthIndex() - originMonthIndex
+
     val summarySheetState = rememberStandardBottomSheetState(
         initialValue = SheetValue.Hidden,
         skipHiddenState = false,
@@ -146,7 +153,6 @@ fun CalendarScreen(
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = summarySheetState,
     )
-    val scope = rememberCoroutineScope()
     val summaryTargetExpanded = summarySheetState.targetValue == SheetValue.Expanded
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
         val shouldHide = summarySheetState.currentValue != SheetValue.Hidden ||
@@ -169,6 +175,51 @@ fun CalendarScreen(
             } else {
                 summarySheetState.expand()
             }
+        }
+    }
+
+    val animateToPage: (Int) -> Unit = { requestedPage ->
+        val targetPage = requestedPage.coerceIn(0, PagerPageCount - 1)
+        programmaticPage = targetPage
+        scope.launch {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
+
+    // External month changes (month picker, restored state) move the pager to the same month.
+    // Large jumps are immediate; adjacent changes keep the same spatial animation as arrows.
+    LaunchedEffect(state.visibleMonth) {
+        val targetPage = pageForMonth(state.visibleMonth)
+        if (targetPage !in 0 until PagerPageCount || targetPage == pagerState.settledPage) {
+            return@LaunchedEffect
+        }
+        programmaticPage = targetPage
+        if (abs(targetPage - pagerState.currentPage) <= 1) {
+            pagerState.animateScrollToPage(targetPage)
+        } else {
+            pagerState.scrollToPage(targetPage)
+        }
+    }
+
+    // A drag follows the finger through HorizontalPager. Commit business state only once
+    // the page has settled; user-driven snaps get one restrained tactile tick.
+    LaunchedEffect(pagerState, state.visibleMonth) {
+        var previousSettledPage = pagerState.settledPage
+        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+            if (settledPage == previousSettledPage) return@collect
+
+            val userDriven = programmaticPage != settledPage
+            if (userDriven) {
+                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            } else {
+                programmaticPage = null
+            }
+
+            val settledMonth = monthForPage(settledPage)
+            if (settledMonth != state.visibleMonth) {
+                onSelectMonth(settledMonth)
+            }
+            previousSettledPage = settledPage
         }
     }
 
@@ -210,11 +261,23 @@ fun CalendarScreen(
                 .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            val displayedMonth = monthForPage(pagerState.currentPage)
             CalendarHeader(
-                state = state,
+                visibleMonth = displayedMonth,
+                isReady = state.isReady,
                 locale = locale,
-                onPreviousMonth = { closeSummaryBehind(onPreviousMonth) },
-                onNextMonth = { closeSummaryBehind(onNextMonth) },
+                onPreviousMonth = {
+                    closeSummaryBehind {
+                        val target = pagerState.settledPage - 1
+                        if (target >= 0) animateToPage(target) else onPreviousMonth()
+                    }
+                },
+                onNextMonth = {
+                    closeSummaryBehind {
+                        val target = pagerState.settledPage + 1
+                        if (target < PagerPageCount) animateToPage(target) else onNextMonth()
+                    }
+                },
                 onSelectMonth = { monthPickerOpen = true },
                 onSettingsClick = { closeSummaryBehind(onSettingsClick) },
             )
@@ -229,34 +292,26 @@ fun CalendarScreen(
                 }
             } else {
                 val today = LocalDate.now()
-                AnimatedContent(
-                    targetState = state.visibleMonth,
-                    modifier = Modifier.fillMaxWidth(),
-                    transitionSpec = {
-                        val goingForward = targetState > initialState
-                        val enterOffset: (Int) -> Int = { width -> if (goingForward) width / 3 else -width / 3 }
-                        val exitOffset: (Int) -> Int = { width -> if (goingForward) -width / 3 else width / 3 }
-                        (slideInHorizontally(
-                            animationSpec = tween(CalendarMotionMillis),
-                            initialOffsetX = enterOffset,
-                        ) + fadeIn(animationSpec = tween(CalendarFadeMillis))) togetherWith
-                            (slideOutHorizontally(
-                                animationSpec = tween(CalendarMotionMillis),
-                                targetOffsetX = exitOffset,
-                            ) + fadeOut(animationSpec = tween(CalendarFadeMillis)))
-                    },
-                    label = "month transition",
-                ) { month ->
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(calendarGridHeight())
+                        .testTag("calendar-pager"),
+                    beyondViewportPageCount = 1,
+                    key = { page -> monthForPage(page).toString() },
+                ) { page ->
+                    val month = monthForPage(page)
+                    val entries = state.monthEntries[month]
+                        ?: if (month == state.visibleMonth) state.entries else emptyMap()
                     CalendarGrid(
                         state = state.copy(
                             visibleMonth = month,
-                            entries = monthEntryCache[month].orEmpty(),
+                            entries = entries,
                         ),
                         onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
-                        onSwipeToPrevious = { closeSummaryBehind(onPreviousMonth) },
-                        onSwipeToNext = { closeSummaryBehind(onNextMonth) },
                         locale = locale,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
                 AnimatedVisibility(
@@ -278,6 +333,7 @@ fun CalendarScreen(
                 SummaryStrip(
                     state = state,
                     locale = locale,
+                    expanded = summaryTargetExpanded,
                     onClick = toggleSummary,
                     onSwipeUp = {
                         scope.launch { summarySheetState.expand() }
@@ -341,14 +397,15 @@ private fun TodayEntryPrompt(
 
 @Composable
 private fun CalendarHeader(
-    state: CalendarUiState,
+    visibleMonth: YearMonth,
+    isReady: Boolean,
     locale: Locale,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectMonth: () -> Unit,
     onSettingsClick: () -> Unit,
 ) {
-    val monthTitle = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+    val monthTitle = visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
     val largeFont = LocalDensity.current.fontScale >= 1.5f
     val titleFontSize = if (largeFont) 18.sp else 22.sp
     Row(
@@ -400,7 +457,7 @@ private fun CalendarHeader(
             modifier = Modifier.weight(1f),
             contentAlignment = Alignment.CenterEnd,
         ) {
-            IconButton(onClick = onSettingsClick, enabled = state.isReady) {
+            IconButton(onClick = onSettingsClick, enabled = isReady) {
                 Icon(
                     Icons.Filled.Settings,
                     modifier = Modifier.size(22.dp),
@@ -415,6 +472,7 @@ private fun CalendarHeader(
 private fun SummaryStrip(
     state: CalendarUiState,
     locale: Locale,
+    expanded: Boolean,
     onClick: () -> Unit,
     onSwipeUp: () -> Unit,
     modifier: Modifier = Modifier,
@@ -440,6 +498,11 @@ private fun SummaryStrip(
         ),
         animationSpec = tween(PressFeedbackMillis),
         label = "summary press color",
+    )
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(CalendarFadeMillis),
+        label = "summary chevron",
     )
     val indication = LocalIndication.current
 
@@ -513,7 +576,8 @@ private fun SummaryStrip(
                 )
             }
             Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                Icons.Filled.KeyboardArrowUp,
+                modifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
@@ -547,6 +611,15 @@ private fun MonthlySummaryPanel(
     modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
+    val totalText = stringResource(
+        R.string.amount_with_currency,
+        formatWholeAmountMicros(summary.totalPayMicros, locale),
+    )
+    val detailText = summaryLine(
+        shiftCount = summary.shiftCount,
+        workedMinutes = summary.workedMinutes,
+        locale = locale,
+    )
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -565,33 +638,44 @@ private fun MonthlySummaryPanel(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                text = stringResource(
-                    R.string.amount_with_currency,
-                    formatWholeAmountMicros(summary.totalPayMicros, locale),
-                ),
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 20.sp,
-                    lineHeight = 24.sp,
-                ),
-                fontWeight = FontWeight.SemiBold,
-                color = if (shouldUseErrorColorForTotal(summary.totalPayMicros)) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurface
+            AnimatedContent(
+                targetState = totalText,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
+                        fadeOut(animationSpec = tween(100))
                 },
-                maxLines = 1,
-            )
-            Text(
-                text = summaryLine(
-                    shiftCount = summary.shiftCount,
-                    workedMinutes = summary.workedMinutes,
-                    locale = locale,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
+                label = "monthly total",
+            ) { text ->
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 20.sp,
+                        lineHeight = 24.sp,
+                    ),
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (shouldUseErrorColorForTotal(summary.totalPayMicros)) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    maxLines = 1,
+                )
+            }
+            AnimatedContent(
+                targetState = detailText,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
+                        fadeOut(animationSpec = tween(100))
+                },
+                label = "monthly detail",
+            ) { text ->
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
 
             LabelValueRow(
                 label = stringResource(R.string.calculation_base),
@@ -712,58 +796,20 @@ private fun MonthPickerDialog(
     )
 }
 
-private val MonthSwipeThreshold = 48.dp
-
 @Composable
 private fun CalendarGrid(
     state: CalendarUiState,
     onDayClick: (LocalDate) -> Unit,
-    onSwipeToPrevious: () -> Unit,
-    onSwipeToNext: () -> Unit,
     locale: Locale,
     modifier: Modifier = Modifier,
 ) {
-    val currentOnSwipeToPrevious by rememberUpdatedState(onSwipeToPrevious)
-    val currentOnSwipeToNext by rememberUpdatedState(onSwipeToNext)
-    val haptics = LocalHapticFeedback.current
     val weekRowHeight = WeekRowHeight
     val weekdayRowHeight = 28.dp
     val dateAreaHeight = 28.dp
     Box(
         modifier = modifier
             .height(calendarGridHeight())
-            .testTag("calendar-grid")
-            .pointerInput(haptics) {
-                val swipeThresholdPx = MonthSwipeThreshold.toPx()
-                var totalDrag = Offset.Zero
-                var thresholdActive = false
-                detectDragGestures(
-                    onDragStart = {
-                        totalDrag = Offset.Zero
-                        thresholdActive = false
-                    },
-                    onDrag = { change, dragAmount ->
-                        totalDrag += dragAmount
-                        val resolvedSwipe = resolveMonthSwipe(totalDrag.x, totalDrag.y, swipeThresholdPx)
-                        if (resolvedSwipe != MonthSwipe.NONE && !thresholdActive) {
-                            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                            thresholdActive = true
-                        } else if (resolvedSwipe == MonthSwipe.NONE) {
-                            thresholdActive = false
-                        }
-                        change.consume()
-                    },
-                    onDragEnd = {
-                        when (resolveMonthSwipe(totalDrag.x, totalDrag.y, swipeThresholdPx)) {
-                            MonthSwipe.TO_PREVIOUS -> currentOnSwipeToPrevious()
-                            MonthSwipe.TO_NEXT -> currentOnSwipeToNext()
-                            MonthSwipe.NONE -> Unit
-                        }
-                        totalDrag = Offset.Zero
-                        thresholdActive = false
-                    },
-                )
-            },
+            .testTag("calendar-grid"),
     ) {
         val weekdays = (0 until 7).map { DayOfWeek.MONDAY.plus(it.toLong()) }
         val firstDay = state.visibleMonth.atDay(1)
@@ -1075,6 +1121,13 @@ private fun DayCell(
     }
 }
 
+private fun YearMonth.toMonthIndex(): Int = year * 12 + (monthValue - 1)
+
+private fun yearMonthFromIndex(index: Int): YearMonth = YearMonth.of(
+    Math.floorDiv(index, 12),
+    Math.floorMod(index, 12) + 1,
+)
+
 internal fun shouldShowDayAmount(totalMicros: Long?): Boolean = totalMicros != null && totalMicros != 0L
 
 internal fun shouldUseErrorColorForTotal(totalPayMicros: Long): Boolean = totalPayMicros < 0L
@@ -1085,6 +1138,8 @@ internal fun shouldShowTodayEntryPrompt(
     today: LocalDate,
 ): Boolean = visibleMonth == YearMonth.from(today) && today !in entryDates
 
+// Kept as a pure helper because existing presentation tests cover gesture intent. The
+// production calendar now delegates drag physics to HorizontalPager.
 internal enum class MonthSwipe { NONE, TO_PREVIOUS, TO_NEXT }
 
 internal fun resolveMonthSwipe(deltaX: Float, deltaY: Float, thresholdPx: Float): MonthSwipe = when {
