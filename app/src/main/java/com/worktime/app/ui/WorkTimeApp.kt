@@ -26,7 +26,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,6 +59,7 @@ fun WorkTimeApp(container: AppContainer) {
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val haptics = LocalHapticFeedback.current
 
     val entryDeletedMessage = stringResource(R.string.entry_deleted)
     val rateChangedMessage = stringResource(R.string.rate_changed)
@@ -69,6 +72,7 @@ fun WorkTimeApp(container: AppContainer) {
     // cannot redisplay an already-consumed event.
     LaunchedEffect(
         viewModel,
+        haptics,
         entryDeletedMessage,
         rateChangedMessage,
         undoLabel,
@@ -79,10 +83,16 @@ fun WorkTimeApp(container: AppContainer) {
     ) {
         viewModel.operationEvents.collect { event ->
             when (event) {
-                CalendarOperationEvent.Success.ENTRY_DELETED ->
+                CalendarOperationEvent.Success.ENTRY_SAVED ->
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                CalendarOperationEvent.Success.ENTRY_DELETED -> {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     showUndoSnackbar(snackbarHostState, entryDeletedMessage, undoLabel, viewModel)
-                CalendarOperationEvent.Success.RATE_UPDATED ->
+                }
+                CalendarOperationEvent.Success.RATE_UPDATED -> {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     showUndoSnackbar(snackbarHostState, rateChangedMessage, undoLabel, viewModel)
+                }
                 CalendarOperationEvent.Success.BACKUP_EXPORTED ->
                     snackbarHostState.showSnackbar(backupExportedMessage)
                 CalendarOperationEvent.Success.BACKUP_IMPORTED ->
