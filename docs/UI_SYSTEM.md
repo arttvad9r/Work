@@ -68,11 +68,25 @@ corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
 
 ## Motion
 
-Motion is feedback, not decoration. Shared Material controls keep their normal press
-feedback. Visual state changes may use the shared short
-`AppDimens.feedbackAnimationMillis` (120 ms) transition for color only. Do not animate
-row sizes, spacing, data layout, or add delays before an action. Modal sheets keep the
-platform Material motion they already provide.
+Motion communicates continuity and feedback; it is never decorative. The interface
+should feel responsive rather than animated for its own sake.
+
+- Micro state/color feedback: roughly 100–160 ms.
+- Local content/position changes: roughly 160–220 ms or a non-bouncy spring.
+- Full-screen hierarchy changes: roughly 220–300 ms with a short directional slide + fade.
+- Calendar month changes use a directional transition matching previous/next navigation.
+- The persistent numeric editor may move between its fixed rows with a non-bouncy spring;
+  it must remain one focusable node so the OEM IME session is preserved.
+- Selected segmented state is one moving pill rather than unrelated hard-swapped fills.
+- Conditional contextual content such as `Fill today` may fade/expand in and collapse out.
+- Calendar state colors (selected/today/populated) should interpolate rather than flash.
+- Modal sheets keep the Material platform motion and drag physics they already provide.
+- App launch uses the Android SplashScreen API and a short exit fade into real content.
+- Never add looping motion, bounce/overshoot for routine controls, artificial action delays,
+  animated data-layout reflow, or motion whose only purpose is decoration.
+
+Press/ripple feedback from Material components remains enabled. Motion must remain
+interruptible where practical and must not change business state timing.
 
 ## Components
 
@@ -91,8 +105,8 @@ platform Material motion they already provide.
   read-only value or the compact bordered editor. Activating editing never swaps the
   row for a full-width form field and never changes the row height.
 - **`AppSegmentedControl(options, selectedIndex)`** — the only segmented presentation
-  for mutually exclusive options (theme mode, rate period). Selected option uses
-  secondaryContainer.
+  for mutually exclusive options (theme mode, rate period). A shared secondaryContainer
+  pill moves between equal-width options.
 - **`AppPrimaryButton`** — full-width ≥52 dp primary action (Save, Change rate).
 - **`AppDestructiveAction`** — full-width error-colored text action (Delete entry).
 - **Contextual quick action** — lightweight `TextButton` with a leading semantic icon,
