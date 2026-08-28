@@ -108,7 +108,9 @@ chooses one of 2–4 mutually exclusive options → `AppSegmentedControl`.
 
 - **Calendar** — data-dense grid with fixed macro geometry (6×7, 64 dp week rows,
   28 dp weekday/date areas, 48 dp header). It keeps its own compact typography and the
-  calendar hierarchy above instead of adopting settings-row styling.
+  calendar hierarchy above instead of adopting settings-row styling. In the current
+  month, a missing entry for today may expose the lightweight “Fill today” contextual
+  action below the grid; it disappears as soon as today's entry exists.
 - **Year summary** — non-scrolling screen showing all twelve months at once. Populated
   years use the available height; an entirely empty year uses compact fixed month rows
   so missing data does not look like stretched content.
