@@ -1,5 +1,8 @@
 package com.worktime.app.ui.dayeditor
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -408,6 +411,20 @@ private fun NumericEditorSection(
     val expandedAdjustments = bonusVisible || penaltyVisible
     val penaltyTop = adjustmentTop + rowHeight
     val sectionHeight = penaltyTop + rowHeight
+    val editorTargetY = when (activeField) {
+        NumericField.Duration -> 0.dp
+        NumericField.Rate -> rateY
+        NumericField.Bonus -> adjustmentTop
+        NumericField.Penalty -> penaltyTop
+    }
+    val editorY by animateDpAsState(
+        targetValue = editorTargetY,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "numeric editor position",
+    )
 
     Box(
         modifier = Modifier
@@ -532,14 +549,7 @@ private fun NumericEditorSection(
             editorFocusRequester = editorFocusRequester,
             onEditorFocusChanged = onEditorFocusChanged,
             modifier = Modifier
-                .offset(
-                    y = when (activeField) {
-                        NumericField.Duration -> 0.dp
-                        NumericField.Rate -> rateY
-                        NumericField.Bonus -> adjustmentTop
-                        NumericField.Penalty -> penaltyTop
-                    },
-                )
+                .offset(y = editorY)
                 .testTag("day-editor-active-field")
                 .fillMaxWidth()
                 .height(rowHeight),
