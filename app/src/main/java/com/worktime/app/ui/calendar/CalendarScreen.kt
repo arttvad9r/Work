@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
@@ -34,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -190,6 +192,7 @@ fun CalendarScreen(
                     CircularProgressIndicator()
                 }
             } else {
+                val today = LocalDate.now()
                 CalendarGrid(
                     state = state,
                     onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
@@ -198,6 +201,17 @@ fun CalendarScreen(
                     locale = locale,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (
+                    shouldShowTodayEntryPrompt(
+                        visibleMonth = state.visibleMonth,
+                        entryDates = state.entries.keys,
+                        today = today,
+                    )
+                ) {
+                    TodayEntryPrompt(
+                        onClick = { closeSummaryBehind { onDayClick(today) } },
+                    )
+                }
                 Spacer(modifier = Modifier.weight(1f))
                 SummaryStrip(
                     state = state,
@@ -228,6 +242,38 @@ fun CalendarScreen(
             },
             onDismiss = { monthPickerOpen = false },
         )
+    }
+}
+
+@Composable
+private fun TodayEntryPrompt(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(AppDimens.rowMinHeight),
+        contentAlignment = Alignment.Center,
+    ) {
+        TextButton(
+            onClick = onClick,
+            modifier = Modifier
+                .height(AppDimens.rowMinHeight)
+                .testTag("today-entry-prompt"),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = stringResource(R.string.fill_today),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 
@@ -860,6 +906,12 @@ private fun DayCell(
 internal fun shouldShowDayAmount(totalMicros: Long?): Boolean = totalMicros != null && totalMicros != 0L
 
 internal fun shouldUseErrorColorForTotal(totalPayMicros: Long): Boolean = totalPayMicros < 0L
+
+internal fun shouldShowTodayEntryPrompt(
+    visibleMonth: YearMonth,
+    entryDates: Set<LocalDate>,
+    today: LocalDate,
+): Boolean = visibleMonth == YearMonth.from(today) && today !in entryDates
 
 internal enum class MonthSwipe { NONE, TO_PREVIOUS, TO_NEXT }
 
