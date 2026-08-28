@@ -15,6 +15,7 @@
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="hours_short">%1$s h</string>
     <string name="today">Today</string>
+    <string name="fill_today">Fill today</string>
     <string name="day_selected">selected</string>
     <string name="has_bonus">bonus added</string>
     <string name="has_penalty">penalty added</string>
