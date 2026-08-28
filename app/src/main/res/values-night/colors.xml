@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Widget mirrors the in-app summary plaque (primaryContainer palette). -->
-    <color name="widget_surface">#21395F</color>
-    <color name="widget_text">#D7E3FF</color>
-    <color name="widget_text_secondary">#C4C7D0</color>
+    <!-- Compact 4×1 month widget, aligned with the app's dark Material palette. -->
+    <color name="widget_surface">#191C22</color>
+    <color name="widget_text">#F0F1F7</color>
+    <color name="widget_text_secondary">#B8BCC6</color>
+    <color name="widget_accent">#B8CCFF</color>
+    <color name="widget_accent_container">#354054</color>
+    <color name="widget_separator">#5D6C86</color>
 </resources>

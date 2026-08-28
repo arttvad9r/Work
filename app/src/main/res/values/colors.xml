@@ -3,8 +3,11 @@
     <!-- Launcher icon background stays neutral so the blue time/earnings mark reads under any launcher mask. -->
     <color name="ic_launcher_background">#F8FAFC</color>
 
-    <!-- Widget mirrors the in-app summary plaque (primaryContainer palette). -->
-    <color name="widget_surface">#E3EBFA</color>
-    <color name="widget_text">#1A1C20</color>
-    <color name="widget_text_secondary">#44474F</color>
+    <!-- Compact 4×1 month widget, aligned with the app's light Material palette. -->
+    <color name="widget_surface">#FFFFFF</color>
+    <color name="widget_text">#1D1F23</color>
+    <color name="widget_text_secondary">#676C76</color>
+    <color name="widget_accent">#3568B5</color>
+    <color name="widget_accent_container">#E8EFFB</color>
+    <color name="widget_separator">#B9CAE8</color>
 </resources>
