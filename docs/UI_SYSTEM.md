@@ -74,12 +74,19 @@ should feel responsive rather than animated for its own sake.
 - Micro state/color feedback: roughly 100–160 ms.
 - Local content/position changes: roughly 160–220 ms or a non-bouncy spring.
 - Full-screen hierarchy changes: roughly 220–300 ms with a short directional slide + fade.
+- Settings enters from the side; Year summary rises from below because it is launched from
+  the bottom monthly report and returns toward that source when dismissed.
 - Calendar month changes use a directional transition matching previous/next navigation.
 - The persistent numeric editor may move between its fixed rows with a non-bouncy spring;
   it must remain one focusable node so the OEM IME session is preserved.
+- Bonus/Penalty Add/value states use a short fade-through while that persistent editor
+  moves into or out of the fixed adjustment slot; row geometry stays unchanged.
 - Selected segmented state is one moving pill rather than unrelated hard-swapped fills.
 - Conditional contextual content such as `Fill today` may fade/expand in and collapse out.
-- Calendar state colors (selected/today/populated) should interpolate rather than flash.
+- Calendar state colors (selected/today/populated) should interpolate rather than flash;
+  entry content may use a short fade/very small scale-in when saved data appears or changes.
+- The monthly summary strip may slightly compress and strengthen its container tone while
+  pressed, while retaining normal indication/ripple feedback.
 - Modal sheets keep the Material platform motion and drag physics they already provide.
 - App launch uses the Android SplashScreen API and a short exit fade into real content.
 - Never add looping motion, bounce/overshoot for routine controls, artificial action delays,
@@ -87,6 +94,18 @@ should feel responsive rather than animated for its own sake.
 
 Press/ripple feedback from Material components remains enabled. Motion must remain
 interruptible where practical and must not change business state timing.
+
+### Haptics
+
+Haptics are sparse and semantic, not a vibration on every tap. They use Compose/platform
+feedback types so device and system settings remain authoritative.
+
+- `SegmentTick` — when the selected segmented option actually changes.
+- `GestureThresholdActivate` — once when a calendar-month or summary swipe crosses the
+  actionable threshold; moving back below the threshold re-arms it.
+- `Confirm` — only after persistence succeeds for saving/deleting an entry or applying a
+  non-empty rate change.
+- Ordinary navigation taps, arrows, day taps and passive scrolling do not add extra haptics.
 
 ## Components
 
