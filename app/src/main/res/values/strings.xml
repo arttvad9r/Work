@@ -39,7 +39,7 @@
     <string name="delete_entry">Delete entry</string>
 
     <string name="section_calculation">CALCULATION</string>
-    <string name="settings_rate">Rate</string>
+    <string name="settings_rate">Default rate</string>
     <string name="change_rate_for_period">Change rate for period</string>
     <string name="section_appearance">APPEARANCE</string>
     <string name="theme_system">System</string>
@@ -57,8 +57,8 @@
     <string name="end_date">End date</string>
     <string name="ok">OK</string>
     <string name="change_rate">Change rate</string>
-    <string name="change_rate_confirmation_title">Change the rate?</string>
-    <string name="change_rate_confirmation_text">The hourly rate will be updated for every entry in the selected period. The default rate stays unchanged.</string>
+    <string name="change_rate_confirmation_title">Change rate for period?</string>
+    <string name="change_rate_confirmation_text">The rate will be changed for all entries in the selected period. The default rate will stay unchanged.</string>
 
     <string name="year_summary">Year summary</string>
     <string name="year_income">Income for the year</string>
@@ -74,7 +74,7 @@
     <string name="cancel">Cancel</string>
 
     <string name="entry_deleted">Entry deleted</string>
-    <string name="rate_changed">Rate changed</string>
+    <string name="rate_changed">Rate for period changed</string>
     <string name="undo">Undo</string>
 
     <string name="save_entry_failed">Could not save the entry. Your draft is still open.</string>
