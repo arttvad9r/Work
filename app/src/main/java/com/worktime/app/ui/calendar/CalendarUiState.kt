@@ -54,6 +54,7 @@ enum class CalendarOperationError {
 
 sealed interface CalendarOperationEvent {
     enum class Success : CalendarOperationEvent {
+        ENTRY_SAVED,
         ENTRY_DELETED,
         RATE_UPDATED,
         OPERATION_UNDONE,
