@@ -7,7 +7,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -206,13 +208,13 @@ fun WorkTimeApp(container: AppContainer) {
 
             AnimatedVisibility(
                 visible = state.isYearSummaryOpen,
-                enter = slideInHorizontally(
+                enter = slideInVertically(
                     animationSpec = tween(ScreenEnterMillis),
-                    initialOffsetX = { width -> width / 5 },
+                    initialOffsetY = { height -> height / 4 },
                 ) + fadeIn(animationSpec = tween(ScreenFadeMillis)),
-                exit = slideOutHorizontally(
+                exit = slideOutVertically(
                     animationSpec = tween(ScreenExitMillis),
-                    targetOffsetX = { width -> width / 6 },
+                    targetOffsetY = { height -> height / 4 },
                 ) + fadeOut(animationSpec = tween(ScreenFadeMillis)),
             ) {
                 YearSummaryScreen(
