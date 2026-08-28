@@ -230,6 +230,8 @@ class CalendarViewModel(
                 if (error is CancellationException) throw error
                 reportOperationError(CalendarOperationError.DEFAULT_RATE_ADOPTION)
             }
+        }, onSuccess = {
+            _operationEvents.send(CalendarOperationEvent.Success.ENTRY_SAVED)
         })
     }
 
@@ -369,11 +371,11 @@ class CalendarViewModel(
                 try {
                     withContext(NonCancellable) {
                         workEntryRepository.replaceAll(oldEntries)
-                    userPreferencesRepository.update(
-                        defaultHourlyRateMicros = oldPreferences.defaultHourlyRateMicros,
-                        themeMode = oldPreferences.themeMode,
-                        defaultRateInitialized = oldDefaultRateInitialized,
-                    )
+                        userPreferencesRepository.update(
+                            defaultHourlyRateMicros = oldPreferences.defaultHourlyRateMicros,
+                            themeMode = oldPreferences.themeMode,
+                            defaultRateInitialized = oldDefaultRateInitialized,
+                        )
                     }
                 } catch (rollbackError: Throwable) {
                     throw ImportRollbackException(rollbackError)
@@ -472,7 +474,6 @@ private data class YearSummaryUi(
     val isOpen: Boolean,
     val summary: YearSummary?,
 )
-
 
 internal fun buildYearSummary(year: Int, entries: List<WorkEntry>): YearSummary {
     val byMonth = entries.groupBy { YearMonth.from(it.date) }
