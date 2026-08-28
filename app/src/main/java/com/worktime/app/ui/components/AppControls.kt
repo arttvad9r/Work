@@ -29,6 +29,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,6 +47,8 @@ fun AppSegmentedControl(
     modifier: Modifier = Modifier,
 ) {
     if (options.isEmpty()) return
+
+    val haptics = LocalHapticFeedback.current
 
     BoxWithConstraints(
         modifier = modifier
@@ -100,7 +104,12 @@ fun AppSegmentedControl(
                         .selectable(
                             selected = selected,
                             role = Role.RadioButton,
-                            onClick = { onSelect(index) },
+                            onClick = {
+                                if (index != safeIndex) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                    onSelect(index)
+                                }
+                            },
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
