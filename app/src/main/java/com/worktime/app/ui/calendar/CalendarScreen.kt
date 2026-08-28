@@ -1,5 +1,16 @@
 package com.worktime.app.ui.calendar
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,7 +50,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -89,6 +102,10 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
+private const val CalendarMotionMillis = 220
+private const val CalendarFadeMillis = 160
+private const val CellMotionMillis = 150
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
@@ -103,6 +120,16 @@ fun CalendarScreen(
 ) {
     val locale = LocalLocale.current.platformLocale
     var monthPickerOpen by rememberSaveable { mutableStateOf(false) }
+    val monthEntryCache = remember { mutableStateMapOf<YearMonth, Map<LocalDate, WorkEntry>>() }
+    LaunchedEffect(state.visibleMonth, state.entries) {
+        monthEntryCache[state.visibleMonth] = state.entries
+        val keep = setOf(
+            state.visibleMonth.minusMonths(1),
+            state.visibleMonth,
+            state.visibleMonth.plusMonths(1),
+        )
+        monthEntryCache.keys.retainAll(keep)
+    }
     val summarySheetState = rememberStandardBottomSheetState(
         initialValue = SheetValue.Hidden,
         skipHiddenState = false,
@@ -193,20 +220,46 @@ fun CalendarScreen(
                 }
             } else {
                 val today = LocalDate.now()
-                CalendarGrid(
-                    state = state,
-                    onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
-                    onSwipeToPrevious = { closeSummaryBehind(onPreviousMonth) },
-                    onSwipeToNext = { closeSummaryBehind(onNextMonth) },
-                    locale = locale,
+                AnimatedContent(
+                    targetState = state.visibleMonth,
                     modifier = Modifier.fillMaxWidth(),
-                )
-                if (
-                    shouldShowTodayEntryPrompt(
+                    transitionSpec = {
+                        val goingForward = targetState > initialState
+                        val enterOffset: (Int) -> Int = { width -> if (goingForward) width / 3 else -width / 3 }
+                        val exitOffset: (Int) -> Int = { width -> if (goingForward) -width / 3 else width / 3 }
+                        (slideInHorizontally(
+                            animationSpec = tween(CalendarMotionMillis),
+                            initialOffsetX = enterOffset,
+                        ) + fadeIn(animationSpec = tween(CalendarFadeMillis))) togetherWith
+                            (slideOutHorizontally(
+                                animationSpec = tween(CalendarMotionMillis),
+                                targetOffsetX = exitOffset,
+                            ) + fadeOut(animationSpec = tween(CalendarFadeMillis)))
+                    },
+                    label = "month transition",
+                ) { month ->
+                    CalendarGrid(
+                        state = state.copy(
+                            visibleMonth = month,
+                            entries = monthEntryCache[month].orEmpty(),
+                        ),
+                        onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
+                        onSwipeToPrevious = { closeSummaryBehind(onPreviousMonth) },
+                        onSwipeToNext = { closeSummaryBehind(onNextMonth) },
+                        locale = locale,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                AnimatedVisibility(
+                    visible = shouldShowTodayEntryPrompt(
                         visibleMonth = state.visibleMonth,
                         entryDates = state.entries.keys,
                         today = today,
-                    )
+                    ),
+                    enter = fadeIn(animationSpec = tween(CalendarFadeMillis)) +
+                        expandVertically(animationSpec = tween(CalendarMotionMillis), expandFrom = Alignment.Top),
+                    exit = fadeOut(animationSpec = tween(CalendarFadeMillis)) +
+                        shrinkVertically(animationSpec = tween(CalendarMotionMillis), shrinkTowards = Alignment.Top),
                 ) {
                     TodayEntryPrompt(
                         onClick = { closeSummaryBehind { onDayClick(today) } },
@@ -305,18 +358,27 @@ private fun CalendarHeader(
                     contentDescription = stringResource(R.string.previous_month),
                 )
             }
-            Text(
-                text = monthTitle,
-                modifier = Modifier
-                    .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
-                    .padding(horizontal = 4.dp)
-                    .testTag("calendar-month-title")
-                    .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            AnimatedContent(
+                targetState = monthTitle,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
+                        fadeOut(animationSpec = tween(CalendarFadeMillis))
+                },
+                label = "month title",
+            ) { title ->
+                Text(
+                    text = title,
+                    modifier = Modifier
+                        .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
+                        .padding(horizontal = 4.dp)
+                        .testTag("calendar-month-title")
+                        .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             IconButton(onClick = onNextMonth) {
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -349,6 +411,12 @@ private fun SummaryStrip(
     modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
+    val summaryText = summaryLine(
+        shiftCount = summary.shiftCount,
+        workedMinutes = summary.workedMinutes,
+        totalPayMicros = summary.totalPayMicros,
+        locale = locale,
+    )
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -388,20 +456,24 @@ private fun SummaryStrip(
                 .padding(horizontal = AppDimens.screenHorizontalPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = summaryLine(
-                    shiftCount = summary.shiftCount,
-                    workedMinutes = summary.workedMinutes,
-                    totalPayMicros = summary.totalPayMicros,
-                    locale = locale,
-                ),
+            AnimatedContent(
+                targetState = summaryText,
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-            )
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
+                        fadeOut(animationSpec = tween(100))
+                },
+                label = "summary value",
+            ) { text ->
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+            }
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
@@ -759,38 +831,56 @@ private fun DayCell(
             null
         },
     )
-    val dateColor = when {
+    val targetDateColor = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.24f)
         isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
     }
-    val amountColor = if ((totalMicros ?: 0L) < 0L) {
+    val targetAmountColor = if ((totalMicros ?: 0L) < 0L) {
         MaterialTheme.colorScheme.error
     } else {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.90f)
     }
+    val targetBorderColor = if (isToday && isInVisibleMonth) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+    }
+    val targetBackgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        visibleEntry != null -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
+        else -> Color.Transparent
+    }
+    val dateColor by animateColorAsState(
+        targetValue = targetDateColor,
+        animationSpec = tween(CellMotionMillis),
+        label = "day date color",
+    )
+    val amountColor by animateColorAsState(
+        targetValue = targetAmountColor,
+        animationSpec = tween(CellMotionMillis),
+        label = "day amount color",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = targetBorderColor,
+        animationSpec = tween(CellMotionMillis),
+        label = "day border color",
+    )
+    val backgroundColor by animateColorAsState(
+        targetValue = targetBackgroundColor,
+        animationSpec = tween(CellMotionMillis),
+        label = "day background color",
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .border(
                 width = if (isToday && isInVisibleMonth) 1.dp else 0.5.dp,
-                brush = SolidColor(
-                    if (isToday && isInVisibleMonth) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
-                    },
-                ),
+                brush = SolidColor(borderColor),
                 shape = RectangleShape,
             )
-            .background(
-                when {
-                    isSelected -> MaterialTheme.colorScheme.primaryContainer
-                    visibleEntry != null -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
-                    else -> Color.Transparent
-                },
-            )
+            .background(backgroundColor)
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .then(
                 if (isLastGridRow && isInVisibleMonth) Modifier.testTag("calendar-last-row-day")
