@@ -61,16 +61,33 @@ class CalendarViewModel(
     private val _operationEvents = Channel<CalendarOperationEvent>(Channel.BUFFERED)
     val operationEvents: Flow<CalendarOperationEvent> = _operationEvents.receiveAsFlow()
 
-    private val monthSnapshot = visibleMonth.flatMapLatest { month ->
-        workEntryRepository.observeMonth(month).map { entries -> month to entries }
+    /**
+     * Keep the visible month and both neighbours under one Room observation. A horizontal
+     * pager can therefore reveal either adjacent page immediately while the next window
+     * subscription is being established after the page settles.
+     */
+    private val monthWindow = visibleMonth.flatMapLatest { center ->
+        val start = center.minusMonths(1).atDay(1)
+        val end = center.plusMonths(1).atEndOfMonth()
+        workEntryRepository.observeDateRange(start, end).map { rows ->
+            MonthWindow(
+                center = center,
+                entriesByMonth = rows
+                    .groupBy { YearMonth.from(it.date) }
+                    .mapValues { (_, entries) -> entries.associateBy(WorkEntry::date) },
+            )
+        }
     }
 
     private val visibleMonthEntries = combine(
         visibleMonth,
-        monthSnapshot,
-    ) { requestedMonth, monthAndEntries ->
-        val (loadedMonth, loadedEntries) = monthAndEntries
-        requestedMonth to if (loadedMonth == requestedMonth) loadedEntries else emptyList()
+        monthWindow,
+    ) { requestedMonth, window ->
+        MonthUi(
+            requestedMonth = requestedMonth,
+            entries = window.entriesByMonth[requestedMonth].orEmpty(),
+            entriesByMonth = window.entriesByMonth,
+        )
     }
 
     private val baseState = combine(
@@ -79,13 +96,11 @@ class CalendarViewModel(
         selectedDate,
         settingsOpen,
         operationError,
-    ) { monthAndEntries, preferences, selected, isSettingsOpen, error ->
-        val (requestedMonth, entries) = monthAndEntries
+    ) { monthUi, preferences, selected, isSettingsOpen, error ->
         CalendarUiState(
-            // Navigation updates immediately on arrow press. Room can emit the new
-            // month's rows a moment later without holding the title/date grid back.
-            visibleMonth = requestedMonth,
-            entries = entries.associateBy(WorkEntry::date),
+            visibleMonth = monthUi.requestedMonth,
+            entries = monthUi.entries,
+            monthEntries = monthUi.entriesByMonth,
             selectedDate = selected,
             defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
             themeMode = preferences.themeMode,
@@ -456,6 +471,17 @@ class CalendarViewModel(
         cause,
     )
 }
+
+private data class MonthWindow(
+    val center: YearMonth,
+    val entriesByMonth: Map<YearMonth, Map<LocalDate, WorkEntry>>,
+)
+
+private data class MonthUi(
+    val requestedMonth: YearMonth,
+    val entries: Map<LocalDate, WorkEntry>,
+    val entriesByMonth: Map<YearMonth, Map<LocalDate, WorkEntry>>,
+)
 
 private fun InputStream.readBounded(maxBytes: Int): ByteArray {
     val output = java.io.ByteArrayOutputStream(minOf(maxBytes, 16 * 1024))
