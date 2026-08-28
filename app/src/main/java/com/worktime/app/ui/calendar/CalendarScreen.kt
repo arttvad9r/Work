@@ -3,18 +3,23 @@ package com.worktime.app.ui.calendar
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,12 +67,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -105,6 +113,7 @@ import kotlinx.coroutines.launch
 private const val CalendarMotionMillis = 220
 private const val CalendarFadeMillis = 160
 private const val CellMotionMillis = 150
+private const val PressFeedbackMillis = 90
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -417,6 +426,23 @@ private fun SummaryStrip(
         totalPayMicros = summary.totalPayMicros,
         locale = locale,
     )
+    val haptics = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.988f else 1f,
+        animationSpec = tween(PressFeedbackMillis),
+        label = "summary press scale",
+    )
+    val containerColor by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.secondaryContainer.copy(
+            alpha = if (pressed) 0.90f else 0.76f,
+        ),
+        animationSpec = tween(PressFeedbackMillis),
+        label = "summary press color",
+    )
+    val indication = LocalIndication.current
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -425,30 +451,42 @@ private fun SummaryStrip(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
+                .graphicsLayer {
+                    scaleX = pressScale
+                    scaleY = pressScale
+                }
+                .pointerInput(haptics) {
                     val threshold = 40.dp.toPx()
                     var totalDrag = 0f
-                    var triggered = false
+                    var thresholdActive = false
                     detectDragGestures(
                         onDragStart = {
                             totalDrag = 0f
-                            triggered = false
+                            thresholdActive = false
                         },
                         onDrag = { change, dragAmount ->
                             totalDrag += dragAmount.y
+                            val isEligible = totalDrag <= -threshold
+                            if (isEligible && !thresholdActive) {
+                                haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                thresholdActive = true
+                            } else if (!isEligible) {
+                                thresholdActive = false
+                            }
                             change.consume()
                         },
                         onDragEnd = {
-                            if (!triggered && totalDrag <= -threshold) {
-                                triggered = true
-                                onSwipeUp()
-                            }
+                            if (totalDrag <= -threshold) onSwipeUp()
+                            totalDrag = 0f
+                            thresholdActive = false
                         },
                     )
                 }
                 .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.76f))
+                .background(containerColor)
                 .clickable(
+                    interactionSource = interactionSource,
+                    indication = indication,
                     onClickLabel = stringResource(R.string.monthly_summary),
                     onClick = onClick,
                 )
@@ -687,6 +725,7 @@ private fun CalendarGrid(
 ) {
     val currentOnSwipeToPrevious by rememberUpdatedState(onSwipeToPrevious)
     val currentOnSwipeToNext by rememberUpdatedState(onSwipeToNext)
+    val haptics = LocalHapticFeedback.current
     val weekRowHeight = WeekRowHeight
     val weekdayRowHeight = 28.dp
     val dateAreaHeight = 28.dp
@@ -694,13 +733,24 @@ private fun CalendarGrid(
         modifier = modifier
             .height(calendarGridHeight())
             .testTag("calendar-grid")
-            .pointerInput(Unit) {
+            .pointerInput(haptics) {
                 val swipeThresholdPx = MonthSwipeThreshold.toPx()
                 var totalDrag = Offset.Zero
+                var thresholdActive = false
                 detectDragGestures(
-                    onDragStart = { totalDrag = Offset.Zero },
+                    onDragStart = {
+                        totalDrag = Offset.Zero
+                        thresholdActive = false
+                    },
                     onDrag = { change, dragAmount ->
                         totalDrag += dragAmount
+                        val resolvedSwipe = resolveMonthSwipe(totalDrag.x, totalDrag.y, swipeThresholdPx)
+                        if (resolvedSwipe != MonthSwipe.NONE && !thresholdActive) {
+                            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                            thresholdActive = true
+                        } else if (resolvedSwipe == MonthSwipe.NONE) {
+                            thresholdActive = false
+                        }
                         change.consume()
                     },
                     onDragEnd = {
@@ -710,6 +760,7 @@ private fun CalendarGrid(
                             MonthSwipe.NONE -> Unit
                         }
                         totalDrag = Offset.Zero
+                        thresholdActive = false
                     },
                 )
             },
@@ -904,90 +955,121 @@ private fun DayCell(
                     maxLines = 1,
                 )
             }
-            if (visibleEntry != null && largeFont) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = dateAreaHeight, start = 2.dp, end = 2.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = if (visibleEntry.workedMinutes > 0) {
-                            formatDurationCompact(visibleEntry.workedMinutes)
-                        } else {
-                            ""
-                        },
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 10.sp,
-                            lineHeight = 11.sp,
-                        ),
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
-                            formatWholeAmountMicros(totalMicros, locale)
-                        } else {
-                            ""
-                        },
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 7.sp,
-                            lineHeight = 8.sp,
-                        ),
-                        fontWeight = FontWeight.Medium,
-                        color = amountColor,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+            AnimatedContent(
+                targetState = visibleEntry,
+                modifier = Modifier.fillMaxSize(),
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(CalendarFadeMillis)) +
+                        scaleIn(
+                            animationSpec = tween(CalendarFadeMillis),
+                            initialScale = 0.97f,
+                        )) togetherWith fadeOut(animationSpec = tween(100))
+                },
+                label = "day entry content",
+            ) { animatedEntry ->
+                if (animatedEntry != null) {
+                    val animatedTotalMicros = runCatching {
+                        SalaryCalculator.entryPay(animatedEntry).totalPayMicros
+                    }.getOrNull()
+                    val animatedAmountColor = if ((animatedTotalMicros ?: 0L) < 0L) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.90f)
+                    }
+                    if (largeFont) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(top = dateAreaHeight, start = 2.dp, end = 2.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = if (animatedEntry.workedMinutes > 0) {
+                                    formatDurationCompact(animatedEntry.workedMinutes)
+                                } else {
+                                    ""
+                                },
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = 10.sp,
+                                    lineHeight = 11.sp,
+                                ),
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = if (
+                                    animatedTotalMicros != null &&
+                                    shouldShowDayAmount(animatedTotalMicros)
+                                ) {
+                                    formatWholeAmountMicros(animatedTotalMicros, locale)
+                                } else {
+                                    ""
+                                },
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 7.sp,
+                                    lineHeight = 8.sp,
+                                ),
+                                fontWeight = FontWeight.Medium,
+                                color = animatedAmountColor,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            Text(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 2.dp),
+                                text = if (animatedEntry.workedMinutes > 0) {
+                                    formatDurationCompact(animatedEntry.workedMinutes)
+                                } else {
+                                    ""
+                                },
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = 15.sp,
+                                    lineHeight = 18.sp,
+                                ),
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .padding(bottom = 3.dp)
+                                    .padding(horizontal = 2.dp),
+                                text = if (
+                                    animatedTotalMicros != null &&
+                                    shouldShowDayAmount(animatedTotalMicros)
+                                ) {
+                                    formatWholeAmountMicros(animatedTotalMicros, locale)
+                                } else {
+                                    ""
+                                },
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    lineHeight = 13.sp,
+                                ),
+                                fontWeight = FontWeight.Medium,
+                                color = animatedAmountColor,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
-            } else if (visibleEntry != null) {
-                Text(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 2.dp),
-                    text = if (visibleEntry.workedMinutes > 0) {
-                        formatDurationCompact(visibleEntry.workedMinutes)
-                    } else {
-                        ""
-                    },
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 15.sp,
-                        lineHeight = 18.sp,
-                    ),
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(bottom = 3.dp)
-                        .padding(horizontal = 2.dp),
-                    text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
-                        formatWholeAmountMicros(totalMicros, locale)
-                    } else {
-                        ""
-                    },
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        lineHeight = 13.sp,
-                    ),
-                    fontWeight = FontWeight.Medium,
-                    color = amountColor,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
         }
     }
