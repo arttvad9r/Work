@@ -145,12 +145,12 @@ fun ChangeRateSheet(
                     ) {
                         AppNavigationRow(
                             label = stringResource(R.string.start_date),
-                            value = customStart?.format(dateFormatter) ?: "—",
+                            value = customStart?.format(dateFormatter) ?: "",
                             onClick = { pickingDate = DateField.Start },
                         )
                         AppNavigationRow(
                             label = stringResource(R.string.end_date),
-                            value = customEnd?.format(dateFormatter) ?: "—",
+                            value = customEnd?.format(dateFormatter) ?: "",
                             onClick = { pickingDate = DateField.End },
                         )
                     }
