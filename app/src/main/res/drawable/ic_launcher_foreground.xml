@@ -5,93 +5,101 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- subtle depth shadow behind the clock -->
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M67,28 A31,31 0,1 0,76 76"
-        android:strokeColor="#0B4DB8"
-        android:strokeWidth="9"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M83,43 A31,31 0,0 1,82 61"
-        android:strokeColor="#0B4DB8"
-        android:strokeWidth="9"
-        android:strokeLineCap="round" />
+    <!-- Adaptive-icon artwork must stay inside the centered safe zone. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.68"
+        android:scaleY="0.68">
 
-    <!-- main clock ring -->
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M67,26 A31,31 0,1 0,76 74"
-        android:strokeColor="#2F80ED"
-        android:strokeWidth="8"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M83,41 A31,31 0,0 1,82 59"
-        android:strokeColor="#2F80ED"
-        android:strokeWidth="8"
-        android:strokeLineCap="round" />
+        <!-- subtle depth shadow behind the clock -->
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M67,28 A31,31 0,1 0,76 76"
+            android:strokeColor="#0B4DB8"
+            android:strokeWidth="9"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M83,43 A31,31 0,0 1,82 61"
+            android:strokeColor="#0B4DB8"
+            android:strokeWidth="9"
+            android:strokeLineCap="round" />
 
-    <!-- clock ticks -->
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M69,24 L70,20"
-        android:strokeColor="#C8C4C2"
-        android:strokeWidth="3.2"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M76,28 L79,24"
-        android:strokeColor="#C8C4C2"
-        android:strokeWidth="3.2"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M81,34 L85,31"
-        android:strokeColor="#C8C4C2"
-        android:strokeWidth="3.2"
-        android:strokeLineCap="round" />
+        <!-- main clock ring -->
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M67,26 A31,31 0,1 0,76 74"
+            android:strokeColor="#2F80ED"
+            android:strokeWidth="8"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M83,41 A31,31 0,0 1,82 59"
+            android:strokeColor="#2F80ED"
+            android:strokeWidth="8"
+            android:strokeLineCap="round" />
 
-    <!-- clock hands shadow -->
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M52,52 L52,38 M52,52 L65,60"
-        android:strokeColor="#0B4DB8"
-        android:strokeWidth="6"
-        android:strokeLineCap="round" />
-    <!-- clock hands -->
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M52,50 L52,36 M52,50 L65,58"
-        android:strokeColor="#2F80ED"
-        android:strokeWidth="5.5"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="#2F80ED"
-        android:pathData="M52,45 A5,5 0,1 0,52 55 A5,5 0,1 0,52 45" />
+        <!-- clock ticks -->
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M69,24 L70,20"
+            android:strokeColor="#C8C4C2"
+            android:strokeWidth="3.2"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M76,28 L79,24"
+            android:strokeColor="#C8C4C2"
+            android:strokeWidth="3.2"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M81,34 L85,31"
+            android:strokeColor="#C8C4C2"
+            android:strokeWidth="3.2"
+            android:strokeLineCap="round" />
 
-    <!-- earnings badge -->
-    <path
-        android:fillColor="#F7F9FC"
-        android:pathData="M75,59 A15,15 0,1 0,75 89 A15,15 0,1 0,75 59" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M75,59 A15,15 0,1 0,75 89 A15,15 0,1 0,75 59"
-        android:strokeColor="#DDD8D5"
-        android:strokeWidth="1.6" />
+        <!-- clock hands shadow -->
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M52,52 L52,38 M52,52 L65,60"
+            android:strokeColor="#0B4DB8"
+            android:strokeWidth="6"
+            android:strokeLineCap="round" />
+        <!-- clock hands -->
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M52,50 L52,36 M52,50 L65,58"
+            android:strokeColor="#2F80ED"
+            android:strokeWidth="5.5"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="#2F80ED"
+            android:pathData="M52,45 A5,5 0,1 0,52 55 A5,5 0,1 0,52 45" />
 
-    <!-- compact dollar mark -->
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M80,67 C78,65 73,65 71,68 C69,71 72,73 76,74 C80,75 82,77 80,80 C78,83 73,83 70,81"
-        android:strokeColor="#1764D8"
-        android:strokeWidth="3.4"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M75,64 L75,84"
-        android:strokeColor="#1764D8"
-        android:strokeWidth="2.6"
-        android:strokeLineCap="round" />
+        <!-- earnings badge -->
+        <path
+            android:fillColor="#F7F9FC"
+            android:pathData="M75,59 A15,15 0,1 0,75 89 A15,15 0,1 0,75 59" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M75,59 A15,15 0,1 0,75 89 A15,15 0,1 0,75 59"
+            android:strokeColor="#DDD8D5"
+            android:strokeWidth="1.6" />
+
+        <!-- compact dollar mark -->
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M80,67 C78,65 73,65 71,68 C69,71 72,73 76,74 C80,75 82,77 80,80 C78,83 73,83 70,81"
+            android:strokeColor="#1764D8"
+            android:strokeWidth="3.4"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M75,64 L75,84"
+            android:strokeColor="#1764D8"
+            android:strokeWidth="2.6"
+            android:strokeLineCap="round" />
+    </group>
 </vector>
