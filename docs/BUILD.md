@@ -9,15 +9,17 @@
 - compile/target SDK 37
 - Compose BOM 2026.08.00
 
-Compose libraries, including Material 3, are resolved from the stable BOM. Do not add a Material 3 alpha override solely to work around editor IME behavior; the attempted `1.5.0-alpha26` override did not eliminate keyboard rebuilding on the tested physical device and has been removed.
+Compose libraries, including Material 3, are resolved from the stable BOM. Do not add a Material 3 alpha override solely to work around editor IME behavior; the attempted alpha override did not eliminate keyboard rebuilding on the tested physical device and has been removed.
 
 ## Local verification
+
+Use a compatible Android SDK/JDK installation and the checked-in wrapper:
 
 ```bash
 ./scripts/verify.sh
 ```
 
-The script uses the checked-in Gradle Wrapper. Equivalent tasks:
+Equivalent tasks:
 
 ```bash
 python3 scripts/static_audit.py
@@ -33,20 +35,31 @@ Debug APK output:
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Do not substitute an arbitrary system Gradle installation for the project wrapper when recording verification evidence.
+Do not substitute an arbitrary system Gradle version when recording verification evidence; the wrapper defines the project Gradle version.
+
+## Host environment
+
+The project does not require NixOS or Nix to build. A normal Linux/macOS/Windows Android development environment is valid as long as Java/Android SDK requirements are met.
+
+The repository keeps an optional Nix/FHS environment for reproducibility and for hosts where Android SDK binaries need compatibility wrapping. See `NIX.md` when using that path. Avoid mixing incompatible `adb` installations during physical-device testing.
 
 ## CI
 
-`.github/workflows/android.yml` checks out source, installs Java, configures Gradle caching, then executes the same checked-in wrapper for static audit, JVM tests, lint and APK builds.
+`.github/workflows/android.yml` checks out source, installs Java, configures Gradle caching and executes the same checked-in wrapper for static audit, JVM tests, lint and APK builds.
 
-GitHub Actions runners may currently fail to start because the account's Actions usage limit is exhausted. A run that contains no executed workflow steps is an infrastructure/account limitation; it is neither a successful build nor evidence of a compiler/test failure.
+GitHub Actions runs may fail before job steps begin because of account/runner availability. A run with no executed verification steps is an infrastructure result: it is neither successful Gradle verification nor evidence of a compiler/test defect.
 
-When runner capacity becomes available, rerun the workflow from the current branch head and retain the resulting APK/test/lint artifacts. Until then, local wrapper output and documented physical-device QA are the relevant verification evidence.
+When runner capacity is available, rerun CI on the current `main` candidate and retain APK/test/lint artifacts.
 
 ## Device verification
 
-The `main` baseline has been exercised on physical hardware by the project owner. Interaction changes that affect IME focus, bottom-sheet drag/tap behavior or insets still require a focused device rerun before merge. Record exact device model, Android version and commit in the release PR description.
+Automated verification does not replace physical-device QA for the interaction paths that previously depended on OEM behavior. Recheck at minimum:
 
-## NixOS note
+- persistent numeric-editor/IME transitions;
+- modal-sheet tap/drag/insets;
+- calendar gestures and contextual `Fill today`;
+- system document picker import/export;
+- home-screen widget refresh/tap-through;
+- launcher icon presentation after install/update.
 
-Generic Android SDK binaries may require an FHS-compatible runner. Use the repository's documented Nix/FHS setup or compatible host tooling; do not mix incompatible `adb` binaries during device testing.
+Record exact device model, Android version and tested commit for a release candidate.
