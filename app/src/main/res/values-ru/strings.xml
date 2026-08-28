@@ -39,7 +39,7 @@
     <string name="delete_entry">Удалить запись</string>
 
     <string name="section_calculation">РАСЧЁТ</string>
-    <string name="settings_rate">Ставка</string>
+    <string name="settings_rate">Ставка по умолчанию</string>
     <string name="change_rate_for_period">Изменить ставку за период</string>
     <string name="section_appearance">ВНЕШНИЙ ВИД</string>
     <string name="theme_system">Системная</string>
@@ -57,8 +57,8 @@
     <string name="end_date">Дата окончания</string>
     <string name="ok">ОК</string>
     <string name="change_rate">Изменить ставку</string>
-    <string name="change_rate_confirmation_title">Изменить ставку?</string>
-    <string name="change_rate_confirmation_text">Ставка за час будет обновлена для всех записей выбранного периода. Ставка по умолчанию не изменится.</string>
+    <string name="change_rate_confirmation_title">Изменить ставку за период?</string>
+    <string name="change_rate_confirmation_text">Ставка изменится для всех записей выбранного периода. Ставка по умолчанию останется прежней.</string>
 
     <string name="year_summary">Итоги за год</string>
     <string name="year_income">Доход за год</string>
@@ -74,7 +74,7 @@
     <string name="cancel">Отмена</string>
 
     <string name="entry_deleted">Запись удалена</string>
-    <string name="rate_changed">Ставка изменена</string>
+    <string name="rate_changed">Ставка за период изменена</string>
     <string name="undo">Отменить</string>
 
     <string name="save_entry_failed">Не удалось сохранить запись. Введённые данные остались открыты.</string>
