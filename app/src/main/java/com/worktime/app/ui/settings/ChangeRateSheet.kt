@@ -5,15 +5,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -121,32 +124,42 @@ fun ChangeRateSheet(
                 )
 
                 if (period == RatePeriod.CURRENT_MONTH) {
-                    // The month itself is the period; no empty date rows to edit.
-                    Text(
-                        text = visibleMonth.format(
-                            DateTimeFormatter.ofPattern("LLLL yyyy", LocalLocale.current.platformLocale),
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = AppDimens.rowMinHeight),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = visibleMonth.format(
+                                DateTimeFormatter.ofPattern("LLLL yyyy", LocalLocale.current.platformLocale),
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 } else {
-                    AppNavigationRow(
-                        label = stringResource(R.string.start_date),
-                        value = customStart?.format(dateFormatter) ?: "—",
-                        onClick = { pickingDate = DateField.Start },
-                    )
-                    AppNavigationRow(
-                        label = stringResource(R.string.end_date),
-                        value = customEnd?.format(dateFormatter) ?: "—",
-                        onClick = { pickingDate = DateField.End },
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        AppNavigationRow(
+                            label = stringResource(R.string.start_date),
+                            value = customStart?.format(dateFormatter) ?: "",
+                            onClick = { pickingDate = DateField.Start },
+                        )
+                        AppNavigationRow(
+                            label = stringResource(R.string.end_date),
+                            value = customEnd?.format(dateFormatter) ?: "",
+                            onClick = { pickingDate = DateField.End },
+                        )
+                    }
                 }
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = AppDimens.rowGap),
+                        .heightIn(min = AppDimens.rowMinHeight),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -184,15 +197,23 @@ fun ChangeRateSheet(
     when (val target = pickingDate) {
         DateField.Start -> DatePickerSheetDialog(
             initialDate = customStart ?: visibleMonth.atDay(1),
-            onSelect = {
-                customStart = it
+            onSelect = { selectedStart ->
+                customStart = selectedStart
+                customEnd?.let { selectedEnd ->
+                    if (selectedEnd < selectedStart) {
+                        customEnd = null
+                    }
+                }
                 pickingDate = null
             },
             onDismiss = { pickingDate = null },
         )
 
         DateField.End -> DatePickerSheetDialog(
-            initialDate = customEnd ?: visibleMonth.atEndOfMonth(),
+            initialDate = customEnd?.takeIf { selectedEnd ->
+                customStart == null || selectedEnd >= customStart
+            } ?: customStart ?: visibleMonth.atEndOfMonth(),
+            minimumDate = customStart,
             onSelect = {
                 customEnd = it
                 pickingDate = null
@@ -234,11 +255,33 @@ fun ChangeRateSheet(
 @Composable
 private fun DatePickerSheetDialog(
     initialDate: LocalDate,
+    minimumDate: LocalDate? = null,
     onSelect: (LocalDate) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val selectableDates = remember(minimumDate) {
+        object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                minimumDate == null || utcTimeMillis.toLocalDate() >= minimumDate
+
+            override fun isSelectableYear(year: Int): Boolean =
+                minimumDate == null || year >= minimumDate.year
+        }
+    }
     val pickerState = rememberDatePickerState(
         initialSelectedDateMillis = initialDate.toUtcMillis(),
+        selectableDates = selectableDates,
+    )
+    val pickerColors = DatePickerDefaults.colors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        navigationContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        dayContentColor = MaterialTheme.colorScheme.onSurface,
+        selectedDayContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        selectedDayContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        todayContentColor = MaterialTheme.colorScheme.primary,
+        todayDateBorderColor = MaterialTheme.colorScheme.primary,
+        dividerColor = MaterialTheme.colorScheme.outlineVariant,
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -253,8 +296,17 @@ private fun DatePickerSheetDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
+        shape = MaterialTheme.shapes.extraLarge,
+        tonalElevation = 0.dp,
+        colors = pickerColors,
     ) {
-        DatePicker(state = pickerState)
+        DatePicker(
+            state = pickerState,
+            title = null,
+            headline = null,
+            showModeToggle = false,
+            colors = pickerColors,
+        )
     }
 }
 

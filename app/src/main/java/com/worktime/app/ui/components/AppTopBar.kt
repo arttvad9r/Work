@@ -7,12 +7,14 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import com.worktime.app.R
 
 /** Centered-title top bar with a back arrow, shared by all full-screen pages. */
@@ -24,7 +26,14 @@ fun AppTopBar(
     modifier: Modifier = Modifier,
 ) {
     CenterAlignedTopAppBar(
-        title = { Text(title, maxLines = 1) },
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+            )
+        },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
@@ -33,7 +42,6 @@ fun AppTopBar(
                 )
             }
         },
-        // Parent screens own the status-bar padding.
         windowInsets = WindowInsets(0),
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         modifier = modifier,

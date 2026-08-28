@@ -4,150 +4,129 @@
 
 ```text
 Calendar
-|- tap day -> Day editor sheet
+|- tap day / Fill today -> Day editor sheet
 |- tap settings -> full-screen SettingsScreen
-|  |- year summary -> full-screen YearSummaryScreen
-|  `- change rate for period -> ChangeRateSheet
-`- drag/tap summary area -> monthly report inside BottomSheetScaffold
+|  |- change rate for period -> ChangeRateSheet
+|  |- export data -> ExportFormatSheet -> system document picker
+|  `- import data -> system document picker -> confirmation
+`- tap/drag monthly summary -> Monthly report sheet
+   `- Year summary -> full-screen YearSummaryScreen
 ```
 
-The day editor and change-rate flow are modal sheets. Settings and year summary are full-screen surfaces. The monthly report belongs to the calendar scaffold and does not replace the fixed summary card. The application is portrait-only by product decision.
+The application is portrait-only. Day editing, rate changing and export-format selection use modal sheets. Settings and year summary are full-screen surfaces.
 
-## Calendar screen
+## Calendar
 
-- Header: previous month, localized month/year, next month, settings.
-- The calendar uses a fixed compact height above the fixed summary and report handle; no additional bottom padding may compete with the scaffold peek area.
-- The calendar card keeps only a 1 dp horizontal safety margin. Top-bar controls keep 2 dp and the fixed summary keeps 4 dp. Individual day cells use a 0.25 dp inset on each side, yielding an approximately 0.5 dp visual gap between neighbors.
-- It never scrolls vertically and its position does not depend on entries or report content.
-- The grid always has six rows; adjacent-month dates are faint and inactive.
-- Current-month cells remain large enough for date, duration and amount.
-- Day numbers use bold weight consistently, regardless of whether the day has an entry.
-- Day-cell geometry follows the compact reference layout: date is anchored near the top-right corner with a small right inset, daily income near the bottom-left corner with a matching left inset, and worked duration is centered geometrically with a larger `titleMedium` treatment.
-- Bonus/penalty markers stay in the free top-left corner so they never overlap the date.
-- Daily amounts inside calendar cells are rounded to a whole number with no fractional digits or grouping separators; full calculation precision is retained internally and richer amount displays elsewhere may show fractions.
-- Previous/next month navigation updates the requested month title and date grid immediately. The calendar does not crossfade the old and new month and does not animate day-cell colors across month boundaries.
-- Tapping the month/year title opens a month picker dialog: a year row with previous/next arrows and a 3x4 grid of localized short month names. Selecting a month jumps straight to it and collapses the report behind the grid, like the arrows do.
-- Worked days fill with `primaryContainer` and render all their content in `onPrimaryContainer`; free days stay on the white surface so a fully booked month keeps a clear figure-ground split. The selected day steps up to the full `primary` surface with `onPrimary` content, which stays distinct from the worked-day fill.
-- If Room has not emitted the requested month's rows yet, rows from the previous month must never be displayed under the new title/grid.
-- Dragging horizontally on the calendar card switches months once the horizontal drag passes a 48 dp threshold; vertical-dominant drags are ignored and never trigger a month switch.
-- Days with an entry show a small circular check glyph in the bottom-right corner of the cell, opposite the bonus/penalty markers in the top-left.
+- Fixed Monday-first 6 × 7 grid; no vertical scrolling and no geometry changes based on entries.
+- Header contains previous month, tappable localized month/year, next month and Settings.
+- Tapping month/year opens the month picker. Horizontal swipe switches months; vertical-dominant drags do not.
+- Adjacent-month dates stay visible but muted and inactive.
+- Populated cells use a neutral `surfaceContainerHigh`-style treatment. Date is secondary, duration is primary content and amount is a restrained `primary` accent; negative amount uses `error`.
+- Selected day uses `primaryContainer`; today uses its own primary outline/date treatment. Selection, today and data emphasis must remain distinguishable.
+- Grid/divider lines are deliberately quiet so data reads before table chrome.
+- In the current month only, when today has no entry, a lightweight `Fill today` TextButton appears below the calendar. It disappears after today's entry is saved and never appears for other months.
 
-## Fixed monthly summary
+## Monthly summary and report
 
-- Constant height and bottom-anchored position immediately above the report handle.
-- Three equal label-value rows: shifts, worked time, monthly income.
-- The card must not compete visually with the calendar.
-- A single compact handle is located below this card as the raised peek of the report sheet and remains above system navigation.
+The fixed footer is one compact summary strip containing shifts, worked hours and monthly income. It acts as the entry point to the detailed month report and must remain visually subordinate to the calendar.
 
-## Monthly report sheet
+The detailed report sheet contains:
 
-- In the collapsed state only the handle is visible; the report surface, text and shadow remain hidden.
-- The complete report remains composed/measured in both states so the sheet height and swipe anchors do not change during a gesture.
-- Opens by tapping the handle or dragging upward.
-- Collapses by downward drag or a second handle tap. When month navigation, day editing or settings is opened, the destination appears immediately while the report collapses behind it without delaying the next surface.
-- The visual handle is rendered inside sheet content rather than through Material 3's `sheetDragHandle` slot because that slot adds a long-press tooltip. Holding the handle must never show `Drag handle` / `Маркер перемещения`.
-- Handle tap feedback is intentionally invisible; no full-width flash or tooltip is shown.
-- Contains one heading with a trailing colon, work days, hours worked, optional bonus, optional penalty, divider and total.
-- The total value is bold; error color is applied to it only when the total is negative and never otherwise.
-- Does not duplicate the heading as a second total and does not contain report/export buttons.
+- month label;
+- primary monthly income;
+- shift count and hours;
+- pay by hourly rate;
+- bonus and penalty when non-zero;
+- average shift duration;
+- average income per shift;
+- a normal navigation row to `Year summary`.
+
+The report is view-only. The handle remains tooltip-free and tap/drag behavior must keep stable anchors.
 
 ## Day editor
 
-Normal closed-keyboard state should fit as one compact sheet.
+The editor uses one compact modal sheet:
 
-1. Localized sentence-case date as the sheet title.
-2. Flat `Duration` row, followed by a flat `At rate` row (numeric value in the shared right-aligned slot).
-3. Bonus/penalty rows: inactive ones are plain navigation rows with a chevron;
-   activated ones become the same row with a compact inline field in the trailing slot.
-4. Flat calculation block (no card).
-5. Save as the shared primary button.
-6. Delete for an existing entry as the shared destructive action.
+1. localized date title;
+2. Duration row;
+3. Hourly rate row;
+4. optional Bonus row;
+5. optional Penalty row;
+6. calculation block;
+7. primary Save action;
+8. destructive Delete action for existing entries.
 
-The duration editor shows a faint `00:00` format hint while empty. A new day starts with an empty duration field rather than a literal `0`, so typing `12` yields `12` immediately. Duration sanitization also removes accidental leading zeroes defensively, so input such as `012` cannot become `01:2`. Sequential input preserves valid two-digit hours: `1` -> `12` -> `12:0` -> `12:00`. Compact input remains supported: `530` resolves to `5:30`, and `1530` resolves to `15:30`.
+### Numeric editing
 
-Zero-valued numeric editor fields are represented as empty editor text and parsed as zero. Focus changes must not clear or rewrite field text. Clearing an expanded bonus/penalty field collapses it back into its inactive navigation-row look when focus leaves. Numeric validation is intentionally minimal: invalid values tint the affected row's value/editor outline red only. Validation helper text is not shown and must not change sheet height.
+All logical numeric fields share one persistent state-based editable node/input session. The editor is repositioned between fixed trailing slots instead of creating a new TextField for each logical value. This is intentional: physical-device testing showed that normal focus handoff between separate fields could rebuild the OEM numeric IME.
 
-All four logical numeric fields — duration, rate, bonus, penalty — share one persistent state-based editable node, one `TextFieldState` and one platform text-input session. The same editable node is repositioned between fixed 48 dp semantic row slots and renders there as the shared compact inline editor (`CompactInputChrome`, 120×40 dp) inside its row. This architecture is required because physical-device ADB traces showed that a normal focus handoff between separate editable TextFields caused client-side IME hide, a temporary empty `EditorInfo`, `restartInput`, and a visible Gboard hide/show cycle.
+- compact editable slot: shared 120 × 44 dp contract;
+- active text uses the same `bodyLarge`/Medium hierarchy as other compact fields;
+- new duration starts empty with `00:00` hint;
+- focus changes do not rewrite logical values;
+- invalid values use error outline only;
+- modal content remains scrollable above the IME when required.
 
-Only the active logical slot renders the persistent editable node. Every other visible numeric slot renders a flat read-only value row (label left, value in the same trailing slot, optional chevron) with invisible click indication, so there is no duplicate label/value and no gray rectangular ripple, and activating a field never changes any row's height or position. If the persistent editor is not currently focused, the first tap on any passive slot both activates that logical field and focuses/shows the numeric keyboard. If it is already focused, switching logical fields does not issue another focus request and does not replace the input session.
+### Bonus and penalty semantics
 
-Input sanitization remains synchronous through `InputTransformation`. Logical duration/rate/bonus/penalty values are copied to and from the persistent editor without replacing its focus node. All logical fields use the same decimal `KeyboardOptions` and `ImeAction.Next`; IME Next advances among visible logical fields without an editable-field focus handoff.
-
-Bonus is always the first adjustment slot and penalty the second. With neither visible, both render as navigation rows. Once either adjustment is revealed, bonus occupies the first full-width slot and penalty the second. Revealing bonus or penalty activates the same persistent editor instead of creating/focusing another TextField; clearing the value and losing focus hides the row again.
-
-The modal editor uses normal `ModalBottomSheet` window-inset handling so the sheet lifts above the software keyboard instead of remaining underneath it. The content stays vertically scrollable when required. Repeated switching among all currently visible numeric fields must keep Gboard continuously presented and the sheet stationary apart from the intentional layout expansion when bonus/penalty controls are first revealed.
-
-The calculation block uses `At hourly rate` / `По ставке`, then optional bonus/penalty rows, then total — all rendered with the shared read-only value-row contract (secondary labels, onSurface values), divider, and a SemiBold total; zero adjustment rows are omitted.
-
-Save/delete persistence failures keep the draft open and are shown as transient localized Snackbar feedback layered over the sheet. Error feedback must not insert/remove layout rows or resize the sheet.
-
-## Amount formatting
-
-- Input accepts at most two fractional digits.
-- Normal amount display rounds to at most two fractional digits and omits a zero fractional part.
-- Calendar-cell daily totals are a deliberate exception: they are rounded to a whole number and omit grouping separators to fit compact cells.
-- Calculations keep deterministic micros precision internally; the UI precision limit applies only to entry and presentation.
+Collapsed Bonus/Penalty rows show an Add affordance, not a chevron: tapping reveals an inline field rather than navigating elsewhere. If a revealed adjustment is still empty when focus moves away, it collapses back to the Add row.
 
 ## Settings
 
-- Full-screen `SettingsScreen` organized into three titled groups: `Calculation`, `Appearance`, `Data`.
-- All rows share one recipe: ~56 dp touch height, label on the left, value or control on the right; navigation rows use `AppNavigationRow` with a trailing chevron.
-- `Calculation`: the default-rate row reads as a value row (formatted rate in the shared 120 dp trailing slot) and edits inline through the compact pill input (`CompactMoneyField`) without moving neighboring rows, followed by the `Change rate for period` action row.
-- Initial zero is selected on focus instead of being replaced by an empty value.
-- Invalid input uses red outline only; no helper text is inserted below the field.
-- `Appearance`: theme options render through the shared `AppSegmentedControl`; the redundant inner `Theme` caption is not used.
-- Selecting light or dark immediately previews and persists the theme; there is no separate settings Save action.
-- A valid default rate is autosaved as it is entered.
-- `Data`: contains `Export data` and `Import data` actions. `Export data` first asks for the format in a modal sheet — `JSON` (backup that can be imported back) or `CSV` (spreadsheet) — rendered as subtitle navigation rows under a sentence-case title.
-- The screen relies on normal window/inset handling and scrolls vertically when content or keyboard height requires it.
-- Persistence failure is shown with an overlay Snackbar and does not resize the screen.
+`SettingsScreen` uses three sections:
+
+- `Calculation`: Default rate, Change rate for period;
+- `Appearance`: system/light/dark segmented control;
+- `Data`: Export data, Import data.
+
+All interactive rows follow the shared 48 dp row contract; segmented controls and inline fields use 44 dp height; primary sheet actions are at least 52 dp. Normal Material press feedback is retained.
+
+Default rate edits inline and autosaves valid values. It is semantically separate from an individual entry rate. The first saved worked entry may initialize an uninitialized default; later per-day rates do not overwrite an initialized default.
+
+The settings screen uses IME-aware scrolling so lower actions remain reachable while the default rate is being edited.
 
 ## Change rate for period
 
-- Opens from the settings `Calculation` group as its own modal sheet.
-- Period choices render through the same `AppSegmentedControl` as the theme setting: `Current month` uses the visible month directly (date rows stay hidden and one secondary line names the month); `Custom period` exposes start/end date navigation rows opened through native Material date picker dialogs.
-- One rate input drives the operation as a flat label + compact-field row; invalid values use the red outline only.
-- `Change rate` asks for confirmation first: an alert dialog states that every entry in the selected period will be updated and that the default rate stays unchanged.
-- On success the sheet closes and a root Snackbar confirms `Rate changed`; a period containing no entries is a silent no-op (the sheet still closes) with nothing to undo.
-- Failure keeps the sheet open and shows localized error feedback without resizing it.
+- Opens as a modal sheet from Settings.
+- Period segmented control offers Current month and Custom period.
+- Current month shows the month without empty date rows.
+- Custom period uses compact Start date and End date navigation rows. Empty date values show no placeholder dash; the chevron already communicates selection.
+- Start/end rows are grouped tightly without unnecessary vertical gaps.
+- End dates before the selected start are disabled through Material 3 `SelectableDates`.
+- If a new start would make the existing end invalid, the end is cleared.
+- A valid rate and complete period are required before the primary action enables.
+- Confirmation explicitly states that entries in the period change and the Default rate remains unchanged.
+- Success closes the sheet and shows `Period rate changed`; Undo restores original per-entry rates.
 
 ## Year summary
 
-- Opens from the settings `Statistics` group as a full-screen view-only surface.
-- A year switcher (`previous/next year` arrows around the centered year) defaults to the current year.
-- The totals block shows yearly income as the primary bold value, then work days, hours worked, average monthly income and average shift (averages divide only by months that carry data), plus bonus/penalty rows when non-zero.
-- The fixed twelve-month breakdown lists every month with its day count, compact hours and income; months without data render dimmed with an em-dash detail.
-- Switching years reloads the breakdown immediately; the sheet is view-only and never mutates data.
+The year summary is a full-screen, view-only screen opened from the monthly report.
 
-## Data export and import
+- compact year pager with previous/next arrows;
+- yearly income, work days, hours, average working-month income, average shift and optional bonus/penalty totals;
+- month breakdown header is one line: `By month` at the left, `shifts · h` and `income` aligned to their data columns;
+- populated months are normal emphasis; missing months are muted with dashes;
+- an entirely empty year uses compact rows instead of stretching empty content across available height.
 
-- `Export data` asks for the format, then opens the system save dialog — `worktime-backup-YYYY-MM-DD.json` for JSON (a versioned file containing every entry (date, duration, hourly rate, bonus, penalty, note) plus the settings (default rate, theme)) or `worktime-YYYY-MM-DD.csv` for CSV (a spreadsheet-friendly table: `date,duration,hourly_rate,bonus,penalty,total`, one row per entry, dot-decimal amounts, `H:MM` durations). CSV is export-only; import stays JSON.
-- `Import data` opens the system file picker, parses and validates the file first, then asks for confirmation: the dialog states how many entries the file holds and that current entries and settings will be replaced.
-- Confirming an import validates the full file first, then replaces Room/DataStore state with compensation snapshots. If the second store fails or the operation is cancelled after replacement, the previous state is restored where possible; rollback failure is reported separately. The parsed file remains available for retry until import succeeds or is cancelled. Imports have no undo — the confirmation dialog is the safety gate.
-- A malformed or unsupported file shows a localized error in SettingsScreen and writes nothing.
-- Export/import success confirms through the root Snackbar; failures surface in SettingsScreen like other operation errors.
+## Export and import
 
-## Home screen widget
+- Export data opens a compact format sheet: JSON backup or CSV spreadsheet.
+- JSON contains entries plus relevant settings and can be imported back.
+- CSV is export-only.
+- Import validates before showing replacement confirmation and writes nothing when validation fails.
+- Success/failure feedback uses Snackbar/error surfaces without inserting temporary layout rows.
 
-- An optional 3x2 home-screen widget mirrors the fixed monthly summary: `Work days`, `Hours worked` and `Monthly income` as label-colon-value rows over the app's primary-container plaque in light and dark variants.
-- While the app process is alive the widget updates on every entry change; with the process dead the system refresh tick (30 minutes) keeps it current.
-- Tapping anywhere on the widget opens the main screen.
+## Home-screen widget
 
-## Operation feedback and undo
-
-- Successful entry deletion and successful bulk rate changes surface one root Snackbar anchored above system navigation with an `Undo` action (`Entry deleted` / `Rate changed`).
-- Undo restores the exact previous records: a restored entry keeps its original duration, rate and adjustments; an undone bulk change restores every original per-record rate in the period, including records whose stored rate already equaled the new one.
-- Only the most recent delete/bulk-rate operation can be undone. The undo snapshot exists only in memory: starting any new delete, bulk-rate or settings-save operation supersedes it, and it is lost when the process dies.
-- Operation errors (save, delete, settings and bulk-rate failures) do not use the root Snackbar; they keep their existing localized error surfaces near the sheet that owns them. Undo failures are the exception: they surface as an action-less root Snackbar (`Could not undo the operation. Try again.`) because every sheet is already dismissed when undo runs.
+The optional 3 × 2 widget mirrors the current month summary and opens WorkTime on tap. It follows the app's light/dark presentation and refreshes from entry changes plus system date/time/timezone update paths.
 
 ## Visual system
 
-The canonical component/dimension contract lives in [UI system](UI_SYSTEM.md). Summary:
+The canonical tokens and component semantics live in [`UI_SYSTEM.md`](UI_SYSTEM.md). In particular:
 
-- Controlled calm blue-neutral palettes in light and dark modes. The expanded monthly report uses a distinct elevated surface color so its edge remains visible over the calendar.
-- Shape tokens come from `MaterialTheme.shapes` (8/12/16/24/28) plus the fixed 28 dp sheet top radius.
-- Regular body weight for comparable labels/values; medium/semi-bold for titles/totals and bold for calendar day numbers.
-- Error red is reserved for invalid input, persistence feedback, delete and penalty semantics.
-- Report expansion may use short Material easing. Month title/date-grid changes are immediate and must not crossfade; editor controls never animate sheet height or move it while the persistent numeric editor changes logical field.
-- Numeric input line height matches its text size so the caret does not visually exceed the entered value.
-- No information essential to calendar interpretation relies on color alone; labels and accessibility descriptions remain present where appropriate.
+- navigation uses chevrons only when an action actually navigates or chooses;
+- inline reveal uses Add rather than navigation affordance;
+- flat rows are preferred over decorative cards;
+- primary/secondary/error colors communicate hierarchy and state, not decoration;
+- dark theme is a readable counterpart of the light theme, while the light theme remains the primary visual target;
+- motion is limited to short feedback/platform sheet motion; data layout and row geometry do not animate.

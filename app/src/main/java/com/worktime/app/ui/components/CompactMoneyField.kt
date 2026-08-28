@@ -1,5 +1,7 @@
 package com.worktime.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -30,6 +31,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -37,12 +39,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.worktime.app.ui.format.sanitizeMoneyInput
 
-private val FieldShape = RoundedCornerShape(12.dp)
-
 /**
- * Shared visual chrome for every compact inline numeric editor (~120×40dp pill that
- * sits in the trailing slot of a standard row). Guarantees that editing a value never
- * swaps the interface for a full-width form field.
+ * Shared visual chrome for every compact inline numeric editor. The border is the only
+ * animated part: a short color transition gives error/focus feedback without moving layout.
  */
 @Composable
 fun CompactInputChrome(
@@ -50,19 +49,25 @@ fun CompactInputChrome(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    val borderColor by animateColorAsState(
+        targetValue = if (isError) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f)
+        },
+        animationSpec = tween(AppDimens.feedbackAnimationMillis),
+        label = "compact-input-border",
+    )
+
     Surface(
         modifier = modifier
             .width(AppDimens.compactFieldWidth)
             .height(AppDimens.compactFieldHeight),
-        shape = FieldShape,
+        shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         border = BorderStroke(
             width = 1.dp,
-            color = if (isError) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.outlineVariant
-            },
+            color = borderColor,
         ),
     ) {
         Box(
@@ -76,7 +81,7 @@ fun CompactInputChrome(
 }
 
 /**
- * Compact pill-shaped money input that fits settings rows instead of dominating them.
+ * Compact money input that fits settings rows instead of dominating them.
  * Owns the editor-value plumbing: sanitization, trailing-cursor placement,
  * select-all on refocusing a bare `0`.
  */
@@ -128,10 +133,11 @@ fun CompactMoneyField(
                     }
                 }
                 .semantics { this.contentDescription = contentDescription },
-            textStyle = MaterialTheme.typography.titleMedium.copy(
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
                 color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
-                lineHeight = MaterialTheme.typography.titleMedium.fontSize,
+                lineHeight = MaterialTheme.typography.bodyLarge.fontSize,
             ),
             singleLine = true,
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

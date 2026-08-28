@@ -15,6 +15,7 @@
     <string name="duration_hours_minutes">%1$d ч %2$d мин</string>
     <string name="hours_short">%1$s ч</string>
     <string name="today">Сегодня</string>
+    <string name="fill_today">Заполнить сегодня</string>
     <string name="day_selected">выбрано</string>
     <string name="has_bonus">есть премия</string>
     <string name="has_penalty">есть штраф</string>
@@ -22,7 +23,7 @@
 
     <string name="worked">Длительность</string>
     <string name="hourly_rate">Ставка за час</string>
-    <string name="at_rate">По ставке</string>
+    <string name="at_rate">Ставка за час</string>
     <string name="bonus">Премия</string>
     <string name="penalty">Штраф</string>
     <string name="add_bonus">+ Премия</string>
@@ -38,7 +39,7 @@
     <string name="delete_entry">Удалить запись</string>
 
     <string name="section_calculation">РАСЧЁТ</string>
-    <string name="settings_rate">Ставка</string>
+    <string name="settings_rate">Ставка по умолчанию</string>
     <string name="change_rate_for_period">Изменить ставку за период</string>
     <string name="section_appearance">ВНЕШНИЙ ВИД</string>
     <string name="theme_system">Системная</string>
@@ -56,13 +57,15 @@
     <string name="end_date">Дата окончания</string>
     <string name="ok">ОК</string>
     <string name="change_rate">Изменить ставку</string>
-    <string name="change_rate_confirmation_title">Изменить ставку?</string>
-    <string name="change_rate_confirmation_text">Ставка за час будет обновлена для всех записей выбранного периода. Ставка по умолчанию не изменится.</string>
+    <string name="change_rate_confirmation_title">Изменить ставку за период?</string>
+    <string name="change_rate_confirmation_text">Ставка изменится для всех записей выбранного периода. Ставка по умолчанию останется прежней.</string>
 
     <string name="year_summary">Итоги за год</string>
     <string name="year_income">Доход за год</string>
     <string name="year_stats_title">Сводка за год</string>
     <string name="by_month">По месяцам</string>
+    <string name="year_month_detail_header">смен · ч</string>
+    <string name="year_month_income_header">доход</string>
     <string name="average_working_month">Среднее за рабочий месяц</string>
     <string name="average_shift">Средняя смена</string>
     <string name="average_shift_income">Средний доход за смену</string>
@@ -71,7 +74,7 @@
     <string name="cancel">Отмена</string>
 
     <string name="entry_deleted">Запись удалена</string>
-    <string name="rate_changed">Ставка изменена</string>
+    <string name="rate_changed">Ставка за период изменена</string>
     <string name="undo">Отменить</string>
 
     <string name="save_entry_failed">Не удалось сохранить запись. Введённые данные остались открыты.</string>
@@ -82,9 +85,9 @@
 
     <string name="export_format_title">Формат экспорта</string>
     <string name="export_json_option">JSON</string>
-    <string name="export_json_hint">Резервная копия, можно импортировать обратно</string>
+    <string name="export_json_hint">Можно импортировать обратно</string>
     <string name="export_csv_option">CSV</string>
-    <string name="export_csv_hint">Таблица для Excel / Google Sheets</string>
+    <string name="export_csv_hint">Для Excel / Google Sheets</string>
     <string name="backup_exported">Данные экспортированы</string>
     <string name="backup_imported">Данные восстановлены</string>
     <string name="backup_export_failed">Не удалось экспортировать данные. Попробуйте ещё раз.</string>

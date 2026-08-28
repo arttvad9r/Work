@@ -2,23 +2,27 @@
 
 ## Current product and design
 
-- [`PRODUCT.md`](PRODUCT.md) - product scope and business rules.
-- [`PRODUCT_SPEC_V0.2.md`](PRODUCT_SPEC_V0.2.md) - frozen compact-product specification.
-- [`UX.md`](UX.md) - current calendar, report, editor and settings behavior.
+- [`PRODUCT.md`](PRODUCT.md) — current product scope and business rules.
+- [`UX.md`](UX.md) — current calendar, editor, reports and settings behavior.
+- [`UI_SYSTEM.md`](UI_SYSTEM.md) — canonical component, spacing, typography and color contract.
+- [`PRODUCT_SPEC_V0.2.md`](PRODUCT_SPEC_V0.2.md) — frozen historical compact-product specification; use `PRODUCT.md` for current behavior.
 
 ## Engineering
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) - layers, state and persistence.
-- [`DECISIONS.md`](DECISIONS.md) - product and architecture decisions.
-- [`BUILD.md`](BUILD.md) - toolchain, wrapper and CI limitations.
-- [`TESTING.md`](TESTING.md) - automated and device verification strategy.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — layers, state and persistence.
+- [`DECISIONS.md`](DECISIONS.md) — product and architecture decisions.
+- [`BUILD.md`](BUILD.md) — toolchain, wrapper and CI behavior.
+- [`TESTING.md`](TESTING.md) — automated and device verification strategy.
+- [`NIX.md`](NIX.md) — optional Nix/FHS development environment; the project itself builds with the checked-in Gradle Wrapper on a normal compatible Android toolchain.
 
 ## Delivery
 
-- [`ROADMAP.md`](ROADMAP.md) - delivery phases.
-- [`BACKLOG.md`](BACKLOG.md) - remaining prioritized work.
-- [`ANDROID_QA.md`](ANDROID_QA.md) - required physical-device checks.
-- [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) - release gate.
-- [`PRIVACY.md`](PRIVACY.md) - local data and privacy posture.
+- [`ROADMAP.md`](ROADMAP.md) — current release state and future direction.
+- [`BACKLOG.md`](BACKLOG.md) — remaining verification and hardening work.
+- [`ANDROID_QA.md`](ANDROID_QA.md) — physical-device checks.
+- [`ANDROID_DEVICE_TESTING.md`](ANDROID_DEVICE_TESTING.md) — device-test setup and commands.
+- [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) — release gate.
+- [`PRIVACY.md`](PRIVACY.md) — local data and privacy posture.
+- [`../CHANGELOG.md`](../CHANGELOG.md) — canonical changelog.
 
-The `main` baseline has been exercised on physical hardware by the project owner. Branches that modify sheet gestures, IME focus or insets require their own focused device pass before merge. GitHub Actions runner/account limitations are documented separately from application verification.
+`main` is the source of truth after a feature branch is merged. Documentation describing transient experiments should be removed or clearly marked historical rather than kept as a second current specification.

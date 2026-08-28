@@ -1,37 +1,35 @@
 # Roadmap
 
-## Current - interaction stability and cleanup
+## Current — polished local product
 
-- [x] Fixed calendar geometry and adjacent-month context.
-- [x] Compact fixed summary.
-- [x] Separate draggable monthly report.
-- [x] One-row duration/rate editor.
-- [x] Stable bonus-above-penalty ordering.
-- [x] Remove currency UI/model and redundant fractions.
-- [x] Compact settings and controlled color palette.
-- [x] Keep the product portrait-only.
-- [x] Remove Material drag-handle tooltip path while preserving stable report measurement.
-- [x] Replace frame-delayed editor focus with an explicit numeric IME focus chain.
-- [x] Keep validation outline-only and persistence errors layout-neutral.
-- [x] Enforce positive hourly rate for worked time in the domain model.
-- [x] Use the checked-in Gradle Wrapper for local/CI verification.
-- [x] Align implementation and QA documentation.
-- [ ] Clean wrapper build/lint/test on current head.
-- [ ] Focused physical-phone pass for report long-press/drag and IME transitions.
+Implemented:
 
-## Next - release hardening
+- fixed 6 × 7 salary calendar with month arrows, swipe navigation and month picker;
+- compact daily editing with stable persistent numeric input;
+- default-rate initialization rules and per-entry rate snapshots;
+- bonus/penalty adjustments and deterministic micros calculations;
+- compact monthly summary plus detailed draggable month report;
+- full-screen yearly summary;
+- bulk rate change for current/custom periods with confirmation and Undo;
+- light/dark Material 3 themes and a shared UI token/component system;
+- JSON backup/import and CSV export;
+- optional home-screen month-summary widget;
+- portrait-only layout with focused physical-device IME/sheet stabilization work;
+- shared Gradle-wrapper verification and documented QA/release process.
 
-- Complete accessibility and large-font QA in narrow portrait layouts.
-- Verify process death, relaunch and Room/DataStore persistence.
-- Add reliable Compose UI regression coverage for sheet gestures and editor focus where supported by the test environment.
-- Resolve any supported-API AndroidX instrumentation incompatibility.
-- Prepare signed internal-test build and final launcher/store assets.
+The current priority is no longer feature expansion. It is release verification and removal of regressions discovered on real hardware.
+
+## Next — release hardening
+
+- complete clean wrapper build/lint/test on the release candidate when dependency/runner access is available;
+- complete focused physical-phone QA for editor IME, sheets, calendar, import/export, widget and year summary;
+- verify supported large-font/narrow-screen accessibility behavior;
+- verify process death/relaunch persistence paths;
+- prepare signed internal/public release assets and final store metadata.
 
 ## Later, only after explicit product approval
 
-- export/backup;
-- multiple jobs/rates;
-- configurable week start;
-- overtime/pay-period rules.
+- multiple jobs/work profiles;
+- overtime or pay-period configuration.
 
-Notes, quick-duration presets, currency, validation helper text, live timers, projects, landscape support and cloud accounts are not planned by default.
+Currency selection, notes, quick-duration presets, live timers, projects, landscape support and cloud accounts are not planned by default.

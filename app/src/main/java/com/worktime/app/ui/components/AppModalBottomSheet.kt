@@ -40,7 +40,7 @@ fun AppModalBottomSheet(
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = AppDimens.screenHorizontalPadding)
-                .padding(bottom = 16.dp),
+                .padding(bottom = 12.dp),
         ) {
             PlainDragHandle(
                 modifier = Modifier.align(Alignment.CenterHorizontally),

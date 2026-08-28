@@ -21,24 +21,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-/** Uppercase section label (РАСЧЁТ / ВНЕШНИЙ ВИД / ДАННЫЕ). Never use as a sheet title. */
 @Composable
 fun AppSectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         modifier = modifier.padding(
             top = AppDimens.sectionSpacing,
-            bottom = 6.dp,
+            bottom = AppDimens.rowGap,
         ),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
-/**
- * Flat tappable row with an optional value/subtitle and trailing chevron.
- * The single presentation for "label … >" navigation across settings, sheets and pickers.
- */
 @Composable
 fun AppNavigationRow(
     label: String,
@@ -50,12 +45,21 @@ fun AppNavigationRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = AppDimens.rowMinHeight)
+            .heightIn(
+                min = if (subtitle == null) {
+                    AppDimens.rowMinHeight
+                } else {
+                    AppDimens.rowWithSubtitleMinHeight
+                },
+            )
             .clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyLarge,
@@ -67,13 +71,14 @@ fun AppNavigationRow(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                 )
             }
         }
         if (value != null) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
@@ -86,11 +91,6 @@ fun AppNavigationRow(
     }
 }
 
-/**
- * Fixed-width trailing slot hosting either a read-only value or a compact inline editor.
- * Read-only values right-align so a column of values keeps one clean edge; the editor
- * pill fills the whole slot, so activating a row never changes its geometry.
- */
 @Composable
 fun AppFieldValueSlot(
     modifier: Modifier = Modifier,
@@ -103,14 +103,13 @@ fun AppFieldValueSlot(
     )
 }
 
-/** Shared sentence-case sheet title below the drag handle. */
 @Composable
 fun AppSheetTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        modifier = modifier.padding(top = 4.dp, bottom = 12.dp),
+        modifier = modifier.padding(top = 2.dp, bottom = 8.dp),
         style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Medium,
         maxLines = 1,
     )
 }

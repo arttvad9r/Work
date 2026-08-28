@@ -2,78 +2,99 @@
 
 ## Product statement
 
-WorkTime is a personal portrait-only Android timesheet that records actual worked time by date and immediately shows an expected monthly total.
+WorkTime is a personal portrait-only Android timesheet that records actual worked time by date and immediately shows expected income for the selected month.
 
-It is a modern salary calendar, not a project tracker, shift planner, timer, HR system or payroll suite.
+It is a salary calendar, not a project tracker, shift planner, timer, HR system or payroll suite.
 
 ## Primary flow
 
 1. Open the required month.
-2. Tap a current-month date.
+2. Tap a current-month date, or use `Fill today` when it is relevant.
 3. Enter duration and hourly rate.
 4. Optionally add a bonus and/or penalty.
 5. Review the calculation and save.
-6. Read the compact month summary or tap/drag up the detailed report.
+6. Read the compact monthly summary or open the detailed month report.
+7. Open the yearly summary from the month report when a broader view is needed.
 
-## MVP requirements
+## Calendar
 
-### Calendar
-
-- Monday-first 6 x 7 layout with fixed geometry.
-- Tapping the month/year title opens a month picker (year arrows plus month grid) that jumps directly to any month.
-- Previous/next month navigation updates the title and date grid immediately without crossfade or old/new month flashing.
-- Horizontal swipes across the calendar also switch months; vertical drags never do.
+- Monday-first fixed 6 × 7 layout.
+- Previous/next arrows, horizontal swipe and a month-picker dialog provide navigation.
 - Adjacent-month dates remain visible but faint and inactive.
-- The calendar uses a minimal horizontal safety margin so the seven columns have as much usable width as practical on a portrait phone.
-- Filled cells show a centered compact duration and a rounded whole-number daily amount with no fractional digits.
-- Bonus and penalty have distinct centered markers.
-- Empty months remain visually empty; the calendar is the entry point for choosing a date.
-- Application orientation remains locked to portrait.
+- Filled cells show date, worked duration and daily income. Duration is the strongest datum; income is a restrained accent.
+- Filled cells use a neutral elevated surface rather than a second decorative primary fill.
+- Selected day and today have distinct states.
+- Grid geometry does not depend on entries or report state.
+- In the current month, `Fill today` appears only while today's entry is missing.
+- Application orientation remains portrait-only.
 
-### Day editor
+## Day editor
 
-- One duration field accepting `H`, `HH`, `H:MM` or `HH:MM`.
-- A new day starts with an empty duration editor value and the `00:00` hint; leading zeroes are normalized defensively so typing `12` cannot become `01:2`.
-- Hourly rate is shown on its own row below duration.
-- Bonus is always above penalty when expanded.
-- Numeric fields use state-based Compose text input; focus changes do not mutate field text.
-- Numeric focus moves directly between visible fields without intentionally closing/reopening the IME, and transient IME insets do not reposition the whole editor sheet.
-- Invalid numeric input is indicated by the Material error outline only; no validation helper text is shown.
-- Live calculation with `At hourly rate`, optional adjustments and total.
-- Save/edit/delete with delete confirmation and recoverable write errors shown without resizing the sheet.
-- No notes, quick presets or currency controls.
+- Modal bottom sheet with one persistent numeric editor/input session shared by duration, rate, bonus and penalty logical fields.
+- Duration accepts compact hour/minute input and starts empty with a `00:00` hint for a new day.
+- Hourly rate is a separate row.
+- Hidden bonus and penalty rows use an Add affordance; they do not use a navigation chevron because they expand inline.
+- Leaving an empty optional adjustment field collapses it back to the Add row.
+- Calculation shows pay by rate, optional adjustments and total.
+- Save is the primary action; existing entries can be deleted.
+- Invalid numeric values use outline-only error treatment; helper text is intentionally absent.
+- Persistence errors do not resize the sheet.
 
-### Monthly information
+## Monthly information
 
-The fixed card always shows:
+The calendar footer is one compact summary strip containing shifts, worked hours and monthly income. Tapping/dragging it opens the detailed month report.
 
-- work days;
-- hours worked;
-- monthly income.
+The month report is view-only and shows:
 
-The draggable report shows:
+- month and primary total income;
+- shift count and worked hours;
+- pay by hourly rate;
+- bonus/penalty when non-zero;
+- average shift duration;
+- average income per shift;
+- navigation to the yearly summary.
 
-- work days;
-- hours worked;
-- bonus only when non-zero;
-- penalty only when non-zero;
-- total.
+## Year summary
 
-The report opens by tap or drag. Holding its handle must not show Material's drag-handle tooltip.
+The yearly summary is a full-screen, view-only surface opened from the monthly report.
 
-### Settings screens
+It shows total yearly income, work days, hours, averages and bonus/penalty totals when applicable. A compact month breakdown keeps the column labels (`shifts · h`, `income`) on the same header line as `By month`. Populated months are emphasized; missing months are muted. Empty years stay compact rather than stretching meaningless rows across the screen.
 
-Settings use full-screen pages grouped into `Calculation`, `Appearance` and `Data`:
+## Settings
 
-- default hourly rate (a value row that edits inline) and change rate for period (Calculation);
-- system, light or dark theme via the shared segmented control (Appearance);
-- export data as JSON backup or CSV spreadsheet (format chosen in a modal sheet), import JSON backup (Data);
-- outline-only validation for an invalid rate;
-- persistence errors shown without changing sheet geometry.
+Settings are grouped into `Calculation`, `Appearance` and `Data`:
 
-The year summary opens from the monthly report's year-summary row. It is view-only: it aggregates one selected year (total income, work days, hours worked, averages over months that carry data, bonuses and penalties when non-zero) plus a fixed twelve-month breakdown, without offering any data modification.
+- default hourly rate, edited inline;
+- `Change rate for period`;
+- system/light/dark theme segmented control;
+- JSON backup export, CSV spreadsheet export and JSON import.
 
-`Change rate for period` rewrites the hourly rate of every entry inside an inclusive date range. The range is the visible month or a custom start/end period picked with native date dialogs, the new value is confirmed in a dialog before anything is written, and only each record's hourly rate changes — durations, bonuses and penalties and the default rate stay untouched. Success shows a Snackbar with Undo; Undo restores every original per-record rate from before the operation.
+The label is explicitly `Default rate`: it is not the rate of the currently selected day.
+
+### Default-rate behavior
+
+- If the default rate has never been initialized, the hourly rate of the first saved worked entry can initialize it.
+- Once initialized, entering a different rate for an individual day affects only that entry and does not overwrite the default.
+- Manually changing the default in Settings marks it initialized.
+
+### Change rate for period
+
+- Applies a new hourly rate to every entry inside an inclusive current-month or custom date range.
+- Custom end dates earlier than the selected start are disabled by the Material date picker; moving the start beyond an existing end clears the invalid end.
+- Confirmation states that entries in the period change while the default rate stays unchanged.
+- The operation does not alter durations, bonuses or penalties.
+- Successful bulk changes can be undone from the root Snackbar.
+
+## Data export and import
+
+- JSON export is the complete backup format and can be imported back.
+- CSV is spreadsheet-oriented and export-only.
+- Import validates the complete file before replacing current entries/settings and uses compensation snapshots if the multi-store replacement fails.
+- Core operation remains fully local; export/import uses the system document picker.
+
+## Home-screen widget
+
+An optional 3 × 2 widget mirrors the month summary and opens WorkTime on tap. It follows the current light/dark presentation and refreshes from entry changes plus system update/date invalidation paths.
 
 ## Business rules
 
@@ -81,31 +102,28 @@ The year summary opens from the monthly report's year-summary row. It is view-on
 - Duration range is `0..1440` minutes; `24:00` is valid, `24:01` is not.
 - Worked time requires a positive hourly rate.
 - Bonus/penalty-only records are valid and do not increase work-day count.
-- Historical records retain their saved hourly rate.
-- A bulk rate change affects every record in the inclusive period regardless of each record's current rate, and updates only the stored hourly rate; the default rate is never modified.
-- Entry deletion and bulk rate changes can be undone through the success Snackbar. Undo covers only the most recent such operation, lives in memory for the process lifetime and does not survive process death.
-- The UI uses fixed `₽` and `₽/h` labels; there is no currency selector or exchange-rate behavior.
+- Historical records retain their saved hourly rate unless explicitly changed by the bulk-rate operation.
+- Bulk rate change never modifies the default rate.
+- Entry deletion and bulk rate changes can be undone through the most recent in-memory undo snapshot; undo does not survive process death.
+- The UI uses fixed `₽` labels; there is no currency selector or exchange-rate behavior.
 - User-entered amounts accept at most two fractional digits.
-- Normal amount displays use at most two fractional digits and omit a zero fractional part; compact calendar day cells intentionally show only a rounded whole number.
-- Domain/data calculations store integer micros (six decimal places of internal precision) and never use persisted binary floating point.
+- Domain/data calculations store integer micros and do not persist binary floating-point values.
 
 ## Non-goals
 
 - registration or cloud sync;
-- time clock and background timer;
+- time clock/background timer;
 - projects, clients or invoices;
-- scheduled shifts or overtime rules;
+- scheduled shifts/overtime rules;
 - taxes, exchange rates or multi-currency accounting;
 - notes or quick-duration templates;
-- validation helper text for numeric fields;
+- validation helper text;
 - landscape layout support.
 
 ## Release criteria
 
-- All local verification commands pass on the current head.
-- Core create/edit/delete/relaunch flows pass on supported physical hardware.
-- Report tap/drag/long-press and editor IME transitions pass the focused device checklist.
-- Calendar month switching, wider grid geometry and compact whole-number daily totals pass the focused device checklist.
-- Rate-change-for-period with confirmation, Snackbar Undo restore and horizontal month swipe pass the focused device checklist.
-- Calendar, fixed summary and report sheet do not clip at supported portrait font scales.
+- `./scripts/verify.sh` completes on the release candidate when runner/toolchain access is available.
+- Core create/edit/delete/relaunch, bulk-rate, import/export and widget paths pass on physical hardware.
+- Editor IME transitions and modal-sheet gestures remain stable.
+- Calendar, reports, settings and year summary do not clip in supported portrait font scales/locales.
 - No known data-loss or calculation defect remains.

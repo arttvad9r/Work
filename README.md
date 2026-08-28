@@ -1,6 +1,6 @@
 # WorkTime
 
-WorkTime is a compact offline Android timesheet for recording worked time and calculating an expected monthly amount.
+WorkTime is a compact offline Android timesheet for recording worked time by date and calculating expected income.
 
 The core flow is intentionally short:
 
@@ -10,22 +10,19 @@ open month -> tap a day -> enter duration and hourly rate -> save
 
 ## Current interface
 
-- fixed Monday-first 6 x 7 calendar that does not scroll or jump;
-- faint adjacent-month dates for calendar continuity;
-- centered worked duration and daily amount inside filled cells;
-- compact fixed monthly card with work days, hours worked and monthly income;
-- a separate draggable bottom report with days, hours, optional bonus/penalty and total;
-- one day-editor sheet with duration first and hourly rate on a separate row;
-- optional bonus above optional penalty;
-- full-screen settings pages for hourly rate, statistics and system/light/dark theme;
-- controlled light/dark color palettes and consistent Material 3 shapes;
-- portrait-only application layout.
+- fixed Monday-first 6 × 7 calendar with direct month navigation and a month picker;
+- worked days show date, worked duration and daily income with a restrained visual hierarchy;
+- contextual `Fill today` action appears only when today belongs to the visible month and has no entry;
+- compact monthly summary strip opens a draggable detailed month report;
+- day editor is a modal sheet with duration, hourly rate and optional bonus/penalty inline fields;
+- settings contain the default rate, bulk rate change, theme selection and JSON/CSV data operations;
+- year summary is a full-screen, view-only yearly report opened from the monthly report;
+- optional home-screen month-summary widget;
+- controlled light/dark Material 3 palettes and portrait-only layout.
 
-There is no currency selector or conversion model; the current presentation uses the fixed `₽` and `₽/h` labels. Notes and quick-duration presets are intentionally not part of the product. A fractional part is shown only when it is non-zero. Durations are displayed as `0`, `15` or `15:30`.
+There is no currency selector or conversion model; presentation uses fixed `₽` labels. Notes and quick-duration presets are intentionally not part of the product. A fractional part is shown only when it is non-zero. Durations are displayed compactly (`0`, `15`, `15:30`).
 
-The interface follows one shared component/dimension contract ([UI system](docs/UI_SYSTEM.md)): identical entities look and behave identically on every screen, and editing a value never swaps a row for a full-width form field.
-
-Numeric validation is deliberately compact: invalid input is indicated by the red field outline without helper text. Persistence failures are separate operational errors and are shown transiently without changing sheet geometry.
+The interface follows one shared component/dimension contract ([UI system](docs/UI_SYSTEM.md)): navigation, value, editable, segmented and action controls use the same semantics and sizing across screens and sheets.
 
 ## Product rules
 
@@ -33,11 +30,14 @@ Numeric validation is deliberately compact: invalid input is indicated by the re
 - Worked time is limited to `0..24:00`.
 - Worked time requires a positive hourly rate.
 - Bonus/penalty-only entries are valid but do not count as work days.
+- The first saved shift can initialize the default hourly rate when no default exists.
+- Once initialized, the default rate is not overwritten by a different rate entered for an individual day.
 - A saved entry keeps its hourly-rate snapshot; changing the default rate does not rewrite history.
+- Bulk rate changes affect only entries inside the selected period and leave the default rate unchanged.
 - Core functionality is local and requires neither an account nor network access.
 
 ```text
-ratePayMicros = roundHalfUp(workedMinutes x hourlyRateMicros / 60)
+ratePayMicros = roundHalfUp(workedMinutes × hourlyRateMicros / 60)
 entryTotalMicros = ratePayMicros + bonusMicros - penaltyMicros
 monthTotalMicros = sum(entryTotalMicros)
 workDays = count(entries where workedMinutes > 0)
@@ -57,29 +57,30 @@ Amounts use integer micros in domain/data code. `Float` and `Double` are not use
 
 ## Verification
 
-Preferred command:
+Preferred local command:
 
 ```bash
 ./scripts/verify.sh
 ```
 
-It uses the repository Gradle Wrapper and runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. Device execution remains a separate release gate.
+It uses the repository Gradle Wrapper and runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. Physical-device interaction testing remains a separate release gate, especially for IME focus, modal-sheet behavior, calendar gestures and launcher/widget integration.
 
-The `main` baseline has been exercised on physical hardware by the project owner. Interaction changes that affect IME focus, bottom-sheet drag/tap behavior or insets require a fresh focused device pass before merge.
+GitHub Actions runs that terminate before executing workflow steps are treated as runner/account infrastructure failures, not as successful or failed Gradle verification.
 
-See the [Android QA checklist](docs/ANDROID_QA.md).
+See the [Android QA checklist](docs/ANDROID_QA.md) and [release checklist](docs/RELEASE_CHECKLIST.md).
 
 ## Documentation
 
+- [Documentation index](docs/README.md)
 - [Product](docs/PRODUCT.md)
 - [UX](docs/UX.md)
 - [UI system](docs/UI_SYSTEM.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [Decisions](docs/DECISIONS.md)
-- [Testing](docs/TESTING.md)
 - [Build and CI](docs/BUILD.md)
+- [Testing](docs/TESTING.md)
 - [Android QA](docs/ANDROID_QA.md)
-- [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Backlog](docs/BACKLOG.md)
 - [Privacy](docs/PRIVACY.md)
 - [Changelog](CHANGELOG.md)
 

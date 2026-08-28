@@ -32,16 +32,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.worktime.app.R
 import com.worktime.app.ui.calendar.YearSummary
+import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.LabelValueRow
-import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import com.worktime.app.ui.format.formatWholeAmountMicros
 import java.time.Month
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
 @Composable
@@ -55,7 +53,6 @@ fun YearSummaryScreen(
 
     BackHandler(onBack = onDismiss)
 
-    // Surface sets LocalContentColor=onSurface so titles/icons follow the theme.
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -70,30 +67,32 @@ fun YearSummaryScreen(
                 onBack = onDismiss,
             )
 
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 48.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .height(AppDimens.rowMinHeight),
+                contentAlignment = Alignment.Center,
             ) {
-                IconButton(onClick = onPreviousYear) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                        contentDescription = stringResource(R.string.previous_year),
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onPreviousYear) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            contentDescription = stringResource(R.string.previous_year),
+                        )
+                    }
+                    Text(
+                        text = (summary?.year ?: "").toString(),
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Medium,
                     )
-                }
-                Text(
-                    text = (summary?.year ?: "").toString(),
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                IconButton(onClick = onNextYear) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = stringResource(R.string.next_year),
-                    )
+                    IconButton(onClick = onNextYear) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = stringResource(R.string.next_year),
+                        )
+                    }
                 }
             }
 
@@ -101,7 +100,7 @@ fun YearSummaryScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 48.dp),
+                        .padding(vertical = AppDimens.sectionSpacing * 3f),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
@@ -111,9 +110,9 @@ fun YearSummaryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = AppDimens.screenHorizontalPadding)
                         .navigationBarsPadding()
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = AppDimens.rowGap),
                     verticalArrangement = Arrangement.spacedBy(0.dp),
                 ) {
                     Row(
@@ -133,7 +132,7 @@ fun YearSummaryScreen(
                                 R.string.amount_with_currency,
                                 formatWholeAmountMicros(summary.total.totalPayMicros, locale),
                             ),
-                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                            style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = if (summary.total.totalPayMicros < 0L) {
                                 MaterialTheme.colorScheme.error
@@ -189,15 +188,10 @@ fun YearSummaryScreen(
                     }
 
                     HorizontalDivider(
-                        modifier = Modifier.padding(top = 4.dp),
+                        modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
-                    Text(
-                        text = stringResource(R.string.by_month),
-                        modifier = Modifier.padding(top = 0.dp, bottom = 0.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    MonthSectionHeader()
 
                     Column(
                         modifier = Modifier
@@ -207,9 +201,13 @@ fun YearSummaryScreen(
                         Month.entries.forEachIndexed { index, month ->
                             val monthTotal = summary.months[month.value - 1]
                             val empty = !summary.monthHasData.getOrElse(index) { false }
+                            val rowModifier = if (summary.monthsWithData == 0) {
+                                Modifier.height(24.dp)
+                            } else {
+                                Modifier.weight(1f)
+                            }
                             MonthLine(
-                                modifier = Modifier
-                                    .weight(1f),
+                                modifier = rowModifier,
                                 label = monthDisplayName(month, locale),
                                 detail = if (empty) {
                                     null
@@ -228,6 +226,41 @@ fun YearSummaryScreen(
 }
 
 @Composable
+private fun MonthSectionHeader() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.by_month),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+        Text(
+            text = stringResource(R.string.year_month_detail_header),
+            modifier = Modifier.weight(1.2f),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            textAlign = TextAlign.End,
+            maxLines = 1,
+        )
+        Text(
+            text = stringResource(R.string.year_month_income_header),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            textAlign = TextAlign.End,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
 private fun MonthLine(
     modifier: Modifier = Modifier,
     label: String,
@@ -235,24 +268,23 @@ private fun MonthLine(
     amount: String,
     dimmed: Boolean,
 ) {
-    val alpha = if (dimmed) 0.45f else 1f
+    val alpha = if (dimmed) 0.38f else 1f
     Row(
-        modifier = modifier
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
             modifier = Modifier.alpha(alpha).weight(1f),
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+            style = MaterialTheme.typography.bodyLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = detail ?: "—",
             modifier = Modifier.weight(1.2f).alpha(alpha),
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = if (detail == null) TextAlign.Center else TextAlign.End,
             maxLines = 1,
@@ -261,7 +293,7 @@ private fun MonthLine(
         Text(
             text = if (dimmed) "—" else amount,
             modifier = Modifier.weight(1f).alpha(alpha),
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+            style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             textAlign = if (dimmed) TextAlign.Center else TextAlign.End,
             maxLines = 1,

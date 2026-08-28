@@ -15,6 +15,7 @@
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="hours_short">%1$s h</string>
     <string name="today">Today</string>
+    <string name="fill_today">Fill today</string>
     <string name="day_selected">selected</string>
     <string name="has_bonus">bonus added</string>
     <string name="has_penalty">penalty added</string>
@@ -22,7 +23,7 @@
 
     <string name="worked">Duration</string>
     <string name="hourly_rate">Rate per hour</string>
-    <string name="at_rate">At rate</string>
+    <string name="at_rate">Rate per hour</string>
     <string name="bonus">Bonus</string>
     <string name="penalty">Penalty</string>
     <string name="add_bonus">+ Bonus</string>
@@ -38,7 +39,7 @@
     <string name="delete_entry">Delete entry</string>
 
     <string name="section_calculation">CALCULATION</string>
-    <string name="settings_rate">Rate</string>
+    <string name="settings_rate">Default rate</string>
     <string name="change_rate_for_period">Change rate for period</string>
     <string name="section_appearance">APPEARANCE</string>
     <string name="theme_system">System</string>
@@ -56,13 +57,15 @@
     <string name="end_date">End date</string>
     <string name="ok">OK</string>
     <string name="change_rate">Change rate</string>
-    <string name="change_rate_confirmation_title">Change the rate?</string>
-    <string name="change_rate_confirmation_text">The hourly rate will be updated for every entry in the selected period. The default rate stays unchanged.</string>
+    <string name="change_rate_confirmation_title">Change rate for period?</string>
+    <string name="change_rate_confirmation_text">The rate will be changed for all entries in the selected period. The default rate will stay unchanged.</string>
 
     <string name="year_summary">Year summary</string>
     <string name="year_income">Income for the year</string>
     <string name="year_stats_title">Year summary</string>
     <string name="by_month">By month</string>
+    <string name="year_month_detail_header">shifts · h</string>
+    <string name="year_month_income_header">income</string>
     <string name="average_working_month">Average per working month</string>
     <string name="average_shift">Average shift</string>
     <string name="average_shift_income">Average income per shift</string>
@@ -71,7 +74,7 @@
     <string name="cancel">Cancel</string>
 
     <string name="entry_deleted">Entry deleted</string>
-    <string name="rate_changed">Rate changed</string>
+    <string name="rate_changed">Rate for period changed</string>
     <string name="undo">Undo</string>
 
     <string name="save_entry_failed">Could not save the entry. Your draft is still open.</string>
@@ -82,9 +85,9 @@
 
     <string name="export_format_title">Export format</string>
     <string name="export_json_option">JSON</string>
-    <string name="export_json_hint">Backup file, can be imported back</string>
+    <string name="export_json_hint">Can be imported back</string>
     <string name="export_csv_option">CSV</string>
-    <string name="export_csv_hint">Spreadsheet for Excel / Google Sheets</string>
+    <string name="export_csv_hint">For Excel / Google Sheets</string>
     <string name="backup_exported">Data exported</string>
     <string name="backup_imported">Data restored</string>
     <string name="backup_export_failed">Could not export data. Try again.</string>

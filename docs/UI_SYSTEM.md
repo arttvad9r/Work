@@ -18,8 +18,10 @@ entities must always look and behave identically, on every screen.
 | `screenHorizontalPadding` | 16 dp | every full screen and modal sheet |
 | `sectionSpacing` | 16 dp | above section headers / between sections |
 | `rowGap` | 8 dp | vertical gap between rows and small blocks |
-| `rowMinHeight` | 56 dp | standard interactive row |
-| `compactFieldWidth/Height` | 120×40 dp | inline numeric editor slot |
+| `rowMinHeight` | 48 dp | compact accessible interactive row across screens and sheets |
+| `rowWithSubtitleMinHeight` | 56 dp | navigation rows with explanatory copy |
+| `compactControlHeight` | 44 dp | segmented controls and inline editors |
+| `compactFieldWidth/Height` | 120×44 dp | inline numeric editor slot |
 | `primaryButtonMinHeight` | 52 dp | primary actions |
 
 ## Typography
@@ -38,18 +40,39 @@ Only `MaterialTheme.typography` (all styles carry tabular numerals):
 
 ## Colors (semantic roles)
 
-- `primary` — focus caret/today outline only, not decorative text.
-- `onSurface` — content values and row labels.
-- `onSurfaceVariant` — secondary labels, subtitles, chevrons, placeholders.
+- `primary` — focus/today and compact data emphasis, never broad decorative fills.
+- `onSurface` — primary content values and row labels.
+- `onSurfaceVariant` — secondary labels, subtitles, chevrons, placeholders and dates.
 - `outlineVariant` — dividers and field borders.
 - `secondaryContainer` / `onSecondaryContainer` — selected segmented option,
   SummaryStrip, secondary CTA surfaces (e.g. year-summary navigation).
 - `error` — invalid input outline, negative totals, destructive actions.
 
+### Calendar hierarchy
+
+Calendar color is semantic rather than decorative. The three data levels must remain
+visually distinct without turning the grid into a heatmap:
+
+- date → `onSurfaceVariant` (today uses `primary` plus a primary outline);
+- worked duration → `onSurface`, the strongest text inside a populated cell;
+- amount → restrained `primary`; negative amounts → `error`;
+- populated cells get only a very light neutral container tint;
+- selected state is carried by `primaryContainer` + cell geometry, not by recoloring
+  every piece of data;
+- out-of-month dates are reduced by alpha.
+
 ## Shapes
 
 Use `MaterialTheme.shapes` (8/12/16/24/28). Sheets use `AppSheetShape` (28 top
 corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
+
+## Motion
+
+Motion is feedback, not decoration. Shared Material controls keep their normal press
+feedback. Visual state changes may use the shared short
+`AppDimens.feedbackAnimationMillis` (120 ms) transition for color only. Do not animate
+row sizes, spacing, data layout, or add delays before an action. Modal sheets keep the
+platform Material motion they already provide.
 
 ## Components
 
@@ -64,7 +87,7 @@ corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
 - **`LabelValueRow`** — read-only "label … value" line (reports, summaries,
   calculation blocks). Label onSurfaceVariant, value onSurface.
 - **`AppFieldValueSlot` + `CompactInputChrome` (+ `CompactMoneyField`)** — the editable
-  value contract: a fixed 120×40 slot at the row's trailing edge that shows either the
+  value contract: a fixed 120×44 slot at the row's trailing edge that shows either the
   read-only value or the compact bordered editor. Activating editing never swaps the
   row for a full-width form field and never changes the row height.
 - **`AppSegmentedControl(options, selectedIndex)`** — the only segmented presentation
@@ -72,6 +95,9 @@ corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
   secondaryContainer.
 - **`AppPrimaryButton`** — full-width ≥52 dp primary action (Save, Change rate).
 - **`AppDestructiveAction`** — full-width error-colored text action (Delete entry).
+- **Contextual quick action** — lightweight `TextButton` with a leading semantic icon,
+  no card/fill, and a ≥48 dp touch target. Use only for a timely optional shortcut such
+  as “Fill today”; hide it when the shortcut is no longer relevant.
 - **`PlainDragHandle`** — tooltip-free drag handle shared by all sheets.
 
 Row decision guide: opens another screen/sheet → `AppNavigationRow`; shows a computed
@@ -81,9 +107,12 @@ chooses one of 2–4 mutually exclusive options → `AppSegmentedControl`.
 ## Explicit exceptions
 
 - **Calendar** — data-dense grid with fixed macro geometry (6×7, 64 dp week rows,
-  28 dp weekday/date areas, 48 dp header). It does not adopt settings-row styling;
-  only icon/typography sources and shared tokens are harmonized.
-- **Year summary** — non-scrolling screen showing all twelve months at once via
-  `weight`; it keeps its dense month-line presentation and its own compact font sizes.
+  28 dp weekday/date areas, 48 dp header). It keeps its own compact typography and the
+  calendar hierarchy above instead of adopting settings-row styling. In the current
+  month, a missing entry for today may expose the lightweight “Fill today” contextual
+  action below the grid; it disappears as soon as today's entry exists.
+- **Year summary** — non-scrolling screen showing all twelve months at once. Populated
+  years use the available height; an entirely empty year uses compact fixed month rows
+  so missing data does not look like stretched content.
 - **Month picker dialog** — grid of month chips inside an AlertDialog; a deliberate
   picker pattern, not a segmented control.
