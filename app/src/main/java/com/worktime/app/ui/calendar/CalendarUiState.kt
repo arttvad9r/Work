@@ -10,6 +10,12 @@ import java.time.YearMonth
 data class CalendarUiState(
     val visibleMonth: YearMonth = YearMonth.now(),
     val entries: Map<LocalDate, WorkEntry> = emptyMap(),
+    /**
+     * Loaded month window used by the horizontal calendar pager. The current repository
+     * subscription keeps the visible month plus its immediate neighbours warm so a drag
+     * never reveals an empty page simply because Room has not switched queries yet.
+     */
+    val monthEntries: Map<YearMonth, Map<LocalDate, WorkEntry>> = emptyMap(),
     val selectedDate: LocalDate? = null,
     val defaultHourlyRateMicros: Long = 0L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
