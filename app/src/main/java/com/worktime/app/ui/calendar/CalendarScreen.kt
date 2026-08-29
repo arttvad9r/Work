@@ -1,11 +1,8 @@
 package com.worktime.app.ui.calendar
 
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -101,11 +98,12 @@ import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.abs
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 private const val CalendarFadeMillis = 100
-private const val PagerSnapMillis = 130
-private const val PagerProgrammaticMillis = 120
+private const val PagerSnapMillis = 135
+private const val PagerProgrammaticMillis = 190
 private const val PagerPageCount = 24_001
 private const val PagerAnchorPage = PagerPageCount / 2
 
@@ -133,10 +131,11 @@ fun CalendarScreen(
     )
     val pagerFlingBehavior = PagerDefaults.flingBehavior(
         state = pagerState,
-        snapAnimationSpec = tween(PagerSnapMillis),
+        snapAnimationSpec = tween(PagerSnapMillis, easing = FastOutSlowInEasing),
         snapPositionalThreshold = 0.35f,
     )
     var programmaticPage by remember { mutableStateOf<Int?>(null) }
+    var programmaticScrollJob by remember { mutableStateOf<Job?>(null) }
 
     fun monthForPage(page: Int): YearMonth =
         yearMonthFromIndex(originMonthIndex + page - PagerAnchorPage)
@@ -179,26 +178,28 @@ fun CalendarScreen(
     val animateToPage: (Int) -> Unit = { requestedPage ->
         val targetPage = requestedPage.coerceIn(0, PagerPageCount - 1)
         programmaticPage = targetPage
-        scope.launch {
+        programmaticScrollJob?.cancel()
+        programmaticScrollJob = scope.launch {
             pagerState.animateScrollToPage(
                 page = targetPage,
-                animationSpec = tween(PagerProgrammaticMillis),
+                animationSpec = tween(PagerProgrammaticMillis, easing = FastOutSlowInEasing),
             )
         }
     }
 
     // External month changes (month picker, restored state) move the pager to the same month.
-    // Adjacent changes use the same short snap as the arrows; large jumps remain immediate.
+    // Adjacent changes use the same short directional travel as the arrows; large jumps are immediate.
     LaunchedEffect(state.visibleMonth) {
         val targetPage = pageForMonth(state.visibleMonth)
         if (targetPage !in 0 until PagerPageCount || targetPage == pagerState.settledPage) {
             return@LaunchedEffect
         }
         programmaticPage = targetPage
+        programmaticScrollJob?.cancel()
         if (abs(targetPage - pagerState.currentPage) <= 1) {
             pagerState.animateScrollToPage(
                 page = targetPage,
-                animationSpec = tween(PagerProgrammaticMillis),
+                animationSpec = tween(PagerProgrammaticMillis, easing = FastOutSlowInEasing),
             )
         } else {
             pagerState.scrollToPage(targetPage)
@@ -528,24 +529,15 @@ private fun SummaryStrip(
                 .padding(horizontal = AppDimens.screenHorizontalPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AnimatedContent(
-                targetState = summaryText,
+            Text(
+                text = summaryText,
                 modifier = Modifier.weight(1f),
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
-                        fadeOut(animationSpec = tween(70))
-                },
-                label = "summary value",
-            ) { text ->
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                )
-            }
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
             Icon(
                 Icons.Filled.KeyboardArrowUp,
                 modifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
@@ -609,44 +601,26 @@ private fun MonthlySummaryPanel(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            AnimatedContent(
-                targetState = totalText,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
-                        fadeOut(animationSpec = tween(70))
+            Text(
+                text = totalText,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 20.sp,
+                    lineHeight = 24.sp,
+                ),
+                fontWeight = FontWeight.SemiBold,
+                color = if (shouldUseErrorColorForTotal(summary.totalPayMicros)) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurface
                 },
-                label = "monthly total",
-            ) { text ->
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 20.sp,
-                        lineHeight = 24.sp,
-                    ),
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (shouldUseErrorColorForTotal(summary.totalPayMicros)) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    maxLines = 1,
-                )
-            }
-            AnimatedContent(
-                targetState = detailText,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
-                        fadeOut(animationSpec = tween(70))
-                },
-                label = "monthly detail",
-            ) { text ->
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
+                maxLines = 1,
+            )
+            Text(
+                text = detailText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
 
             LabelValueRow(
                 label = stringResource(R.string.calculation_base),
@@ -958,116 +932,92 @@ private fun DayCell(
                     maxLines = 1,
                 )
             }
-            AnimatedContent(
-                targetState = visibleEntry,
-                modifier = Modifier.fillMaxSize(),
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(90)) togetherWith
-                        fadeOut(animationSpec = tween(60))
-                },
-                label = "day entry content",
-            ) { animatedEntry ->
-                if (animatedEntry != null) {
-                    val animatedTotalMicros = runCatching {
-                        SalaryCalculator.entryPay(animatedEntry).totalPayMicros
-                    }.getOrNull()
-                    val animatedAmountColor = if ((animatedTotalMicros ?: 0L) < 0L) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.90f)
+            if (visibleEntry != null) {
+                if (largeFont) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = dateAreaHeight, start = 2.dp, end = 2.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = if (visibleEntry.workedMinutes > 0) {
+                                formatDurationCompact(visibleEntry.workedMinutes)
+                            } else {
+                                ""
+                            },
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 10.sp,
+                                lineHeight = 11.sp,
+                            ),
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
+                                formatWholeAmountMicros(totalMicros, locale)
+                            } else {
+                                ""
+                            },
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 7.sp,
+                                lineHeight = 8.sp,
+                            ),
+                            fontWeight = FontWeight.Medium,
+                            color = amountColor,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
-                    if (largeFont) {
-                        Column(
+                } else {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(top = dateAreaHeight, start = 2.dp, end = 2.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = if (animatedEntry.workedMinutes > 0) {
-                                    formatDurationCompact(animatedEntry.workedMinutes)
-                                } else {
-                                    ""
-                                },
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontSize = 10.sp,
-                                    lineHeight = 11.sp,
-                                ),
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = if (
-                                    animatedTotalMicros != null &&
-                                    shouldShowDayAmount(animatedTotalMicros)
-                                ) {
-                                    formatWholeAmountMicros(animatedTotalMicros, locale)
-                                } else {
-                                    ""
-                                },
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 7.sp,
-                                    lineHeight = 8.sp,
-                                ),
-                                fontWeight = FontWeight.Medium,
-                                color = animatedAmountColor,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    } else {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 2.dp),
-                                text = if (animatedEntry.workedMinutes > 0) {
-                                    formatDurationCompact(animatedEntry.workedMinutes)
-                                } else {
-                                    ""
-                                },
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontSize = 15.sp,
-                                    lineHeight = 18.sp,
-                                ),
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .fillMaxWidth()
-                                    .padding(bottom = 3.dp)
-                                    .padding(horizontal = 2.dp),
-                                text = if (
-                                    animatedTotalMicros != null &&
-                                    shouldShowDayAmount(animatedTotalMicros)
-                                ) {
-                                    formatWholeAmountMicros(animatedTotalMicros, locale)
-                                } else {
-                                    ""
-                                },
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    lineHeight = 13.sp,
-                                ),
-                                fontWeight = FontWeight.Medium,
-                                color = animatedAmountColor,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                                .align(Alignment.Center)
+                                .fillMaxWidth()
+                                .padding(horizontal = 2.dp),
+                            text = if (visibleEntry.workedMinutes > 0) {
+                                formatDurationCompact(visibleEntry.workedMinutes)
+                            } else {
+                                ""
+                            },
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 15.sp,
+                                lineHeight = 18.sp,
+                            ),
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .padding(bottom = 3.dp)
+                                .padding(horizontal = 2.dp),
+                            text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
+                                formatWholeAmountMicros(totalMicros, locale)
+                            } else {
+                                ""
+                            },
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                lineHeight = 13.sp,
+                            ),
+                            fontWeight = FontWeight.Medium,
+                            color = amountColor,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
             }
