@@ -56,8 +56,13 @@ class FullScreenMotionUiTest {
             .performClick()
         composeRule.waitForIdle()
 
+        // The title text can legitimately appear in more than one semantics node. The previous-
+        // year control is a unique descendant of the same full-screen layer, so its X position is
+        // an unambiguous proxy for the destination's exit travel.
         assertFullScreenExitTravelsFarEnough(
-            composeRule.onNodeWithText(composeRule.activity.getString(R.string.year_summary)),
+            composeRule.onNodeWithContentDescription(
+                composeRule.activity.getString(R.string.previous_year),
+            ),
         )
     }
 
