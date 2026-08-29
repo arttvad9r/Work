@@ -1,5 +1,6 @@
 package com.worktime.app.ui
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.worktime.app.MainActivity
 import com.worktime.app.R
@@ -38,12 +40,14 @@ class FullScreenMotionUiTest {
 
     @Test
     fun yearSummaryExitTravelsBeyondLegacyPartialWidthTarget() {
-        // On compact managed devices the summary strip can sit just below the visible viewport.
-        // Its semantics action is still the canonical app action, so invoke it directly instead
-        // of making this motion regression depend on calendar viewport geometry.
-        composeRule
-            .onNodeWithTag("monthly-summary-strip")
-            .performClick()
+        // App readiness is asynchronous. Wait for the summary semantics node rather than racing
+        // the repository load. On compact managed devices the strip can also sit just below the
+        // visible viewport, so invoke its canonical semantics action instead of touch geometry.
+        val summaryStrip = composeRule.onNodeWithTag("monthly-summary-strip")
+        composeRule.waitUntil(timeoutMillis = 10_000L) {
+            runCatching { summaryStrip.fetchSemanticsNode() }.isSuccess
+        }
+        summaryStrip.performSemanticsAction(SemanticsActions.OnClick)
         composeRule.waitForIdle()
 
         composeRule
