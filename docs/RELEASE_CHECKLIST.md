@@ -1,41 +1,55 @@
 # Release checklist
 
-Run this checklist against the exact commit that will be distributed. Prior verification from another commit is supporting evidence, not a substitute for the final candidate gate.
+Run this checklist against the exact commit and APK that will be published. Prior verification from another commit is supporting evidence, not a substitute for the final candidate gate.
 
 ## Automated build gate
 
 - [ ] `python3 scripts/static_audit.py` passes on the exact release candidate.
 - [ ] `:app:testDebugUnitTest` passes with no failed or skipped regression tests.
-- [ ] `:app:lintDebug` and `:app:lintRelease` pass; any remaining hints are reviewed and understood.
-- [ ] `:app:assembleDebug`, `:app:assembleDebugAndroidTest` and `:app:bundleRelease` pass through the checked-in Gradle Wrapper.
+- [ ] `:app:lintDebug` and `:app:lintRelease` pass; remaining hints are reviewed and understood.
+- [ ] `:app:assembleDebug`, `:app:assembleDebugAndroidTest` and `:app:assembleRelease` pass through the checked-in Gradle Wrapper.
 - [ ] Release optimization remains enabled through AGP `optimization { enable = true }`.
-- [ ] The matching GitHub Actions run is green, including `signing-smoke` and the managed-device instrumentation job.
-- [ ] CI retains the unsigned release AAB and R8 mapping for inspection; neither is treated as a production artifact.
-- [ ] CI signing uses only the disposable runner keystore; no production upload key or password is present in GitHub Actions.
-- [ ] Release signing/configuration is prepared outside source control and never falls back to debug signing.
+- [ ] The matching GitHub Actions run is green, including `signing-smoke` and managed-device instrumentation.
+- [ ] CI retains the unsigned optimized release APK and R8 mapping for inspection; the unsigned APK is never distributed.
+- [ ] Normal PR/main CI uses only its disposable signing key.
+- [ ] Release signing never falls back to debug signing.
 
-## Upload key
+## App-signing key
 
-- [ ] A dedicated WorkTime upload keystore exists outside the repository.
-- [ ] Keystore and key passwords are stored in a password manager, not in source files or shell scripts.
-- [ ] At least two encrypted backups of the upload keystore exist in separate locations.
-- [ ] The public upload certificate has been exported and its SHA-256 fingerprint recorded.
-- [ ] Play App Signing is configured so the upload key and Play app-signing key are distinct unless a documented cross-store requirement says otherwise.
+- [ ] A dedicated WorkTime release keystore exists outside the repository.
+- [ ] Keystore and key passwords are stored in a password manager, not source files or shell scripts.
+- [ ] At least two encrypted backups of the release keystore exist in separate locations.
+- [ ] The public signing certificate has been exported and its SHA-256 fingerprint recorded.
+- [ ] The GitHub Actions release secrets contain only the required release signing inputs.
+- [ ] The private release key is treated as permanent Android update identity; it is not replaced between releases.
 
-## Release artifact
+## Version and candidate
 
-- [ ] Final `versionCode` and `versionName` are set before building the candidate.
-- [ ] The working tree is clean and the exact candidate commit matches the green CI run.
-- [ ] The candidate is built with `./scripts/build_release_candidate.sh` using the production upload key.
-- [ ] The script reports a verified AAB signature and records the signer SHA-256 fingerprint.
-- [ ] The signer fingerprint matches the upload certificate registered in Play Console.
-- [ ] The signed AAB is archived together with its commit SHA, release-candidate metadata and matching R8 mapping.
-- [ ] The candidate is accepted by Play Internal Testing and installed from Play-generated APKs on a target phone.
-- [ ] No code, resources, signing inputs or version metadata change after the final QA pass without producing a new candidate.
+- [ ] `versionCode` is greater than the previous public release.
+- [ ] Final `versionName` matches the intended Git tag `v<versionName>`.
+- [ ] The candidate commit is contained in `main` and its full Android CI run is green.
+- [ ] The release tag points exactly to that tested commit.
+- [ ] `./scripts/build_release_candidate.sh` produces a signed optimized APK, checksum file, metadata and R8 mapping.
+- [ ] `apksigner` verification passes and the recorded signer SHA-256 matches the permanent WorkTime certificate.
+- [ ] APK SHA-256 in `SHA256SUMS.txt` matches the candidate file.
+- [ ] No code, resources, signing inputs or version metadata change after final QA without producing a new candidate and tag.
+
+## GitHub Release
+
+- [ ] Pushing `v<versionName>` creates a **draft** GitHub Release through `.github/workflows/release.yml`.
+- [ ] The draft contains `WorkTime-<version>.apk`, `SHA256SUMS.txt`, release metadata and the matching R8 mapping.
+- [ ] The APK downloaded from the draft release has the same SHA-256 recorded by the build.
+- [ ] The downloaded APK has the expected signer certificate.
+- [ ] Release notes are reviewed for user-visible changes and known limitations.
+- [ ] The release remains draft until physical-device QA of that exact downloaded APK is complete.
+- [ ] After QA, the existing draft is published; the APK is not rebuilt or replaced.
 
 ## Functional QA
 
-- [ ] Create, edit, delete and relaunch are verified on a physical phone.
+- [ ] Fresh installation of the exact release APK succeeds on a supported physical phone.
+- [ ] Update installation over the previous public APK succeeds without uninstalling.
+- [ ] Existing Room/DataStore data survives the update.
+- [ ] Create, edit, delete and relaunch work normally.
 - [ ] Process death/relaunch preserves Room/DataStore state and returns to a valid UI state.
 - [ ] Monthly calculation is manually reconciled.
 - [ ] Historical rate snapshots are verified.
@@ -45,9 +59,8 @@ Run this checklist against the exact commit that will be distributed. Prior veri
 - [ ] Repeated report open/collapse cycles keep the same peek height and anchors.
 - [ ] Holding the report handle never shows Material's drag-handle tooltip.
 - [ ] Persistence failure path retains the draft/settings surface and shows transient feedback.
-- [ ] JSON export/import is verified through the system document picker on the release build.
+- [ ] JSON export/import is verified through the system document picker.
 - [ ] JSON import rollback preserves the previous Room/DataStore state when preference restore is forced to fail.
-- [ ] Install/update over the previous build preserves local data and widget behavior.
 
 ## UI/accessibility
 
@@ -60,20 +73,18 @@ Run this checklist against the exact commit that will be distributed. Prior veri
 - [ ] Intended haptics occur only on the documented interaction set; ordinary navigation remains silent.
 - [ ] Settings initial `0` is selected on focus without changing sheet height.
 - [ ] Save is reachable after keyboard dismissal.
-- [ ] Narrow portrait screen and 200% font-scale passes complete.
-- [ ] Light/dark contrast and TalkBack checks complete.
-- [ ] Fixed `₽` and `₽/h` labels are readable in the supported locales.
+- [ ] Narrow portrait screen and 200% font-scale checks pass.
+- [ ] Light/dark contrast and TalkBack checks pass.
+- [ ] Fixed `₽` and `₽/h` labels are readable in supported locales.
 - [ ] Home-screen widget theme, layout, body tap, `+` action and refresh after data changes are verified on the target launcher.
 - [ ] Widget refresh is verified across date/time/time-zone changes and process restart.
-- [ ] Final launcher/store assets approved.
+- [ ] Final launcher icon and GitHub release presentation are approved.
 
-## Privacy/release
+## Privacy/security
 
-- [ ] Final release dependency graph contains no unnecessary permission, analytics or ad SDK.
-- [ ] Backup/transfer behavior matches privacy docs on a release device.
-- [ ] Final privacy policy and Play Data Safety form reviewed against the signed release candidate.
-- [ ] Ads, target-audience and content-rating declarations are finalized in Play Console.
-- [ ] Store description, screenshots and release notes are finalized.
-- [ ] Internal testing and Play pre-launch report completed and reviewed.
+- [ ] Final dependency graph and merged manifest contain no unexpected network, analytics, advertising or privacy-sensitive permission changes.
+- [ ] Backup/device-transfer behavior matches `docs/PRIVACY.md` on the release build.
+- [ ] In-app Privacy & data disclosure still matches actual behavior.
+- [ ] No private signing material, passwords, user data or sensitive logs are present in release assets or workflow output.
 
-The merged feature set has automated coverage, but the release is not considered device-verified until a fresh run records the exact phone, Android version, signed release-candidate commit and Play-delivered build.
+The release is not considered device-verified until the exact APK downloaded from the draft GitHub Release has been tested and its device model, Android version, commit, checksum and signer fingerprint have been recorded.
