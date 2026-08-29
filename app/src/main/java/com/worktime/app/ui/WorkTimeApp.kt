@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -310,7 +311,9 @@ private fun ImportConfirmationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.import_confirmation_title)) },
-        text = { Text(stringResource(R.string.import_confirmation_text, pendingCount)) },
+        text = {
+            Text(pluralStringResource(R.plurals.import_confirmation_text, pendingCount, pendingCount))
+        },
         confirmButton = {
             TextButton(onClick = onConfirm) { Text(stringResource(R.string.replace)) }
         },
