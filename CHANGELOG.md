@@ -8,10 +8,13 @@ All notable product changes are documented here. Detailed intermediate implement
 
 - Reworked the motion system around a shared direct-feedback vocabulary: micro state changes, compact controls, local transitions and directional navigation now use one non-overshooting easing curve and consistent timing tiers.
 - The persistent day-editor numeric node still preserves one IME session but now relocates between fixed slots without visually travelling up and down the form; Bonus/Penalty presentation changes are atomic so their labels and values do not cross-fade through an empty frame.
-- Calendar navigation uses a real horizontal pager so adjacent months follow the finger; arrow navigation uses a calmer directional travel, adjacent pages receive a restrained depth/alpha treatment, and the month title/summary soften only while paging is in progress.
+- Calendar navigation uses a real horizontal pager so adjacent months follow the finger; video QA removed the extra page alpha/scale treatment and header/summary dimming that read as flicker on a physical 60 Hz device. Arrow travel now uses the standard 180 ms tier without restarting on repeated taps to the same target.
+- The calendar title, `Fill today` action and compact monthly summary are derived from the same currently displayed pager page, so month labels, entries and totals switch together instead of exposing a stale-state frame.
 - Day/month content does not cross-fade stale values between months, so the new page settles without old entries or summary text blinking through it.
-- Segmented controls use a quiet stable container, moving capsule and haptic tick as one feedback layer without the framework's rectangular press indication flashing behind the pill.
-- Full-screen settings and year-summary surfaces use a restrained fade plus near-1:1 scale transition rather than long entrance slides.
+- Segmented controls use a quiet stable container, moving capsule and haptic tick as one feedback layer without the framework's rectangular press indication flashing behind the pill. Theme selection now lets the capsule settle before the global palette changes atomically.
+- Full-screen settings and year-summary surfaces stay opaque during a short shallow horizontal transition; the previous whole-screen fade/scale revealed the calendar underneath and produced ghost frames in screen recordings.
+- Year-to-year report changes keep directional horizontal motion without cross-fading two dense reports on top of each other.
+- Modal sheets share one zero-tonal-elevation surface and restrained scrim so editor/settings sheets read as the same visual layer.
 - Added a deliberately sparse haptic set; ordinary navigation remains silent and there is no decorative looping/bounce motion.
 - AndroidX SplashScreen provides the launch transition without an artificial delay.
 
