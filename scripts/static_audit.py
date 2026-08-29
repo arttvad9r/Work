@@ -73,9 +73,16 @@ for expected in (
     if expected not in manifest_text:
         fail(f"Missing required manifest control: {expected}")
 
+base_strings = APP / "src/main/res/values/strings.xml"
+ru_strings = APP / "src/main/res/values-ru/strings.xml"
+base_widget_strings = APP / "src/main/res/values/widget_strings.xml"
+ru_widget_strings = APP / "src/main/res/values-ru/widget_strings.xml"
+
 xml_paths = (
-    APP / "src/main/res/values/strings.xml",
-    APP / "src/main/res/values-ru/strings.xml",
+    base_strings,
+    ru_strings,
+    base_widget_strings,
+    ru_widget_strings,
     APP / "src/main/res/values/themes.xml",
     APP / "src/main/res/values-night/themes.xml",
     APP / "src/main/res/drawable/ic_launcher.xml",
@@ -86,22 +93,32 @@ for xml_path in xml_paths:
     parse_xml(xml_path)
 
 
-def string_keys(path: Path) -> set[str]:
+def string_keys(path: Path, *, translatable_only: bool = False) -> set[str]:
     root = parse_xml(path)
-    return {node.attrib["name"] for node in root.findall("string") if "name" in node.attrib}
+    return {
+        node.attrib["name"]
+        for node in root.findall("string")
+        if "name" in node.attrib
+        and (not translatable_only or node.attrib.get("translatable", "true") != "false")
+    }
 
 
-base_strings = APP / "src/main/res/values/strings.xml"
-ru_strings = APP / "src/main/res/values-ru/strings.xml"
-base_keys = string_keys(base_strings)
-ru_keys = string_keys(ru_strings)
-if base_keys != ru_keys:
-    missing_ru = sorted(base_keys - ru_keys)
-    extra_ru = sorted(ru_keys - base_keys)
-    if missing_ru:
-        fail(f"Russian resources missing keys: {', '.join(missing_ru)}")
-    if extra_ru:
-        fail(f"Russian resources have extra keys: {', '.join(extra_ru)}")
+def check_russian_string_parity(base_path: Path, ru_path: Path, label: str) -> set[str]:
+    base_keys = string_keys(base_path, translatable_only=True)
+    ru_keys = string_keys(ru_path, translatable_only=True)
+    if base_keys != ru_keys:
+        missing_ru = sorted(base_keys - ru_keys)
+        extra_ru = sorted(ru_keys - base_keys)
+        if missing_ru:
+            fail(f"Russian {label} resources missing keys: {', '.join(missing_ru)}")
+        if extra_ru:
+            fail(f"Russian {label} resources have extra keys: {', '.join(extra_ru)}")
+    return base_keys
+
+
+base_keys = check_russian_string_parity(base_strings, ru_strings, "app")
+widget_base_keys = check_russian_string_parity(base_widget_strings, ru_widget_strings, "widget")
+defined_string_keys = string_keys(base_strings) | string_keys(base_widget_strings)
 
 obsolete_validation_keys = {
     "hours_range_error",
@@ -111,13 +128,13 @@ obsolete_validation_keys = {
     "money_value_too_large",
     "hourly_rate_required",
 }
-if obsolete_validation_keys & base_keys:
+if obsolete_validation_keys & defined_string_keys:
     fail("Obsolete helper-text validation strings are present; numeric validation is outline-only")
 
 string_ref_pattern = re.compile(r"\bR\.string\.([A-Za-z0-9_]+)")
 for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
     referenced_keys = set(string_ref_pattern.findall(kotlin_file.read_text(encoding="utf-8")))
-    missing_keys = sorted(referenced_keys - base_keys)
+    missing_keys = sorted(referenced_keys - defined_string_keys)
     if missing_keys:
         fail(
             f"Missing string resource(s) referenced by {kotlin_file.relative_to(ROOT)}: "
@@ -198,5 +215,6 @@ if failures:
 
 print(
     "static-audit: OK "
-    f"({len(base_keys)} localized string keys; XML/privacy/domain invariants passed)"
+    f"({len(base_keys)} app + {len(widget_base_keys)} widget localized string keys; "
+    "XML/privacy/domain invariants passed)"
 )
