@@ -367,16 +367,23 @@ private fun PredictiveBackLayer(
     // the destination directly with progress and finishes the remaining travel on commit.
     PredictiveBackHandler(enabled = enabled) { progress ->
         var hasEdgeGesture = false
+        var edgeDirection = 1f
         try {
             progress.collect { backEvent ->
-                if (backEvent.swipeEdge != BackEventCompat.EDGE_NONE) {
+                val direction = when (backEvent.swipeEdge) {
+                    BackEventCompat.EDGE_LEFT -> 1f
+                    BackEventCompat.EDGE_RIGHT -> -1f
+                    else -> 0f
+                }
+                if (direction != 0f) {
                     hasEdgeGesture = true
-                    backOffsetFraction.snapTo(backEvent.progress)
+                    edgeDirection = direction
+                    backOffsetFraction.snapTo(backEvent.progress * direction)
                 }
             }
             if (hasEdgeGesture) {
                 backOffsetFraction.animateTo(
-                    targetValue = 1f,
+                    targetValue = edgeDirection,
                     animationSpec = spring(
                         dampingRatio = AppMotion.NoBounceDampingRatio,
                         stiffness = AppMotion.NavigationStiffness,
