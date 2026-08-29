@@ -64,6 +64,15 @@ android {
         unitTests.all {
             it.useJUnitPlatform()
         }
+        managedDevices {
+            localDevices {
+                create("pixel2Api30") {
+                    device = "Pixel 2"
+                    apiLevel = 30
+                    systemImageSource = "aosp-atd"
+                }
+            }
+        }
     }
 }
 
