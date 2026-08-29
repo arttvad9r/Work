@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widget_shift_unit">shifts</string>
-    <string name="widget_hour_unit">h</string>
-    <string name="widget_income_unit">income</string>
     <string name="widget_add_entry">Add entry</string>
     <string name="widget_preview_month">August 2026</string>
-    <string name="widget_preview_shifts" translatable="false">15</string>
-    <string name="widget_preview_hours" translatable="false">194:30</string>
-    <string name="widget_preview_income" translatable="false">73 465 ₽</string>
+    <string name="widget_preview_summary">15 shifts · 194:30 h · 73 465 ₽</string>
     <string name="widget_add_symbol" translatable="false">+</string>
 </resources>
