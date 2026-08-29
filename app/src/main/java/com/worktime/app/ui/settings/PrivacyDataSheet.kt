@@ -13,9 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
-import com.worktime.app.ui.components.AppModalBottomSheet
 import com.worktime.app.ui.components.AppDimens
+import com.worktime.app.ui.components.AppModalBottomSheet
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 internal fun PrivacyDataSheet(onDismiss: () -> Unit) {
     AppModalBottomSheet(
