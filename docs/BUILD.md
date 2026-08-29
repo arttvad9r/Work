@@ -23,9 +23,9 @@ optimization {
 
 This enables R8 code optimization and optimized resource shrinking together. Project-specific keep rules remain in `app/proguard-rules.pro` and should be added only for demonstrated runtime/reflection requirements.
 
-Release signing is opt-in through `releaseStoreFile`, `releaseStorePassword`, `releaseKeyAlias` and `releaseKeyPassword` Gradle properties or their `RELEASE_*` environment-variable equivalents. Without all four values the project intentionally produces an unsigned release bundle for verification; it never falls back to debug signing.
+Release signing is opt-in through `releaseStoreFile`, `releaseStorePassword`, `releaseKeyAlias` and `releaseKeyPassword` Gradle properties or their `RELEASE_*` environment-variable equivalents. Without all four values the project intentionally produces an unsigned optimized release APK for verification; it never falls back to debug signing.
 
-The production upload-key procedure is documented in `docs/RELEASE_SIGNING.md`. Keep the keystore and passwords outside source control. The repository helper `scripts/build_release_candidate.sh` builds and verifies the exact signed candidate without writing signing secrets to the project.
+The permanent app-signing-key procedure is documented in `docs/RELEASE_SIGNING.md`. Keep the keystore and passwords outside source control. `scripts/build_release_candidate.sh` builds and verifies the exact signed APK candidate without writing signing secrets to the project.
 
 ## Local verification
 
@@ -42,18 +42,18 @@ python3 scripts/static_audit.py
 ./gradlew :app:testDebugUnitTest
 ./gradlew :app:lintDebug :app:lintRelease
 ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
-./gradlew :app:bundleRelease
+./gradlew :app:assembleRelease
 ```
 
-Outputs:
+Typical verification outputs:
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
-app/build/outputs/bundle/release/app-release.aab
+app/build/outputs/apk/release/app-release-unsigned.apk
 app/build/outputs/mapping/release/
 ```
 
-The release AAB is unsigned unless production signing inputs are supplied. Do not distribute the unsigned CI artifact.
+The release APK produced without signing inputs is verification-only and must not be distributed.
 
 For an actual signed candidate, configure the `RELEASE_*` inputs and run:
 
@@ -61,7 +61,7 @@ For an actual signed candidate, configure the `RELEASE_*` inputs and run:
 ./scripts/build_release_candidate.sh
 ```
 
-That helper requires a clean Git tree, verifies the AAB signature and writes release metadata under `app/build/outputs/release-candidate/`.
+That helper requires a clean Git tree, verifies the APK with `apksigner`, computes SHA-256, records the signer certificate fingerprint and writes distribution files under `app/build/outputs/release-candidate/`.
 
 Do not substitute an arbitrary system Gradle version when recording verification evidence; the wrapper defines the project Gradle version.
 
@@ -73,16 +73,29 @@ Use the checked-in Gradle Wrapper for project builds and keep one compatible `ad
 
 ## CI
 
-`.github/workflows/android.yml` runs for pull requests and pushes to `main`. The `verify` job runs the static audit, JVM tests, debug/release lint, debug APK/test APK assembly and optimized release AAB build. It uploads verification reports, the debug APK, the unsigned release AAB and R8 mapping as short-lived artifacts.
+`.github/workflows/android.yml` runs for pull requests and pushes to `main`. The `verify` job runs the static audit, JVM tests, debug/release lint, debug APK/test APK assembly and optimized unsigned release APK build. It uploads verification reports, the debug APK, unsigned release APK and R8 mapping as short-lived artifacts.
 
 After `verify` succeeds, two independent jobs run:
 
-- `signing-smoke` creates a disposable CI-only keystore, builds the optimized release variant through the normal `RELEASE_*` signing inputs and verifies the AAB signature with `jarsigner`. The disposable signed AAB is not uploaded or distributed.
+- `signing-smoke` creates a disposable CI-only keystore, builds the optimized release APK through the normal `RELEASE_*` signing inputs and verifies it with Android `apksigner`. The disposable signed APK is not uploaded or distributed.
 - `instrumented-tests` executes the instrumentation suite on a Pixel 2 API 30 AOSP ATD Gradle Managed Device. KVM access and Android SDK licenses are configured explicitly on the hosted Linux runner.
 
-The real production upload key is intentionally absent from GitHub Actions.
+The permanent WorkTime signing key is not used by normal PR/main CI.
 
-Third-party actions are pinned to immutable commit SHAs and use Node 24-native releases.
+## GitHub release workflow
+
+`.github/workflows/release.yml` runs only for tags matching `v[0-9]*`. It requires the four repository Actions secrets described in `docs/RELEASE_SIGNING.md`.
+
+The workflow verifies that the tag matches `versionName` and points to a commit contained in `main`, restores the release keystore only in the runner temp directory, builds the signed optimized APK and creates a **draft GitHub Release** containing:
+
+- `WorkTime-<version>.apk`;
+- `SHA256SUMS.txt`;
+- release metadata including commit/version/signer fingerprint;
+- matching R8 mapping.
+
+A draft is deliberate: the exact downloaded APK must pass physical-device install/update QA before the release is published.
+
+Third-party actions are pinned to immutable commit SHAs and use Node 24-native releases. Release creation itself uses the GitHub CLI already present on the hosted runner and the workflow-scoped `GITHUB_TOKEN`.
 
 A red CI run must be classified from its actual logs rather than assumed to be infrastructure. Test synchronization should wait for observable operation completion instead of relying on `advanceUntilIdle()` when production work runs in `viewModelScope` outside the coroutine-test scheduler.
 
@@ -97,6 +110,6 @@ Automated verification does not replace physical-device QA for the interaction p
 - system document picker import/export;
 - home-screen widget refresh/tap-through and compact layout;
 - launcher icon presentation after install/update;
-- install/update and smoke-test of the exact signed, optimized release candidate.
+- fresh install and update-over-previous-release using the exact APK downloaded from the draft GitHub Release.
 
-Record exact device model, Android version and tested commit for a release candidate.
+Record exact device model, Android version, tested commit, APK SHA-256 and signer fingerprint for a release candidate.
