@@ -38,9 +38,11 @@ class FullScreenMotionUiTest {
 
     @Test
     fun yearSummaryExitTravelsBeyondLegacyPartialWidthTarget() {
+        // On compact managed devices the summary strip can sit just below the visible viewport.
+        // Its semantics action is still the canonical app action, so invoke it directly instead
+        // of making this motion regression depend on calendar viewport geometry.
         composeRule
             .onNodeWithTag("monthly-summary-strip")
-            .assertIsDisplayed()
             .performClick()
         composeRule.waitForIdle()
 
@@ -65,20 +67,24 @@ class FullScreenMotionUiTest {
             composeRule.activity.onBackPressedDispatcher.onBackPressed()
         }
 
-        // With the intended full-width target, the critically damped navigation spring has
-        // already travelled well over one quarter of the viewport after three 16 ms frames.
-        // The old width/5 regression could never cross that threshold before disappearing.
-        composeRule.mainClock.advanceTimeBy(48L)
-        val travelled = node.fetchSemanticsNode().boundsInRoot.left - initialLeft
-        assertTrue(
-            "Expected full-screen exit to travel beyond the old width/5 target; " +
-                "travelled=$travelled rootWidth=$rootWidth",
-            travelled > rootWidth * 0.25f,
-        )
+        // Sample the whole transition instead of assuming a device-specific position at one
+        // timestamp. The old regression targeted exactly width/5, so while composed it could
+        // never travel beyond 20% of the viewport. The intended full-width exit must cross it.
+        var maxTravelled = 0f
+        repeat(60) {
+            composeRule.mainClock.advanceTimeByFrame()
+            val left = runCatching { node.fetchSemanticsNode().boundsInRoot.left }.getOrNull()
+                ?: return@repeat
+            maxTravelled = maxOf(maxTravelled, left - initialLeft)
+        }
 
-        composeRule.mainClock.advanceTimeBy(1_000L)
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()
+        assertTrue(
+            "Expected full-screen exit to travel beyond the old width/5 target; " +
+                "maxTravelled=$maxTravelled rootWidth=$rootWidth",
+            maxTravelled > rootWidth * 0.21f,
+        )
         node.assertDoesNotExist()
     }
 }
