@@ -7,8 +7,9 @@ All notable product changes are documented here. Detailed intermediate implement
 ### Motion and interaction
 
 - Reworked the motion system around direct state feedback: day selection no longer stacks ripple and delayed color transitions, calendar paging uses a short deterministic snap, theme changes apply atomically, segmented controls and inline editors settle quickly, and full-screen settings/year navigation avoids long entrance slides.
-- The persistent day-editor numeric node still preserves one IME session but now relocates between fixed slots without visually travelling up and down the form; optional adjustment rows use only short fades.
-- Calendar navigation now uses a real horizontal pager so adjacent months follow the finger and arrow navigation drives the same paging model.
+- The persistent day-editor numeric node still preserves one IME session but now relocates between fixed slots without visually travelling up and down the form; Bonus/Penalty presentation changes are atomic so their labels and values do not cross-fade through an empty frame.
+- Calendar navigation now uses a real horizontal pager so adjacent months follow the finger; arrow navigation uses the same pager with short directional travel, and day/month summary content no longer cross-fades stale values between months.
+- Segmented controls use the moving capsule and haptic tick as their feedback layer without the framework's rectangular press indication flashing behind the pill.
 - Added restrained state/content transitions and a deliberately sparse haptic set; ordinary navigation remains silent and there is no decorative looping/bounce motion.
 - AndroidX SplashScreen provides the launch transition without an artificial delay.
 
@@ -24,7 +25,7 @@ All notable product changes are documented here. Detailed intermediate implement
 - Widget Light/Dark follows the app theme preference while System remains resource-driven.
 - Widget observation only stays active while widgets are installed; date/time/time-zone changes perform a cold refresh correctly after process death.
 - Widget body opens the app and `+` opens today's editor without recreating an already-running activity or leaving the editor hidden behind another surface.
-- Removed nested RemoteViews weights while preserving the compact statistic proportions and fixed add action.
+- The 4×1 widget now uses a balanced two-level hierarchy: month and compact add action in the header, with centered shift/hour/income metrics using the full width below; the widget picker preview mirrors the same layout.
 - Launcher resources and API-specific monochrome/adaptive icon variants were consolidated and lint intent is documented explicitly.
 
 ### Engineering and maintenance
