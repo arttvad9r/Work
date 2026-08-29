@@ -22,8 +22,16 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         val container = (application as WorkTimeApplication).container
+        val openTodayOnStart = intent.getBooleanExtra(EXTRA_OPEN_TODAY, false)
         setContent {
-            WorkTimeApp(container = container)
+            WorkTimeApp(
+                container = container,
+                openTodayOnStart = openTodayOnStart,
+            )
         }
+    }
+
+    companion object {
+        const val EXTRA_OPEN_TODAY = "com.worktime.app.extra.OPEN_TODAY"
     }
 }
