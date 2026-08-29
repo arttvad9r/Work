@@ -45,6 +45,16 @@
     <string name="section_data">ДАННЫЕ</string>
     <string name="export_data">Экспорт данных</string>
     <string name="import_data">Импорт данных</string>
+    <string name="privacy_and_data">Конфиденциальность и данные</string>
+    <string name="privacy_local_subtitle">Хранятся локально; без аккаунта и синхронизации</string>
+    <string name="privacy_stored_data_title">Хранение данных</string>
+    <string name="privacy_stored_data_text">Записи о работе (отработанные минуты, сохранённый снимок ставки, премия и штраф) и настройки приложения хранятся локально на этом устройстве с помощью Room и DataStore.</string>
+    <string name="privacy_network_title">Сеть и передача</string>
+    <string name="privacy_network_text">Для основной работы WorkTime не нужны аккаунт или интернет. В приложении нет аналитики и рекламы, оно не передаёт автоматически данные о работе или доходе и не запрашивает доступ к интернету, геопозиции, контактам, микрофону или камере.</string>
+    <string name="privacy_backup_title">Резервное копирование и экспорт</string>
+    <string name="privacy_backup_text">Облачное резервное копирование Android и перенос данных между устройствами отключены. Экспорт JSON/CSV записывает файл только в место, выбранное вами в системном окне; импорт читает только выбранный вами файл.</string>
+    <string name="privacy_deletion_title">Удаление</string>
+    <string name="privacy_deletion_text">Отдельные записи можно удалить в WorkTime. При удалении приложения его локальные данные удаляются с учётом поведения Android. Экспортированные файлы находятся вне приложения и удаляются отдельно из выбранного места хранения.</string>
     <string name="back">Назад</string>
 
     <string name="rate_for_period">Ставка за период</string>

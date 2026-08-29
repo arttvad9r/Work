@@ -69,6 +69,7 @@ fun SettingsScreen(
 ) {
     var rateEditing by rememberSaveable { mutableStateOf(false) }
     var exportFormatOpen by rememberSaveable { mutableStateOf(false) }
+    var privacyDataOpen by rememberSaveable { mutableStateOf(false) }
     var presentedThemeMode by remember { mutableStateOf(themeMode) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -151,6 +152,11 @@ fun SettingsScreen(
                     label = stringResource(R.string.import_data),
                     onClick = onImportData,
                 )
+                AppNavigationRow(
+                    label = stringResource(R.string.privacy_and_data),
+                    subtitle = stringResource(R.string.privacy_local_subtitle),
+                    onClick = { privacyDataOpen = true },
+                )
 
                 Box(modifier = Modifier.navigationBarsPadding().height(24.dp))
             }
@@ -177,6 +183,10 @@ fun SettingsScreen(
             },
             onDismiss = { exportFormatOpen = false },
         )
+    }
+
+    if (privacyDataOpen) {
+        PrivacyDataSheet(onDismiss = { privacyDataOpen = false })
     }
 }
 
