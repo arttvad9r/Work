@@ -6,8 +6,9 @@ All notable product changes are documented here. Detailed intermediate implement
 
 ### Motion and interaction
 
+- Reworked the motion system around direct state feedback: day selection no longer stacks ripple and delayed color transitions, calendar paging uses a short deterministic snap, theme changes apply atomically, segmented controls and inline editors settle quickly, and full-screen settings/year navigation avoids long entrance slides.
+- The persistent day-editor numeric node still preserves one IME session but now relocates between fixed slots without visually travelling up and down the form; optional adjustment rows use only short fades.
 - Calendar navigation now uses a real horizontal pager so adjacent months follow the finger and arrow navigation drives the same paging model.
-- The persistent day-editor numeric node moves between Duration/Rate/Bonus/Penalty while preserving one IME session instead of rebuilding separate text fields.
 - Added restrained state/content transitions and a deliberately sparse haptic set; ordinary navigation remains silent and there is no decorative looping/bounce motion.
 - AndroidX SplashScreen provides the launch transition without an artificial delay.
 
