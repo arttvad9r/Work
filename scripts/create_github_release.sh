@@ -16,6 +16,12 @@ if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
   exit 2
 fi
 
+normalize_sha256() {
+  printf '%s' "$1" \
+    | tr -d '[:space:]:' \
+    | tr '[:upper:]' '[:lower:]'
+}
+
 version_code="$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)"
 version_name="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
 commit="$(git rev-parse HEAD)"
@@ -25,16 +31,16 @@ apk="$out/WorkTime-$version_name.apk"
 checksums="$out/SHA256SUMS.txt"
 metadata="$out/metadata.txt"
 mapping="$out/WorkTime-$version_name-mapping.txt"
+signer_fingerprint_file="release/production-signing-cert-sha256.txt"
 
 if [ -z "$version_code" ] || [ -z "$version_name" ]; then
   echo "Could not read versionCode/versionName from app/build.gradle.kts." >&2
   exit 1
 fi
 
-for file in "$apk" "$checksums" "$metadata" "$mapping"; do
+for file in "$apk" "$checksums" "$metadata" "$mapping" "$signer_fingerprint_file"; do
   if [ ! -s "$file" ]; then
-    echo "Release candidate output is missing: $file" >&2
-    echo "Run ./scripts/build_release_candidate.sh first." >&2
+    echo "Required release input is missing: $file" >&2
     exit 1
   fi
 done
@@ -49,6 +55,19 @@ if ! grep -Fqx "versionCode=$version_code" "$metadata"; then
 fi
 if ! grep -Fqx "versionName=$version_name" "$metadata"; then
   echo "Release metadata does not match versionName $version_name." >&2
+  exit 1
+fi
+
+expected_signer_sha256="$(normalize_sha256 "$(cat "$signer_fingerprint_file")")"
+metadata_signer_sha256="$(
+  sed -n 's/^signerSha256=//p' "$metadata" \
+    | head -n 1
+)"
+metadata_signer_sha256="$(normalize_sha256 "$metadata_signer_sha256")"
+if [ "$metadata_signer_sha256" != "$expected_signer_sha256" ]; then
+  echo "Release candidate signer does not match the pinned production certificate." >&2
+  echo "Expected SHA-256: $expected_signer_sha256" >&2
+  echo "Candidate SHA-256: $metadata_signer_sha256" >&2
   exit 1
 fi
 

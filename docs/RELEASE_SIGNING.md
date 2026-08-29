@@ -6,6 +6,20 @@ That key is a long-lived release identity. Every future APK intended to update a
 
 The keystore and passwords must never be committed to this repository, uploaded to GitHub Actions, or pasted into issue/PR logs. The project reads signing inputs from Gradle properties or `RELEASE_*` environment variables and never falls back to debug signing.
 
+## Production signing identity
+
+The public SHA-256 fingerprint of the production signing certificate is pinned in:
+
+```text
+release/production-signing-cert-sha256.txt
+```
+
+The fingerprint is public information and is safe to keep in the repository. The private key and passwords are not.
+
+`build_release_candidate.sh` compares every normal release candidate against that pinned fingerprint and refuses a candidate signed by another certificate. `create_github_release.sh` also verifies that the candidate metadata names the pinned production signer before it can create a draft release.
+
+CI uses a disposable certificate only in the explicitly isolated `WORKTIME_SIGNING_SMOKE=1` path. That bypass is accepted only when `CI=true`, and the resulting APK is never a release artifact.
+
 ## One-time app-signing key creation
 
 Create the keystore locally on a trusted machine. The command prompts for secrets instead of putting passwords in shell history:
@@ -36,7 +50,7 @@ keytool -list -v \
   -alias worktime-release
 ```
 
-Record the certificate SHA-256 fingerprint in private release records. Compare it with the `signerSha256` emitted for every candidate.
+Compare the displayed SHA-256 value with `release/production-signing-cert-sha256.txt` before the first real release and after restoring the key from backup.
 
 ## Build a signed release candidate locally
 
@@ -54,7 +68,7 @@ read -rsp "Key password: " RELEASE_KEY_PASSWORD; export RELEASE_KEY_PASSWORD; ec
 unset RELEASE_STORE_PASSWORD RELEASE_KEY_PASSWORD
 ```
 
-The script refuses a dirty working tree, runs the static audit and release lint, builds the optimized release APK, verifies it with Android `apksigner`, and records:
+The script refuses a dirty working tree, runs the static audit and release lint, builds the optimized release APK, verifies it with Android `apksigner`, checks the signer against the pinned production certificate, and records:
 
 - exact Git commit;
 - `versionCode` / `versionName`;
@@ -93,7 +107,7 @@ git push origin v0.1.0
 ./scripts/create_github_release.sh
 ```
 
-`create_github_release.sh` verifies the candidate metadata and SHA-256, verifies the local and remote tag, refuses to replace an existing release, then creates a **draft GitHub Release** with:
+`create_github_release.sh` verifies the candidate metadata, pinned signer and SHA-256, verifies the local and remote tag, refuses to replace an existing release, then creates a **draft GitHub Release** with:
 
 - `WorkTime-<version>.apk`;
 - `SHA256SUMS.txt`;

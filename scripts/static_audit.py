@@ -227,7 +227,15 @@ catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
 wrapper_file = (ROOT / "gradle/wrapper/gradle-wrapper.properties").read_text(encoding="utf-8")
 workflow_file = (ROOT / ".github/workflows/android.yml").read_text(encoding="utf-8")
 verify_script_file = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
+release_builder_file = (ROOT / "scripts/build_release_candidate.sh").read_text(encoding="utf-8")
 release_script_file = (ROOT / "scripts/create_github_release.sh").read_text(encoding="utf-8")
+signer_fingerprint_path = ROOT / "release/production-signing-cert-sha256.txt"
+if not signer_fingerprint_path.is_file():
+    fail("Pinned production signing fingerprint file is missing")
+else:
+    signer_fingerprint = signer_fingerprint_path.read_text(encoding="utf-8").strip()
+    if re.fullmatch(r"(?:[0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2}", signer_fingerprint) is None:
+        fail("Pinned production signing fingerprint must be a colon-separated SHA-256 digest")
 if "distributionSha256Sum=" not in wrapper_file:
     fail("Gradle wrapper distributionSha256Sum is missing")
 if re.search(r"release\s*\{[^}]*signingConfig\s*=\s*signingConfigs\.getByName\(\"debug\"\)", build_file, re.DOTALL):
@@ -243,15 +251,26 @@ for required_task in (":app:lintRelease", ":app:assembleRelease"):
         fail(f"CI release gate is missing task: {required_task}")
     if required_task not in verify_script_file:
         fail(f"Local verification gate is missing task: {required_task}")
+for required_builder_token in (
+    "production-signing-cert-sha256.txt",
+    "WORKTIME_SIGNING_SMOKE",
+    "Release APK is signed by the wrong certificate",
+):
+    if required_builder_token not in release_builder_file:
+        fail(f"Release candidate builder is missing signer control: {required_builder_token}")
 for required_release_token in (
     "gh release create",
     "--verify-tag",
     "--draft",
     "SHA256SUMS.txt",
     "git ls-remote",
+    "production-signing-cert-sha256.txt",
+    "signerSha256=",
 ):
     if required_release_token not in release_script_file:
         fail(f"GitHub release helper is missing: {required_release_token}")
+if 'WORKTIME_SIGNING_SMOKE: "1"' not in workflow_file:
+    fail("CI disposable signing job must explicitly opt into signing-smoke mode")
 action_ref_pattern = re.compile(r"^\s*(?:-\s*)?uses:\s*([^@\s]+)@([^\s#]+)", re.MULTILINE)
 for action, ref in action_ref_pattern.findall(workflow_file):
     if action.startswith("./"):

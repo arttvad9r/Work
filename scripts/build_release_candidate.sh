@@ -49,9 +49,32 @@ find_apksigner() {
   return 1
 }
 
+normalize_sha256() {
+  printf '%s' "$1" \
+    | tr -d '[:space:]:' \
+    | tr '[:upper:]' '[:lower:]'
+}
+
 APKSIGNER="$(find_apksigner || true)"
 if [ -z "$APKSIGNER" ]; then
   echo "apksigner was not found. Install Android Build Tools 37.0.0 or add apksigner to PATH." >&2
+  exit 2
+fi
+
+SIGNER_FINGERPRINT_FILE="release/production-signing-cert-sha256.txt"
+if [ ! -s "$SIGNER_FINGERPRINT_FILE" ]; then
+  echo "Pinned production signing fingerprint is missing: $SIGNER_FINGERPRINT_FILE" >&2
+  exit 2
+fi
+expected_signer_sha256="$(normalize_sha256 "$(cat "$SIGNER_FINGERPRINT_FILE")")"
+case "$expected_signer_sha256" in
+  ''|*[!0-9a-f]*)
+    echo "Pinned production signing fingerprint is not a valid SHA-256 digest." >&2
+    exit 2
+    ;;
+esac
+if [ "${#expected_signer_sha256}" -ne 64 ]; then
+  echo "Pinned production signing fingerprint must contain exactly 64 hex characters." >&2
   exit 2
 fi
 
@@ -99,6 +122,21 @@ signer_sha256="$(
 if [ -z "$signer_sha256" ]; then
   echo "Could not read the signer SHA-256 fingerprint from the release APK." >&2
   exit 1
+fi
+signer_sha256="$(normalize_sha256 "$signer_sha256")"
+
+if [ "${WORKTIME_SIGNING_SMOKE:-0}" = "1" ]; then
+  if [ "${CI:-}" != "true" ]; then
+    echo "WORKTIME_SIGNING_SMOKE is reserved for CI signing smoke tests." >&2
+    exit 2
+  fi
+else
+  if [ "$signer_sha256" != "$expected_signer_sha256" ]; then
+    echo "Release APK is signed by the wrong certificate." >&2
+    echo "Expected SHA-256: $expected_signer_sha256" >&2
+    echo "Actual SHA-256:   $signer_sha256" >&2
+    exit 1
+  fi
 fi
 
 commit="$(git rev-parse HEAD)"
