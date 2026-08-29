@@ -66,6 +66,11 @@ fun WorkTimeApp(
 
     LaunchedEffect(viewModel, openTodayRequest) {
         if (openTodayRequest > 0L) {
+            // The widget add action is explicit navigation, not a passive app reopen.
+            // Clear transient overlays so the requested editor is actually visible.
+            viewModel.dismissChangeRateSheet()
+            viewModel.dismissYearSummary()
+            viewModel.cancelImport()
             viewModel.selectDate(LocalDate.now())
         }
     }
