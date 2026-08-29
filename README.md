@@ -63,7 +63,9 @@ Preferred local command:
 ./scripts/verify.sh
 ```
 
-It uses the repository Gradle Wrapper and runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. GitHub Actions runs the same automated gate for pull requests and pushes to `main`.
+It uses the repository Gradle Wrapper and runs the static audit, JVM tests, debug/release lint, debug APK and instrumentation APK assembly, plus an optimized unsigned release AAB build. GitHub Actions runs the same build gate and then executes the Android instrumentation suite on a Gradle Managed Device for pull requests and pushes to `main`.
+
+The unsigned CI AAB is a verification artifact only. Production signing remains external to source control and must be applied to the exact release candidate before distribution.
 
 Physical-device interaction testing remains a separate release gate, especially for persistent IME behavior, haptics, modal-sheet behavior, calendar gestures and launcher/widget integration.
 

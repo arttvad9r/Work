@@ -11,6 +11,8 @@ fi
 ./gradlew --no-daemon \
   :app:testDebugUnitTest \
   :app:lintDebug \
+  :app:lintRelease \
   :app:assembleDebug \
   :app:assembleDebugAndroidTest \
+  :app:bundleRelease \
   --stacktrace

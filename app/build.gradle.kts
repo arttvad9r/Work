@@ -52,11 +52,13 @@ android {
             // Without them Gradle produces an unsigned release artifact, never a
             // misleading debug-signed production build.
             signingConfig = signingConfigs.findByName("production")
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
+
+            // AGP 9.3 optimization DSL enables R8 code optimization and optimized
+            // resource shrinking together for the release variant.
+            optimization {
+                enable = true
+            }
+            proguardFiles("proguard-rules.pro")
         }
     }
 
