@@ -80,7 +80,28 @@ class WorkTimeWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         if (intent.action in TIME_INVALIDATION_ACTIONS) {
+            val pendingResult = goAsync()
+            val container = (context.applicationContext as WorkTimeApplication).container
+            ensureWidgetObservation(
+                context = context,
+                workEntryRepository = container.workEntryRepository,
+                userPreferencesRepository = container.userPreferencesRepository,
+            )
             widgetTimeInvalidations.tryEmit(Unit)
+            WorkTimeWidgetScope.launch {
+                try {
+                    // The process may have been started solely for this broadcast. Refresh
+                    // directly as well as invalidating the observer so no event is lost before
+                    // its SharedFlow collector becomes active.
+                    refresh(
+                        context = context,
+                        workEntryRepository = container.workEntryRepository,
+                        userPreferencesRepository = container.userPreferencesRepository,
+                    )
+                } finally {
+                    pendingResult.finish()
+                }
+            }
         }
     }
 }
