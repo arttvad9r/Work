@@ -25,6 +25,8 @@ This enables R8 code optimization and optimized resource shrinking together. Pro
 
 Release signing is opt-in through `releaseStoreFile`, `releaseStorePassword`, `releaseKeyAlias` and `releaseKeyPassword` Gradle properties or their `RELEASE_*` environment-variable equivalents. Without all four values the project intentionally produces an unsigned release bundle for verification; it never falls back to debug signing.
 
+The production upload-key procedure is documented in `docs/RELEASE_SIGNING.md`. Keep the keystore and passwords outside source control. The repository helper `scripts/build_release_candidate.sh` builds and verifies the exact signed candidate without writing signing secrets to the project.
+
 ## Local verification
 
 Use a compatible Android SDK/JDK installation and the checked-in wrapper:
@@ -53,6 +55,14 @@ app/build/outputs/mapping/release/
 
 The release AAB is unsigned unless production signing inputs are supplied. Do not distribute the unsigned CI artifact.
 
+For an actual signed candidate, configure the `RELEASE_*` inputs and run:
+
+```bash
+./scripts/build_release_candidate.sh
+```
+
+That helper requires a clean Git tree, verifies the AAB signature and writes release metadata under `app/build/outputs/release-candidate/`.
+
 Do not substitute an arbitrary system Gradle version when recording verification evidence; the wrapper defines the project Gradle version.
 
 ## Host environment
@@ -65,7 +75,12 @@ Use the checked-in Gradle Wrapper for project builds and keep one compatible `ad
 
 `.github/workflows/android.yml` runs for pull requests and pushes to `main`. The `verify` job runs the static audit, JVM tests, debug/release lint, debug APK/test APK assembly and optimized release AAB build. It uploads verification reports, the debug APK, the unsigned release AAB and R8 mapping as short-lived artifacts.
 
-After `verify` succeeds, a dedicated Gradle Managed Device job executes the instrumentation suite on a Pixel 2 API 30 AOSP ATD image. KVM access and Android SDK licenses are configured explicitly on the hosted Linux runner.
+After `verify` succeeds, two independent jobs run:
+
+- `signing-smoke` creates a disposable CI-only keystore, builds the optimized release variant through the normal `RELEASE_*` signing inputs and verifies the AAB signature with `jarsigner`. The disposable signed AAB is not uploaded or distributed.
+- `instrumented-tests` executes the instrumentation suite on a Pixel 2 API 30 AOSP ATD Gradle Managed Device. KVM access and Android SDK licenses are configured explicitly on the hosted Linux runner.
+
+The real production upload key is intentionally absent from GitHub Actions.
 
 Third-party actions are pinned to immutable commit SHAs and use Node 24-native releases.
 

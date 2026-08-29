@@ -9,15 +9,27 @@ Run this checklist against the exact commit that will be distributed. Prior veri
 - [ ] `:app:lintDebug` and `:app:lintRelease` pass; any remaining hints are reviewed and understood.
 - [ ] `:app:assembleDebug`, `:app:assembleDebugAndroidTest` and `:app:bundleRelease` pass through the checked-in Gradle Wrapper.
 - [ ] Release optimization remains enabled through AGP `optimization { enable = true }`.
-- [ ] The matching GitHub Actions run is green, including the managed-device instrumentation job.
+- [ ] The matching GitHub Actions run is green, including `signing-smoke` and the managed-device instrumentation job.
 - [ ] CI retains the unsigned release AAB and R8 mapping for inspection; neither is treated as a production artifact.
+- [ ] CI signing uses only the disposable runner keystore; no production upload key or password is present in GitHub Actions.
 - [ ] Release signing/configuration is prepared outside source control and never falls back to debug signing.
+
+## Upload key
+
+- [ ] A dedicated WorkTime upload keystore exists outside the repository.
+- [ ] Keystore and key passwords are stored in a password manager, not in source files or shell scripts.
+- [ ] At least two encrypted backups of the upload keystore exist in separate locations.
+- [ ] The public upload certificate has been exported and its SHA-256 fingerprint recorded.
+- [ ] Play App Signing is configured so the upload key and Play app-signing key are distinct unless a documented cross-store requirement says otherwise.
 
 ## Release artifact
 
 - [ ] Final `versionCode` and `versionName` are set before building the candidate.
-- [ ] The exact candidate is built as an optimized release AAB with production upload-key signing.
-- [ ] The signed AAB is archived together with its commit SHA and matching R8 mapping.
+- [ ] The working tree is clean and the exact candidate commit matches the green CI run.
+- [ ] The candidate is built with `./scripts/build_release_candidate.sh` using the production upload key.
+- [ ] The script reports a verified AAB signature and records the signer SHA-256 fingerprint.
+- [ ] The signer fingerprint matches the upload certificate registered in Play Console.
+- [ ] The signed AAB is archived together with its commit SHA, release-candidate metadata and matching R8 mapping.
 - [ ] The candidate is accepted by Play Internal Testing and installed from Play-generated APKs on a target phone.
 - [ ] No code, resources, signing inputs or version metadata change after the final QA pass without producing a new candidate.
 

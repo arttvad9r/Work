@@ -75,6 +75,42 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  signing-smoke:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_STORE_FILE: ${{ runner.temp }}/worktime-ci-upload.jks
+      RELEASE_STORE_PASSWORD: worktime-ci-signing-only
+      RELEASE_KEY_ALIAS: worktime-ci-upload
+      RELEASE_KEY_PASSWORD: worktime-ci-signing-only
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Create disposable CI upload keystore
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore "$RELEASE_STORE_FILE" \
+            -storetype JKS \
+            -storepass "$RELEASE_STORE_PASSWORD" \
+            -keypass "$RELEASE_KEY_PASSWORD" \
+            -alias "$RELEASE_KEY_ALIAS" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=WorkTime CI Signing Smoke"
+      - name: Build signed optimized release bundle
+        run: ./gradlew --no-daemon :app:bundleRelease --stacktrace
+      - name: Verify release bundle signature
+        run: |
+          verification="$(LC_ALL=C jarsigner -verify app/build/outputs/bundle/release/app-release.aab 2>&1)"
+          printf '%s\n' "$verification"
+          printf '%s\n' "$verification" | grep -Fq "jar verified."
+
   instrumented-tests:
     needs: verify
     runs-on: ubuntu-latest
