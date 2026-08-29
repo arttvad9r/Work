@@ -93,7 +93,8 @@ fi
 
 signer_sha256="$(
   LC_ALL=C "$APKSIGNER" verify --print-certs "$APK" 2>/dev/null \
-    | awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print $2; exit}'
+    | sed -n 's/.*certificate SHA-256 digest: *//p' \
+    | head -n 1
 )"
 if [ -z "$signer_sha256" ]; then
   echo "Could not read the signer SHA-256 fingerprint from the release APK." >&2
