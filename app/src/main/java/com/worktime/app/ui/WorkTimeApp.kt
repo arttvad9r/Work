@@ -8,8 +8,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -212,9 +217,7 @@ fun WorkTimeApp(
                 )
             }
 
-            // Full-screen destinations stay fully opaque. Entry remains a restrained depth cue,
-            // while exit travels completely off-screen toward the logical end edge before
-            // composition removes the destination; partial-width exits visibly snapped away.
+            // Settings keeps the logical-end navigation motion used elsewhere in the app.
             AnimatedVisibility(
                 visible = state.isSettingsOpen,
                 enter = slideInHorizontally(
@@ -272,24 +275,36 @@ fun WorkTimeApp(
                 }
             }
 
+            // The year report behaves like a temporary reveal rather than another horizontal
+            // destination: it rises a short distance from below and disappears back downward.
             AnimatedVisibility(
                 visible = state.isYearSummaryOpen,
-                enter = slideInHorizontally(
-                    animationSpec = spring(
-                        dampingRatio = AppMotion.NoBounceDampingRatio,
-                        stiffness = AppMotion.NavigationStiffness,
+                enter = slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = AppMotion.FastMillis,
+                        easing = AppMotion.StandardEasing,
                     ),
-                    initialOffsetX = { width -> fullScreenDirection * width / 5 },
+                    initialOffsetY = { height -> height / 8 },
+                ) + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = AppMotion.FastMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
                 ),
                 exit = if (yearSummaryPredictiveExit) {
                     ExitTransition.None
                 } else {
-                    slideOutHorizontally(
-                        animationSpec = spring(
-                            dampingRatio = AppMotion.NoBounceDampingRatio,
-                            stiffness = AppMotion.NavigationStiffness,
+                    slideOutVertically(
+                        animationSpec = tween(
+                            durationMillis = AppMotion.FastMillis,
+                            easing = AppMotion.StandardEasing,
                         ),
-                        targetOffsetX = { width -> fullScreenDirection * width },
+                        targetOffsetY = { height -> height / 8 },
+                    ) + fadeOut(
+                        animationSpec = tween(
+                            durationMillis = AppMotion.FastMillis,
+                            easing = AppMotion.StandardEasing,
+                        ),
                     )
                 },
             ) {
@@ -369,8 +384,8 @@ private fun PredictiveBackLayer(
     }
 
     // Composed after the destination's legacy BackHandler so this callback owns system back.
-    // Three-button/hardware back keeps the existing spring exit; only an edge gesture seeks
-    // the destination directly with progress and finishes the remaining travel on commit.
+    // Three-button/hardware back keeps the destination exit; only an edge gesture seeks the
+    // destination directly with progress and finishes the remaining physical-edge travel.
     PredictiveBackHandler(enabled = enabled) { progress ->
         var hasEdgeGesture = false
         var edgeDirection = 1f
