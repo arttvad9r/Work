@@ -63,9 +63,9 @@ Preferred local command:
 ./scripts/verify.sh
 ```
 
-It uses the repository Gradle Wrapper and runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. Physical-device interaction testing remains a separate release gate, especially for IME focus, modal-sheet behavior, calendar gestures and launcher/widget integration.
+It uses the repository Gradle Wrapper and runs the static audit, JVM tests, lint, debug APK assembly and debug instrumentation APK assembly. GitHub Actions runs the same automated gate for pull requests and pushes to `main`.
 
-GitHub Actions runs that terminate before executing workflow steps are treated as runner/account infrastructure failures, not as successful or failed Gradle verification.
+Physical-device interaction testing remains a separate release gate, especially for persistent IME behavior, haptics, modal-sheet behavior, calendar gestures and launcher/widget integration.
 
 See the [Android QA checklist](docs/ANDROID_QA.md) and [release checklist](docs/RELEASE_CHECKLIST.md).
 
