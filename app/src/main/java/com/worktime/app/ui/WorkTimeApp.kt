@@ -1,8 +1,12 @@
 package com.worktime.app.ui
 
+import androidx.activity.BackEventCompat
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -19,9 +23,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -42,6 +50,8 @@ import com.worktime.app.ui.settings.SettingsScreen
 import com.worktime.app.ui.settings.YearSummaryScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
 import java.time.LocalDate
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 @Composable
 fun WorkTimeApp(
@@ -159,6 +169,15 @@ fun WorkTimeApp(
         }
     }
 
+    var settingsPredictiveExit by remember { mutableStateOf(false) }
+    var yearSummaryPredictiveExit by remember { mutableStateOf(false) }
+    LaunchedEffect(state.isSettingsOpen) {
+        if (state.isSettingsOpen) settingsPredictiveExit = false
+    }
+    LaunchedEffect(state.isYearSummaryOpen) {
+        if (state.isYearSummaryOpen) yearSummaryPredictiveExit = false
+    }
+
     WorkTimeTheme(themeMode = state.themeMode) {
         Box(modifier = Modifier.fillMaxSize()) {
             CalendarScreen(
@@ -202,13 +221,17 @@ fun WorkTimeApp(
                     ),
                     initialOffsetX = { width -> width / 5 },
                 ),
-                exit = slideOutHorizontally(
-                    animationSpec = spring(
-                        dampingRatio = AppMotion.NoBounceDampingRatio,
-                        stiffness = AppMotion.NavigationStiffness,
-                    ),
-                    targetOffsetX = { width -> width },
-                ),
+                exit = if (settingsPredictiveExit) {
+                    ExitTransition.None
+                } else {
+                    slideOutHorizontally(
+                        animationSpec = spring(
+                            dampingRatio = AppMotion.NoBounceDampingRatio,
+                            stiffness = AppMotion.NavigationStiffness,
+                        ),
+                        targetOffsetX = { width -> width },
+                    )
+                },
             ) {
                 val operationErrorMessage = when (state.operationError) {
                     CalendarOperationError.SAVE_SETTINGS -> stringResource(R.string.save_settings_failed)
@@ -218,26 +241,32 @@ fun WorkTimeApp(
                         stringResource(R.string.backup_import_rollback_failed)
                     else -> null
                 }
-                SettingsScreen(
-                    defaultHourlyRateMicros = state.defaultHourlyRateMicros,
-                    themeMode = state.themeMode,
-                    operationErrorMessage = operationErrorMessage,
+                PredictiveBackLayer(
+                    enabled = state.isSettingsOpen,
+                    onPredictiveCommit = { settingsPredictiveExit = true },
                     onDismiss = viewModel::dismissSettings,
-                    onThemeChange = viewModel::updateThemeMode,
-                    onRateChange = viewModel::updateDefaultRate,
-                    onOpenChangeRate = { viewModel.openChangeRate(null) },
-                    onExportData = {
-                        exportLauncher.launch("worktime-backup-" + LocalDate.now() + ".json")
-                    },
-                    onExportCsv = {
-                        csvExportLauncher.launch("worktime-" + LocalDate.now() + ".csv")
-                    },
-                    onImportData = {
-                        importLauncher.launch(
-                            arrayOf("application/json", "application/octet-stream", "text/plain"),
-                        )
-                    },
-                )
+                ) {
+                    SettingsScreen(
+                        defaultHourlyRateMicros = state.defaultHourlyRateMicros,
+                        themeMode = state.themeMode,
+                        operationErrorMessage = operationErrorMessage,
+                        onDismiss = viewModel::dismissSettings,
+                        onThemeChange = viewModel::updateThemeMode,
+                        onRateChange = viewModel::updateDefaultRate,
+                        onOpenChangeRate = { viewModel.openChangeRate(null) },
+                        onExportData = {
+                            exportLauncher.launch("worktime-backup-" + LocalDate.now() + ".json")
+                        },
+                        onExportCsv = {
+                            csvExportLauncher.launch("worktime-" + LocalDate.now() + ".csv")
+                        },
+                        onImportData = {
+                            importLauncher.launch(
+                                arrayOf("application/json", "application/octet-stream", "text/plain"),
+                            )
+                        },
+                    )
+                }
             }
 
             AnimatedVisibility(
@@ -249,20 +278,30 @@ fun WorkTimeApp(
                     ),
                     initialOffsetX = { width -> width / 5 },
                 ),
-                exit = slideOutHorizontally(
-                    animationSpec = spring(
-                        dampingRatio = AppMotion.NoBounceDampingRatio,
-                        stiffness = AppMotion.NavigationStiffness,
-                    ),
-                    targetOffsetX = { width -> width },
-                ),
+                exit = if (yearSummaryPredictiveExit) {
+                    ExitTransition.None
+                } else {
+                    slideOutHorizontally(
+                        animationSpec = spring(
+                            dampingRatio = AppMotion.NoBounceDampingRatio,
+                            stiffness = AppMotion.NavigationStiffness,
+                        ),
+                        targetOffsetX = { width -> width },
+                    )
+                },
             ) {
-                YearSummaryScreen(
-                    summary = state.yearSummary,
+                PredictiveBackLayer(
+                    enabled = state.isYearSummaryOpen,
+                    onPredictiveCommit = { yearSummaryPredictiveExit = true },
                     onDismiss = viewModel::dismissYearSummary,
-                    onPreviousYear = viewModel::showPreviousYear,
-                    onNextYear = viewModel::showNextYear,
-                )
+                ) {
+                    YearSummaryScreen(
+                        summary = state.yearSummary,
+                        onDismiss = viewModel::dismissYearSummary,
+                        onPreviousYear = viewModel::showPreviousYear,
+                        onNextYear = viewModel::showNextYear,
+                    )
+                }
             }
 
             if (state.isChangeRateSheetOpen) {
@@ -293,6 +332,79 @@ fun WorkTimeApp(
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
             )
+        }
+    }
+}
+
+@Composable
+private fun PredictiveBackLayer(
+    enabled: Boolean,
+    onPredictiveCommit: () -> Unit,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val backOffsetFraction = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(enabled) {
+        if (enabled && backOffsetFraction.value != 0f) {
+            backOffsetFraction.snapTo(0f)
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                translationX = size.width * backOffsetFraction.value
+            },
+    ) {
+        content()
+    }
+
+    // Composed after the destination's legacy BackHandler so this callback owns system back.
+    // Three-button/hardware back keeps the existing spring exit; only an edge gesture seeks
+    // the destination directly with progress and finishes the remaining travel on commit.
+    PredictiveBackHandler(enabled = enabled) { progress ->
+        var hasEdgeGesture = false
+        var edgeDirection = 1f
+        try {
+            progress.collect { backEvent ->
+                val direction = when (backEvent.swipeEdge) {
+                    BackEventCompat.EDGE_LEFT -> 1f
+                    BackEventCompat.EDGE_RIGHT -> -1f
+                    else -> 0f
+                }
+                if (direction != 0f) {
+                    hasEdgeGesture = true
+                    edgeDirection = direction
+                    backOffsetFraction.snapTo(backEvent.progress * direction)
+                }
+            }
+            if (hasEdgeGesture) {
+                backOffsetFraction.animateTo(
+                    targetValue = edgeDirection,
+                    animationSpec = spring(
+                        dampingRatio = AppMotion.NoBounceDampingRatio,
+                        stiffness = AppMotion.NavigationStiffness,
+                    ),
+                )
+                onPredictiveCommit()
+            }
+            onDismiss()
+        } catch (cancellation: CancellationException) {
+            if (hasEdgeGesture) {
+                scope.launch {
+                    backOffsetFraction.animateTo(
+                        targetValue = 0f,
+                        animationSpec = spring(
+                            dampingRatio = AppMotion.NoBounceDampingRatio,
+                            stiffness = AppMotion.NavigationStiffness,
+                        ),
+                    )
+                }
+            }
+            throw cancellation
         }
     }
 }
