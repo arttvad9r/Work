@@ -8,6 +8,7 @@
     android:targetCellHeight="1"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/work_time_widget"
+    android:previewLayout="@layout/work_time_widget_preview"
     android:resizeMode="horizontal"
     android:widgetCategory="home_screen"
     tools:ignore="UnusedAttribute" />
