@@ -1,13 +1,19 @@
 package com.worktime.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.worktime.app.ui.WorkTimeApp
 
 class MainActivity : ComponentActivity() {
+    private var openTodayRequest by mutableLongStateOf(0L)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -21,13 +27,25 @@ class MainActivity : ComponentActivity() {
         }
 
         enableEdgeToEdge()
+        consumeLaunchIntent(intent)
         val container = (application as WorkTimeApplication).container
-        val openTodayOnStart = intent.getBooleanExtra(EXTRA_OPEN_TODAY, false)
         setContent {
             WorkTimeApp(
                 container = container,
-                openTodayOnStart = openTodayOnStart,
+                openTodayRequest = openTodayRequest,
             )
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        consumeLaunchIntent(intent)
+    }
+
+    private fun consumeLaunchIntent(intent: Intent) {
+        if (intent.getBooleanExtra(EXTRA_OPEN_TODAY, false)) {
+            openTodayRequest++
         }
     }
 
