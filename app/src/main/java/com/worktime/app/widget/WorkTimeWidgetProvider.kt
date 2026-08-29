@@ -79,7 +79,7 @@ class WorkTimeWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action in TIME_INVALIDATION_ACTIONS) {
+        if (intent.action in TIME_INVALIDATION_ACTIONS && hasInstalledWidgets(context)) {
             val pendingResult = goAsync()
             val container = (context.applicationContext as WorkTimeApplication).container
             ensureWidgetObservation(
@@ -118,22 +118,26 @@ private val TIME_INVALIDATION_ACTIONS = setOf(
     Intent.ACTION_TIMEZONE_CHANGED,
 )
 
+private fun hasInstalledWidgets(context: Context): Boolean {
+    val appContext = context.applicationContext
+    return AppWidgetManager.getInstance(appContext)
+        .getAppWidgetIds(ComponentName(appContext, WorkTimeWidgetProvider::class.java))
+        .isNotEmpty()
+}
+
 fun ensureWidgetObservation(
     context: Context,
     workEntryRepository: WorkEntryRepository,
     userPreferencesRepository: UserPreferencesRepository,
 ) {
-    val appContext = context.applicationContext
-    val manager = AppWidgetManager.getInstance(appContext)
-    val widgetIds = manager.getAppWidgetIds(ComponentName(appContext, WorkTimeWidgetProvider::class.java))
-    if (widgetIds.isEmpty()) {
+    if (!hasInstalledWidgets(context)) {
         stopWidgetObservation()
         return
     }
     if (widgetObserverJob?.isActive == true) return
 
     widgetObserverJob = observeForWidget(
-        context = appContext,
+        context = context.applicationContext,
         workEntryRepository = workEntryRepository,
         userPreferencesRepository = userPreferencesRepository,
     )
