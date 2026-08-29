@@ -20,7 +20,7 @@ Run this checklist against the exact commit and APK that will be published. Prio
 - [ ] Keystore and key passwords are stored in a password manager, not source files or shell scripts.
 - [ ] At least two encrypted backups of the release keystore exist in separate locations.
 - [ ] The public signing certificate has been exported and its SHA-256 fingerprint recorded.
-- [ ] The GitHub Actions release secrets contain only the required release signing inputs.
+- [ ] The permanent private signing key is not stored in GitHub Actions or release assets.
 - [ ] The private release key is treated as permanent Android update identity; it is not replaced between releases.
 
 ## Version and candidate
@@ -28,18 +28,20 @@ Run this checklist against the exact commit and APK that will be published. Prio
 - [ ] `versionCode` is greater than the previous public release.
 - [ ] Final `versionName` matches the intended Git tag `v<versionName>`.
 - [ ] The candidate commit is contained in `main` and its full Android CI run is green.
-- [ ] The release tag points exactly to that tested commit.
-- [ ] `./scripts/build_release_candidate.sh` produces a signed optimized APK, checksum file, metadata and R8 mapping.
+- [ ] `./scripts/build_release_candidate.sh` is run locally with the permanent WorkTime signing key.
+- [ ] The script produces a signed optimized APK, checksum file, metadata and R8 mapping.
 - [ ] `apksigner` verification passes and the recorded signer SHA-256 matches the permanent WorkTime certificate.
 - [ ] APK SHA-256 in `SHA256SUMS.txt` matches the candidate file.
-- [ ] No code, resources, signing inputs or version metadata change after final QA without producing a new candidate and tag.
+- [ ] The release tag points exactly to that tested commit and is pushed to `origin`.
+- [ ] No code, resources, signing inputs or version metadata change after candidate creation without producing a new candidate and tag.
 
 ## GitHub Release
 
-- [ ] Pushing `v<versionName>` creates a **draft** GitHub Release through `.github/workflows/release.yml`.
+- [ ] `./scripts/create_github_release.sh` validates the candidate metadata/checksum and the local/remote `v<versionName>` tag.
+- [ ] The helper creates a **draft** GitHub Release without rebuilding or resigning the APK.
 - [ ] The draft contains `WorkTime-<version>.apk`, `SHA256SUMS.txt`, release metadata and the matching R8 mapping.
-- [ ] The APK downloaded from the draft release has the same SHA-256 recorded by the build.
-- [ ] The downloaded APK has the expected signer certificate.
+- [ ] The APK downloaded back from the draft has the same SHA-256 recorded by the build.
+- [ ] The downloaded APK has the expected permanent signer certificate.
 - [ ] Release notes are reviewed for user-visible changes and known limitations.
 - [ ] The release remains draft until physical-device QA of that exact downloaded APK is complete.
 - [ ] After QA, the existing draft is published; the APK is not rebuilt or replaced.
@@ -85,6 +87,6 @@ Run this checklist against the exact commit and APK that will be published. Prio
 - [ ] Final dependency graph and merged manifest contain no unexpected network, analytics, advertising or privacy-sensitive permission changes.
 - [ ] Backup/device-transfer behavior matches `docs/PRIVACY.md` on the release build.
 - [ ] In-app Privacy & data disclosure still matches actual behavior.
-- [ ] No private signing material, passwords, user data or sensitive logs are present in release assets or workflow output.
+- [ ] No private signing material, passwords, user data or sensitive logs are present in release assets or CI output.
 
 The release is not considered device-verified until the exact APK downloaded from the draft GitHub Release has been tested and its device model, Android version, commit, checksum and signer fingerprint have been recorded.
