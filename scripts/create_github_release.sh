@@ -1,0 +1,101 @@
+#!/usr/bin/env sh
+set -eu
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+cd "$ROOT"
+
+for tool in git gh; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "Required tool is missing: $tool" >&2
+    exit 2
+  fi
+done
+
+if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
+  echo "Refusing to create a release from a dirty working tree." >&2
+  exit 2
+fi
+
+version_code="$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)"
+version_name="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
+commit="$(git rev-parse HEAD)"
+tag="v$version_name"
+out="app/build/outputs/release-candidate"
+apk="$out/WorkTime-$version_name.apk"
+checksums="$out/SHA256SUMS.txt"
+metadata="$out/metadata.txt"
+mapping="$out/WorkTime-$version_name-mapping.txt"
+
+if [ -z "$version_code" ] || [ -z "$version_name" ]; then
+  echo "Could not read versionCode/versionName from app/build.gradle.kts." >&2
+  exit 1
+fi
+
+for file in "$apk" "$checksums" "$metadata" "$mapping"; do
+  if [ ! -s "$file" ]; then
+    echo "Release candidate output is missing: $file" >&2
+    echo "Run ./scripts/build_release_candidate.sh first." >&2
+    exit 1
+  fi
+done
+
+if ! grep -Fqx "commit=$commit" "$metadata"; then
+  echo "Release metadata does not match current commit $commit." >&2
+  exit 1
+fi
+if ! grep -Fqx "versionCode=$version_code" "$metadata"; then
+  echo "Release metadata does not match versionCode $version_code." >&2
+  exit 1
+fi
+if ! grep -Fqx "versionName=$version_name" "$metadata"; then
+  echo "Release metadata does not match versionName $version_name." >&2
+  exit 1
+fi
+
+if command -v sha256sum >/dev/null 2>&1; then
+  (cd "$out" && sha256sum -c SHA256SUMS.txt)
+elif command -v shasum >/dev/null 2>&1; then
+  expected="$(awk '{print $1; exit}' "$checksums")"
+  actual="$(shasum -a 256 "$apk" | awk '{print $1}')"
+  if [ "$expected" != "$actual" ]; then
+    echo "Release APK SHA-256 does not match SHA256SUMS.txt." >&2
+    exit 1
+  fi
+else
+  echo "Neither sha256sum nor shasum is available." >&2
+  exit 2
+fi
+
+if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+  echo "Local release tag $tag does not exist." >&2
+  echo "Create and push the tag only after the candidate commit has passed CI and device QA." >&2
+  exit 1
+fi
+
+if [ "$(git rev-list -n 1 "$tag")" != "$commit" ]; then
+  echo "Tag $tag does not point to current commit $commit." >&2
+  exit 1
+fi
+
+if ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+  echo "Tag $tag has not been pushed to origin." >&2
+  exit 1
+fi
+
+if gh release view "$tag" >/dev/null 2>&1; then
+  echo "GitHub Release for $tag already exists; refusing to replace it." >&2
+  exit 1
+fi
+
+gh release create "$tag" \
+  "$apk" \
+  "$checksums" \
+  "$metadata" \
+  "$mapping" \
+  --verify-tag \
+  --draft \
+  --generate-notes \
+  --title "WorkTime $version_name"
+
+printf 'Draft GitHub Release created for %s.\n' "$tag"
+printf 'Publish it only after testing the exact APK downloaded from the draft release.\n'
