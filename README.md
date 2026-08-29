@@ -4,7 +4,7 @@
 
 No account, no cloud sync, no analytics and no ads. Data stays on the device unless you explicitly export it.
 
-[**Download the latest APK**](https://github.com/arttvad9r/Work/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy](docs/PRIVACY.md) · [Documentation](docs/README.md)
+[**Download the latest APK**](https://github.com/arttvad9r/Work/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy](docs/PRIVACY.md) · [License](LICENSE) · [Documentation](docs/README.md)
 
 ## Screenshots
 
@@ -114,4 +114,6 @@ For release signing and the GitHub Releases workflow, see [`docs/RELEASE_SIGNING
 
 ## License
 
-No open-source license has been selected. The repository is **all rights reserved** until a license is added.
+WorkTime is open-source software released under the [MIT License](LICENSE).
+
+Copyright (c) 2026 arttvad9r.
