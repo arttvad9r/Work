@@ -45,21 +45,22 @@ The repository keeps an optional Nix/FHS environment for reproducibility and for
 
 ## CI
 
-`.github/workflows/android.yml` checks out source, installs Java, configures Gradle caching and executes the same checked-in wrapper for static audit, JVM tests, lint and APK builds. Third-party actions are pinned to immutable commit SHAs; the current action set uses Node 24-native releases.
+`.github/workflows/android.yml` runs for pull requests and pushes to `main`. It checks out source, installs Java, validates the Gradle Wrapper, configures Gradle caching and runs the same static audit, JVM tests, lint and APK compilation gate described above.
 
-GitHub Actions runs may fail before job steps begin because of account/runner availability. A run with no executed verification steps is an infrastructure result: it is neither successful Gradle verification nor evidence of a compiler/test defect.
+Third-party actions are pinned to immutable commit SHAs and use Node 24-native releases. Verification reports and the debug APK are uploaded as short-lived workflow artifacts.
 
-When runner capacity is available, rerun CI on the current `main` candidate and retain APK/test/lint artifacts.
+A red CI run must be classified from its actual logs rather than assumed to be infrastructure. Test synchronization should wait for observable operation completion instead of relying on `advanceUntilIdle()` when production work runs in `viewModelScope` outside the coroutine-test scheduler.
 
 ## Device verification
 
-Automated verification does not replace physical-device QA for the interaction paths that previously depended on OEM behavior. Recheck at minimum:
+Automated verification does not replace physical-device QA for the interaction paths that depend on OEM behavior. Recheck at minimum:
 
 - persistent numeric-editor/IME transitions;
+- haptic feedback on the intentionally limited interaction set;
 - modal-sheet tap/drag/insets;
 - calendar gestures and contextual `Fill today`;
 - system document picker import/export;
-- home-screen widget refresh/tap-through;
+- home-screen widget refresh/tap-through and compact layout;
 - launcher icon presentation after install/update.
 
 Record exact device model, Android version and tested commit for a release candidate.

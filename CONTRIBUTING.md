@@ -18,7 +18,15 @@ Keep WorkTime a small calendar-first personal timesheet. Do not add notes, quick
 
 6. Execute the relevant physical-device checklist in `docs/ANDROID_QA.md` for UI changes.
 
-Do not report a build, test or device result as passed unless the command/test actually ran to completion. Infrastructure/account failures must be recorded separately from code failures.
+Do not report a build, test or device result as passed unless the command/test actually ran to completion. Infrastructure failures must be recorded separately from code failures.
+
+## Repository hygiene
+
+- Use short-lived branches for isolated changes and delete them after their work is merged or superseded.
+- Keep `main` and the current documentation as the source of truth; historical implementation snapshots belong in Git history.
+- Close dependency-update pull requests when the same version is already present through another verified change.
+- Keep CI actions pinned to immutable commit SHAs and let Dependabot group routine ecosystem updates instead of accumulating parallel one-package pull requests.
+- Do not keep placeholder files in directories that already contain tracked generated/required artifacts.
 
 ## UI expectations
 

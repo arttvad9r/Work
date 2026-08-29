@@ -5,7 +5,6 @@
 - [`PRODUCT.md`](PRODUCT.md) — current product scope and business rules.
 - [`UX.md`](UX.md) — current calendar, editor, reports and settings behavior.
 - [`UI_SYSTEM.md`](UI_SYSTEM.md) — canonical component, spacing, typography and color contract.
-- [`PRODUCT_SPEC_V0.2.md`](PRODUCT_SPEC_V0.2.md) — frozen historical compact-product specification; use `PRODUCT.md` for current behavior.
 
 ## Engineering
 
@@ -25,4 +24,4 @@
 - [`PRIVACY.md`](PRIVACY.md) — local data and privacy posture.
 - [`../CHANGELOG.md`](../CHANGELOG.md) — canonical changelog.
 
-`main` is the source of truth after a feature branch is merged. Documentation describing transient experiments should be removed or clearly marked historical rather than kept as a second current specification.
+`main` is the source of truth for current behavior. Superseded specifications and transient experiment notes belong in Git history rather than as parallel current documentation.

@@ -1,13 +1,15 @@
 # Release checklist
 
-## Build
+Run this checklist against the exact commit that will be distributed. Prior verification from another commit is supporting evidence, not a substitute for the final candidate gate.
 
-- [ ] Static audit passes on current head.
-- [ ] JVM tests pass on current head.
-- [ ] Android lint passes on current head.
-- [ ] Debug APK and instrumentation APK assemble through the checked-in Gradle Wrapper.
+## Automated build gate
+
+- [ ] `python3 scripts/static_audit.py` passes on the exact release candidate.
+- [ ] `:app:testDebugUnitTest` passes with no failed or skipped regression tests.
+- [ ] `:app:lintDebug` passes; any remaining hints are reviewed and understood.
+- [ ] `:app:assembleDebug` and `:app:assembleDebugAndroidTest` pass through the checked-in Gradle Wrapper.
+- [ ] The matching GitHub Actions run is green and retains verification-report/debug-APK artifacts.
 - [ ] Release signing/configuration is prepared outside source control.
-- [ ] If GitHub Actions cannot start because of account usage limits, record that separately and retain local wrapper output instead of treating the empty run as a build result.
 
 ## Functional QA
 
@@ -20,20 +22,23 @@
 - [ ] Repeated report open/collapse cycles keep the same peek height and anchors.
 - [ ] Holding the report handle never shows Material's drag-handle tooltip.
 - [ ] Persistence failure path retains the draft/settings surface and shows transient feedback.
+- [ ] JSON import rollback preserves the previous Room/DataStore state when preference restore is forced to fail.
 
 ## UI/accessibility
 
 - [ ] App remains portrait-only.
-- [ ] Calendar never scrolls or jumps.
+- [ ] Calendar never vertically scrolls or jumps; horizontal month swipes track the finger and settle on the expected month.
 - [ ] Russian labels fit, including `Системная` and `Отработано часов`.
 - [ ] Invalid numeric input uses red outline only; no validation helper text appears.
-- [ ] Numeric IME stays visible while moving between editor fields.
+- [ ] Numeric IME stays visible while moving between duration/rate/bonus/penalty.
 - [ ] Expanding bonus/penalty does not close/reopen the keyboard or move the modal sheet.
+- [ ] Intended haptics occur only on the documented interaction set; ordinary navigation remains silent.
 - [ ] Settings initial `0` is selected on focus without changing sheet height.
 - [ ] Save is reachable after keyboard dismissal.
 - [ ] Narrow portrait screen and 200% font-scale passes complete.
 - [ ] Light/dark contrast and TalkBack checks complete.
 - [ ] Fixed `₽` and `₽/h` labels are readable in the supported locales.
+- [ ] Home-screen widget theme, layout, body tap and `+` action are verified on the target launcher.
 - [ ] Final launcher/store assets approved.
 
 ## Privacy/release
@@ -44,4 +49,4 @@
 - [ ] Version code/name and release notes finalized.
 - [ ] Internal testing and pre-launch report completed.
 
-The `main` baseline has already been exercised on physical hardware. Any branch that changes IME, insets or sheet gestures still requires the focused device checks above before merge/release.
+The merged feature set has automated coverage, but the release is not considered device-verified until a fresh run records the exact phone, Android version and release-candidate commit.
