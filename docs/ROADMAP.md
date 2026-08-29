@@ -17,17 +17,19 @@ Implemented:
 - optional home-screen month-summary widget with app-theme integration and direct today-entry action;
 - portrait-only layout with focused OEM IME/sheet stabilization work;
 - current Gradle/JUnit/CI toolchain and shared wrapper verification;
-- optimized release build, signing smoke and real managed-device instrumentation in CI;
+- optimized release APK build, disposable signing smoke and real managed-device instrumentation in CI;
 - in-app privacy/data disclosure.
 
 The current priority is release verification, not feature expansion. Automated build/test/lint belongs to every merge gate; remaining release confidence depends on physical-device interaction checks, permanent APK signing and GitHub Release packaging.
 
 ## Next — GitHub release verification
 
-- create and securely back up the permanent WorkTime app-signing key;
-- configure the four GitHub Actions release signing secrets;
-- set final `versionCode` / `versionName` and tag the tested `main` commit as `v<versionName>`;
-- let the tag workflow create a draft GitHub Release with signed optimized APK, checksum, metadata and R8 mapping;
+- create and securely back up the permanent WorkTime app-signing key outside GitHub;
+- record the public signing certificate SHA-256 fingerprint;
+- set final `versionCode` / `versionName` on a green `main` commit;
+- build the signed optimized APK locally with `scripts/build_release_candidate.sh`;
+- create and push the matching `v<versionName>` tag;
+- create a draft GitHub Release from the already-signed candidate with `scripts/create_github_release.sh`;
 - download that exact draft APK and verify fresh install plus update over the previous public APK;
 - complete focused physical-phone QA for persistent IME behavior, haptics, sheets, calendar gestures, import/export and widget tap-through/layout;
 - verify supported large-font/narrow-screen accessibility behavior and TalkBack semantics;
