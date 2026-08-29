@@ -52,7 +52,7 @@ private const val ScreenFadeMillis = 180
 @Composable
 fun WorkTimeApp(
     container: AppContainer,
-    openTodayOnStart: Boolean = false,
+    openTodayRequest: Long = 0L,
 ) {
     val viewModel: CalendarViewModel = viewModel(
         factory = CalendarViewModel.factory(
@@ -64,8 +64,8 @@ fun WorkTimeApp(
     val snackbarHostState = remember { SnackbarHostState() }
     val haptics = LocalHapticFeedback.current
 
-    LaunchedEffect(viewModel, openTodayOnStart) {
-        if (openTodayOnStart) {
+    LaunchedEffect(viewModel, openTodayRequest) {
+        if (openTodayRequest > 0L) {
             viewModel.selectDate(LocalDate.now())
         }
     }
