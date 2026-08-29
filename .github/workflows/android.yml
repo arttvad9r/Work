@@ -80,7 +80,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      RELEASE_STORE_FILE: ${{ runner.temp }}/worktime-ci-upload.jks
       RELEASE_STORE_PASSWORD: worktime-ci-signing-only
       RELEASE_KEY_ALIAS: worktime-ci-upload
       RELEASE_KEY_PASSWORD: worktime-ci-signing-only
@@ -91,6 +90,8 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Set disposable keystore path
+        run: echo "RELEASE_STORE_FILE=$RUNNER_TEMP/worktime-ci-upload.jks" >> "$GITHUB_ENV"
       - name: Create disposable CI upload keystore
         run: |
           keytool -genkeypair -noprompt \
@@ -103,13 +104,10 @@ jobs:
             -keysize 2048 \
             -validity 10000 \
             -dname "CN=WorkTime CI Signing Smoke"
-      - name: Build signed optimized release bundle
-        run: ./gradlew --no-daemon :app:bundleRelease --stacktrace
-      - name: Verify release bundle signature
-        run: |
-          verification="$(LC_ALL=C jarsigner -verify app/build/outputs/bundle/release/app-release.aab 2>&1)"
-          printf '%s\n' "$verification"
-          printf '%s\n' "$verification" | grep -Fq "jar verified."
+      - name: Build and verify signed release candidate
+        run: ./scripts/build_release_candidate.sh
+      - name: Verify release metadata exists
+        run: test -s app/build/outputs/release-candidate/metadata.txt
 
   instrumented-tests:
     needs: verify
