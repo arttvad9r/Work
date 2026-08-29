@@ -1,13 +1,8 @@
 package com.worktime.app.ui.settings
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -63,12 +60,38 @@ fun YearSummaryScreen(
     onNextYear: () -> Unit,
 ) {
     val locale = LocalLocale.current.platformLocale
+    val density = LocalDensity.current
     var displayedSummary by remember { mutableStateOf<YearSummary?>(summary) }
+    val contentOffset = remember { Animatable(0f) }
+    val settleTravelPx = with(density) { 12.dp.toPx() }
 
-    // A year query briefly reports loading. Keep the previous year on screen until the
-    // new rows arrive so paging reads as one continuous transition instead of a spinner flash.
-    LaunchedEffect(summary) {
-        if (summary != null) displayedSummary = summary
+    // Keep the previous report visible while the next query is loading, then replace it as
+    // one layer. The incoming layer receives a tiny directional settle of its own; there is
+    // never an outgoing + incoming pair that can paint dense rows on top of each other.
+    LaunchedEffect(summary, settleTravelPx) {
+        val next = summary ?: return@LaunchedEffect
+        if (next == displayedSummary) return@LaunchedEffect
+
+        val previousYear = displayedSummary?.year
+        val direction = when {
+            previousYear == null || next.year == previousYear -> 0f
+            next.year > previousYear -> 1f
+            else -> -1f
+        }
+
+        contentOffset.snapTo(direction * settleTravelPx)
+        displayedSummary = next
+        if (direction != 0f) {
+            contentOffset.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = AppMotion.NoBounceDampingRatio,
+                    stiffness = AppMotion.NavigationStiffness,
+                ),
+            )
+        } else {
+            contentOffset.snapTo(0f)
+        }
     }
 
     BackHandler(onBack = onDismiss)
@@ -100,36 +123,15 @@ fun YearSummaryScreen(
                             contentDescription = stringResource(R.string.previous_year),
                         )
                     }
-                    AnimatedContent(
-                        targetState = displayedSummary?.year,
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        transitionSpec = {
-                            val forward = (targetState ?: Int.MIN_VALUE) > (initialState ?: Int.MIN_VALUE)
-                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 7 else -width / 7 }
-                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 7 else width / 7 }
-                            slideInHorizontally(
-                                animationSpec = tween(
-                                    durationMillis = AppMotion.StandardMillis,
-                                    easing = AppMotion.StandardEasing,
-                                ),
-                                initialOffsetX = enterOffset,
-                            ) togetherWith slideOutHorizontally(
-                                animationSpec = tween(
-                                    durationMillis = AppMotion.StandardMillis,
-                                    easing = AppMotion.StandardEasing,
-                                ),
-                                targetOffsetX = exitOffset,
-                            )
-                        },
-                        label = "year title",
-                    ) { year ->
-                        Text(
-                            text = year?.toString().orEmpty(),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
+                    Text(
+                        text = displayedSummary?.year?.toString().orEmpty(),
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp)
+                            .graphicsLayer { translationX = contentOffset.value },
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Medium,
+                    )
                     IconButton(onClick = onNextYear) {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -150,37 +152,14 @@ fun YearSummaryScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                AnimatedContent(
-                    targetState = shownSummary,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    transitionSpec = {
-                        if (targetState.year == initialState.year) {
-                            EnterTransition.None togetherWith ExitTransition.None
-                        } else {
-                            val forward = targetState.year > initialState.year
-                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 10 else -width / 10 }
-                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 10 else width / 10 }
-                            slideInHorizontally(
-                                animationSpec = tween(
-                                    durationMillis = AppMotion.StandardMillis,
-                                    easing = AppMotion.StandardEasing,
-                                ),
-                                initialOffsetX = enterOffset,
-                            ) togetherWith slideOutHorizontally(
-                                animationSpec = tween(
-                                    durationMillis = AppMotion.StandardMillis,
-                                    easing = AppMotion.StandardEasing,
-                                ),
-                                targetOffsetX = exitOffset,
-                            )
-                        }
-                    },
-                    label = "year summary content",
-                ) { shown ->
+                        .weight(1f)
+                        .graphicsLayer { translationX = contentOffset.value },
+                ) {
                     YearSummaryContent(
-                        summary = shown,
+                        summary = shownSummary,
                         locale = locale,
                     )
                 }
