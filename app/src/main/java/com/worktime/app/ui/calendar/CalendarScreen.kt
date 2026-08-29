@@ -1,6 +1,8 @@
 package com.worktime.app.ui.calendar
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -103,6 +105,7 @@ import kotlinx.coroutines.launch
 
 private const val PagerPageCount = 24_001
 private const val PagerAnchorPage = PagerPageCount / 2
+private const val PagerPositionResyncTolerance = 0.08f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,12 +131,13 @@ fun CalendarScreen(
     )
     val pagerFlingBehavior = PagerDefaults.flingBehavior(
         state = pagerState,
-        snapAnimationSpec = tween(
-            durationMillis = AppMotion.StandardMillis,
-            easing = AppMotion.StandardEasing,
+        snapAnimationSpec = spring(
+            dampingRatio = AppMotion.NoBounceDampingRatio,
+            stiffness = AppMotion.PagerStiffness,
         ),
         snapPositionalThreshold = 0.35f,
     )
+    val programmaticPosition = remember { Animatable(PagerAnchorPage.toFloat()) }
     var programmaticPage by remember { mutableStateOf<Int?>(null) }
     var programmaticScrollJob by remember { mutableStateOf<Job?>(null) }
 
@@ -175,42 +179,71 @@ fun CalendarScreen(
         }
     }
 
+    // Arrow presses drive one virtual page position rather than starting independent fixed-time
+    // animations. Re-targeting keeps the current spring velocity, so repeated taps accumulate
+    // naturally instead of being dropped or restarting from rest at every intermediate month.
     val animateToPage: (Int) -> Unit = { requestedPage ->
         val targetPage = requestedPage.coerceIn(0, PagerPageCount - 1)
         if (programmaticScrollJob?.isActive != true || programmaticPage != targetPage) {
+            val wasRunning = programmaticScrollJob?.isActive == true
+            val carriedVelocity = if (wasRunning) programmaticPosition.velocity else 0f
             programmaticPage = targetPage
             programmaticScrollJob?.cancel()
             programmaticScrollJob = scope.launch {
-                pagerState.animateScrollToPage(
-                    page = targetPage,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.StandardMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
+                val actualPosition =
+                    pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction
+                if (
+                    !wasRunning ||
+                    abs(programmaticPosition.value - actualPosition) > PagerPositionResyncTolerance
+                ) {
+                    programmaticPosition.snapTo(actualPosition)
+                }
+
+                val pageSizePx = pagerState.layoutInfo.pageSize.toFloat()
+                if (pageSizePx <= 0f) {
+                    pagerState.scrollToPage(targetPage)
+                    programmaticPosition.snapTo(targetPage.toFloat())
+                    return@launch
+                }
+
+                pagerState.scroll {
+                    val scrollScope = this
+                    var consumedPosition = programmaticPosition.value
+                    programmaticPosition.animateTo(
+                        targetValue = targetPage.toFloat(),
+                        animationSpec = spring(
+                            dampingRatio = AppMotion.NoBounceDampingRatio,
+                            stiffness = AppMotion.PagerStiffness,
+                        ),
+                        initialVelocity = carriedVelocity,
+                    ) {
+                        val deltaPages = value - consumedPosition
+                        val consumedPx = scrollScope.scrollBy(deltaPages * pageSizePx)
+                        consumedPosition += consumedPx / pageSizePx
+                    }
+                }
+
+                programmaticPosition.snapTo(
+                    pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction,
                 )
             }
         }
     }
 
     // External month changes (month picker, restored state) move the pager to the same month.
-    // Adjacent changes use the same short directional travel as the arrows; large jumps are immediate.
+    // Adjacent changes use the same interruptible spring as the arrows; large jumps stay immediate.
     LaunchedEffect(state.visibleMonth) {
         val targetPage = pageForMonth(state.visibleMonth)
         if (targetPage !in 0 until PagerPageCount || targetPage == pagerState.settledPage) {
             return@LaunchedEffect
         }
-        programmaticPage = targetPage
-        programmaticScrollJob?.cancel()
         if (abs(targetPage - pagerState.currentPage) <= 1) {
-            pagerState.animateScrollToPage(
-                page = targetPage,
-                animationSpec = tween(
-                    durationMillis = AppMotion.StandardMillis,
-                    easing = AppMotion.StandardEasing,
-                ),
-            )
+            animateToPage(targetPage)
         } else {
+            programmaticPage = targetPage
+            programmaticScrollJob?.cancel()
             pagerState.scrollToPage(targetPage)
+            programmaticPosition.snapTo(targetPage.toFloat())
         }
     }
 
@@ -221,12 +254,12 @@ fun CalendarScreen(
         snapshotFlow { pagerState.settledPage }.collect { settledPage ->
             if (settledPage == previousSettledPage) return@collect
 
-            val userDriven = programmaticPage != settledPage
+            val expectedProgrammaticPage = programmaticPage
+            val userDriven = expectedProgrammaticPage == null || expectedProgrammaticPage != settledPage
             if (userDriven) {
                 haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-            } else {
-                programmaticPage = null
             }
+            programmaticPage = null
 
             val settledMonth = monthForPage(settledPage)
             if (settledMonth != state.visibleMonth) {
@@ -287,13 +320,15 @@ fun CalendarScreen(
                 locale = locale,
                 onPreviousMonth = {
                     closeSummaryBehind {
-                        val target = pagerState.settledPage - 1
+                        val basePage = programmaticPage ?: pagerState.currentPage
+                        val target = basePage - 1
                         if (target >= 0) animateToPage(target) else onPreviousMonth()
                     }
                 },
                 onNextMonth = {
                     closeSummaryBehind {
-                        val target = pagerState.settledPage + 1
+                        val basePage = programmaticPage ?: pagerState.currentPage
+                        val target = basePage + 1
                         if (target < PagerPageCount) animateToPage(target) else onNextMonth()
                     }
                 },
