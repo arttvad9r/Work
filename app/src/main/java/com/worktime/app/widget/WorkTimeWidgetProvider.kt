@@ -38,7 +38,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 
@@ -239,7 +238,7 @@ private fun widgetPalette(context: Context, themeMode: ThemeMode): WidgetPalette
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
         ThemeMode.SYSTEM ->
-            context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
                 Configuration.UI_MODE_NIGHT_YES
     }
     return if (dark) {
@@ -271,8 +270,10 @@ private fun widgetMonthLabel(month: YearMonth): String {
 
 private fun openAppPendingIntent(context: Context, openToday: Boolean): PendingIntent {
     val intent = Intent(context, MainActivity::class.java).apply {
-        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        if (openToday) putExtra(MainActivity.EXTRA_OPEN_TODAY, true)
+        if (openToday) {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            putExtra(MainActivity.EXTRA_OPEN_TODAY, true)
+        }
     }
     return PendingIntent.getActivity(
         context,
