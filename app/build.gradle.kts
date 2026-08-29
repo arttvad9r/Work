@@ -47,6 +47,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+
         release {
             // Production signing is opt-in through RELEASE_* properties/env vars.
             // Without them Gradle produces an unsigned release artifact, never a
