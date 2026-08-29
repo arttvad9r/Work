@@ -4,6 +4,7 @@ import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.MonthSummary
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
+import com.worktime.app.ui.yearsummary.YearSummary
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -30,19 +31,6 @@ data class CalendarUiState(
 ) {
     val summary: MonthSummary
         get() = SalaryCalculator.monthSummary(entries.values)
-}
-
-/**
- * Fixed 12-slot monthly breakdown for one year; `total` aggregates the same rows.
- */
-data class YearSummary(
-    val year: Int,
-    val total: MonthSummary,
-    val months: List<MonthSummary>,
-    val monthHasData: List<Boolean> = emptyList(),
-) {
-    val monthsWithData: Int
-        get() = monthHasData.count { it }
 }
 
 enum class CalendarOperationError {

@@ -1,4 +1,4 @@
-package com.worktime.app.ui.settings
+package com.worktime.app.ui.yearsummary
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
-import com.worktime.app.ui.calendar.YearSummary
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppTopBar

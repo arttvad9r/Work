@@ -49,8 +49,8 @@ import com.worktime.app.ui.dayeditor.DayEditorSheet
 import com.worktime.app.ui.navigation.AppDestination
 import com.worktime.app.ui.settings.ChangeRateSheet
 import com.worktime.app.ui.settings.SettingsScreen
-import com.worktime.app.ui.settings.YearSummaryScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
+import com.worktime.app.ui.yearsummary.YearSummaryScreen
 import com.worktime.app.ui.yearsummary.YearSummaryViewModel
 import java.time.LocalDate
 
