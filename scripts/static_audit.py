@@ -85,7 +85,12 @@ xml_paths = (
     ru_widget_strings,
     APP / "src/main/res/values/themes.xml",
     APP / "src/main/res/values-night/themes.xml",
-    APP / "src/main/res/drawable/ic_launcher.xml",
+    APP / "src/main/res/mipmap-anydpi/ic_launcher.xml",
+    APP / "src/main/res/mipmap-anydpi/ic_launcher_round.xml",
+    APP / "src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+    APP / "src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml",
+    APP / "src/main/res/drawable/ic_launcher_foreground.xml",
+    APP / "src/main/res/drawable/ic_launcher_monochrome.xml",
     APP / "src/main/res/xml/data_extraction_rules.xml",
     APP / "src/main/res/xml/backup_rules.xml",
 )
@@ -93,19 +98,32 @@ for xml_path in xml_paths:
     parse_xml(xml_path)
 
 
-def string_keys(path: Path, *, translatable_only: bool = False) -> set[str]:
+def resource_keys(path: Path, tag: str, *, translatable_only: bool = False) -> set[str]:
     root = parse_xml(path)
     return {
         node.attrib["name"]
-        for node in root.findall("string")
+        for node in root.findall(tag)
         if "name" in node.attrib
         and (not translatable_only or node.attrib.get("translatable", "true") != "false")
     }
 
 
-def check_russian_string_parity(base_path: Path, ru_path: Path, label: str) -> set[str]:
-    base_keys = string_keys(base_path, translatable_only=True)
-    ru_keys = string_keys(ru_path, translatable_only=True)
+def string_keys(path: Path, *, translatable_only: bool = False) -> set[str]:
+    return resource_keys(path, "string", translatable_only=translatable_only)
+
+
+def plural_keys(path: Path, *, translatable_only: bool = False) -> set[str]:
+    return resource_keys(path, "plurals", translatable_only=translatable_only)
+
+
+def check_russian_resource_parity(
+    base_path: Path,
+    ru_path: Path,
+    tag: str,
+    label: str,
+) -> set[str]:
+    base_keys = resource_keys(base_path, tag, translatable_only=True)
+    ru_keys = resource_keys(ru_path, tag, translatable_only=True)
     if base_keys != ru_keys:
         missing_ru = sorted(base_keys - ru_keys)
         extra_ru = sorted(ru_keys - base_keys)
@@ -116,9 +134,22 @@ def check_russian_string_parity(base_path: Path, ru_path: Path, label: str) -> s
     return base_keys
 
 
-base_keys = check_russian_string_parity(base_strings, ru_strings, "app")
-widget_base_keys = check_russian_string_parity(base_widget_strings, ru_widget_strings, "widget")
+base_keys = check_russian_resource_parity(base_strings, ru_strings, "string", "app string")
+widget_base_keys = check_russian_resource_parity(
+    base_widget_strings,
+    ru_widget_strings,
+    "string",
+    "widget string",
+)
+base_plural_keys = check_russian_resource_parity(base_strings, ru_strings, "plurals", "app plural")
+widget_plural_keys = check_russian_resource_parity(
+    base_widget_strings,
+    ru_widget_strings,
+    "plurals",
+    "widget plural",
+)
 defined_string_keys = string_keys(base_strings) | string_keys(base_widget_strings)
+defined_plural_keys = plural_keys(base_strings) | plural_keys(base_widget_strings)
 
 obsolete_validation_keys = {
     "hours_range_error",
@@ -132,13 +163,22 @@ if obsolete_validation_keys & defined_string_keys:
     fail("Obsolete helper-text validation strings are present; numeric validation is outline-only")
 
 string_ref_pattern = re.compile(r"\bR\.string\.([A-Za-z0-9_]+)")
+plural_ref_pattern = re.compile(r"\bR\.plurals\.([A-Za-z0-9_]+)")
 for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
-    referenced_keys = set(string_ref_pattern.findall(kotlin_file.read_text(encoding="utf-8")))
-    missing_keys = sorted(referenced_keys - defined_string_keys)
-    if missing_keys:
+    text = kotlin_file.read_text(encoding="utf-8")
+    referenced_string_keys = set(string_ref_pattern.findall(text))
+    missing_string_keys = sorted(referenced_string_keys - defined_string_keys)
+    if missing_string_keys:
         fail(
             f"Missing string resource(s) referenced by {kotlin_file.relative_to(ROOT)}: "
-            + ", ".join(missing_keys)
+            + ", ".join(missing_string_keys)
+        )
+    referenced_plural_keys = set(plural_ref_pattern.findall(text))
+    missing_plural_keys = sorted(referenced_plural_keys - defined_plural_keys)
+    if missing_plural_keys:
+        fail(
+            f"Missing plural resource(s) referenced by {kotlin_file.relative_to(ROOT)}: "
+            + ", ".join(missing_plural_keys)
         )
 
 expected_domains = {
@@ -215,6 +255,7 @@ if failures:
 
 print(
     "static-audit: OK "
-    f"({len(base_keys)} app + {len(widget_base_keys)} widget localized string keys; "
+    f"({len(base_keys)} app strings + {len(base_plural_keys)} app plurals; "
+    f"{len(widget_base_keys)} widget strings + {len(widget_plural_keys)} widget plurals; "
     "XML/privacy/domain invariants passed)"
 )
