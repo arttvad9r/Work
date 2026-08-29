@@ -91,7 +91,7 @@ fun AppSegmentedControl(
                 val selected = safeIndex == index
                 val contentColor by animateColorAsState(
                     targetValue = if (selected) {
-                        MaterialTheme.colorScheme.onSurface
+                        MaterialTheme.colorScheme.onSecondaryContainer
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
