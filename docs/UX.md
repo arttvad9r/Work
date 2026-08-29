@@ -134,14 +134,15 @@ Settings enters from the right with a restrained slide + fade and reverses that 
 ## Export and import
 
 - Export data opens a compact format sheet: JSON backup or CSV spreadsheet.
-- JSON contains entries plus relevant settings and can be imported back.
+- JSON contains entries, user-visible settings and the default-rate initialization state so a current-format export/import preserves behavior as well as values.
+- Version 1 JSON remains readable; because it did not contain the initialization flag, compatibility import infers that legacy state from the stored default rate and worked entries.
 - CSV is export-only.
 - Import validates before showing replacement confirmation and writes nothing when validation fails.
 - Success/failure feedback uses Snackbar/error surfaces without inserting temporary layout rows.
 
 ## Home-screen widget
 
-The optional 4 × 1 widget shows the current month plus shift count, worked hours and income, with a compact add/open affordance. It follows the app's light/dark presentation, can resize horizontally, and refreshes from entry changes plus system date/time/timezone update paths.
+The optional 4 × 1 widget shows the current month plus shift count, worked hours and income. Tapping the widget body opens WorkTime; tapping the compact `+` opens today's editor directly. Explicit Light/Dark choices follow the app theme preference; System mode keeps the normal `values`/`values-night` resource behavior. Live entry/theme observation runs only while a widget is installed, with system update/date/time/timezone paths retained as fallback refreshes. The widget can resize horizontally.
 
 ## Launch
 
