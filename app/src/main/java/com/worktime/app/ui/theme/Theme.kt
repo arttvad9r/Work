@@ -1,8 +1,11 @@
 package com.worktime.app.ui.theme
 
 import android.app.Activity
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -10,13 +13,16 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import com.worktime.app.domain.preferences.ThemeMode
+import com.worktime.app.ui.components.AppMotion
 
 private val LightColors = lightColorScheme(
     primary = Color(0xFF3568B5),
@@ -110,6 +116,65 @@ private val WorkTimeShapes = Shapes(
     extraLarge = RoundedCornerShape(28.dp),
 )
 
+private fun blendedColorScheme(darkFraction: Float): ColorScheme {
+    val fraction = darkFraction.coerceIn(0f, 1f)
+    val base = if (fraction < 0.5f) LightColors else DarkColors
+    fun mix(light: Color, dark: Color): Color = lerp(light, dark, fraction)
+
+    // One progress value drives every visible semantic role. This keeps the palette coherent
+    // and avoids separate color animations finishing on different frames.
+    return base.copy(
+        primary = mix(LightColors.primary, DarkColors.primary),
+        onPrimary = mix(LightColors.onPrimary, DarkColors.onPrimary),
+        primaryContainer = mix(LightColors.primaryContainer, DarkColors.primaryContainer),
+        onPrimaryContainer = mix(LightColors.onPrimaryContainer, DarkColors.onPrimaryContainer),
+        inversePrimary = mix(LightColors.inversePrimary, DarkColors.inversePrimary),
+        secondary = mix(LightColors.secondary, DarkColors.secondary),
+        onSecondary = mix(LightColors.onSecondary, DarkColors.onSecondary),
+        secondaryContainer = mix(LightColors.secondaryContainer, DarkColors.secondaryContainer),
+        onSecondaryContainer = mix(LightColors.onSecondaryContainer, DarkColors.onSecondaryContainer),
+        tertiary = mix(LightColors.tertiary, DarkColors.tertiary),
+        onTertiary = mix(LightColors.onTertiary, DarkColors.onTertiary),
+        tertiaryContainer = mix(LightColors.tertiaryContainer, DarkColors.tertiaryContainer),
+        onTertiaryContainer = mix(LightColors.onTertiaryContainer, DarkColors.onTertiaryContainer),
+        background = mix(LightColors.background, DarkColors.background),
+        onBackground = mix(LightColors.onBackground, DarkColors.onBackground),
+        surface = mix(LightColors.surface, DarkColors.surface),
+        onSurface = mix(LightColors.onSurface, DarkColors.onSurface),
+        surfaceVariant = mix(LightColors.surfaceVariant, DarkColors.surfaceVariant),
+        onSurfaceVariant = mix(LightColors.onSurfaceVariant, DarkColors.onSurfaceVariant),
+        surfaceTint = mix(LightColors.surfaceTint, DarkColors.surfaceTint),
+        inverseSurface = mix(LightColors.inverseSurface, DarkColors.inverseSurface),
+        inverseOnSurface = mix(LightColors.inverseOnSurface, DarkColors.inverseOnSurface),
+        error = mix(LightColors.error, DarkColors.error),
+        onError = mix(LightColors.onError, DarkColors.onError),
+        errorContainer = mix(LightColors.errorContainer, DarkColors.errorContainer),
+        onErrorContainer = mix(LightColors.onErrorContainer, DarkColors.onErrorContainer),
+        outline = mix(LightColors.outline, DarkColors.outline),
+        outlineVariant = mix(LightColors.outlineVariant, DarkColors.outlineVariant),
+        scrim = mix(LightColors.scrim, DarkColors.scrim),
+        surfaceBright = mix(LightColors.surfaceBright, DarkColors.surfaceBright),
+        surfaceDim = mix(LightColors.surfaceDim, DarkColors.surfaceDim),
+        surfaceContainer = mix(LightColors.surfaceContainer, DarkColors.surfaceContainer),
+        surfaceContainerHigh = mix(LightColors.surfaceContainerHigh, DarkColors.surfaceContainerHigh),
+        surfaceContainerHighest = mix(LightColors.surfaceContainerHighest, DarkColors.surfaceContainerHighest),
+        surfaceContainerLow = mix(LightColors.surfaceContainerLow, DarkColors.surfaceContainerLow),
+        surfaceContainerLowest = mix(LightColors.surfaceContainerLowest, DarkColors.surfaceContainerLowest),
+        primaryFixed = mix(LightColors.primaryFixed, DarkColors.primaryFixed),
+        primaryFixedDim = mix(LightColors.primaryFixedDim, DarkColors.primaryFixedDim),
+        onPrimaryFixed = mix(LightColors.onPrimaryFixed, DarkColors.onPrimaryFixed),
+        onPrimaryFixedVariant = mix(LightColors.onPrimaryFixedVariant, DarkColors.onPrimaryFixedVariant),
+        secondaryFixed = mix(LightColors.secondaryFixed, DarkColors.secondaryFixed),
+        secondaryFixedDim = mix(LightColors.secondaryFixedDim, DarkColors.secondaryFixedDim),
+        onSecondaryFixed = mix(LightColors.onSecondaryFixed, DarkColors.onSecondaryFixed),
+        onSecondaryFixedVariant = mix(LightColors.onSecondaryFixedVariant, DarkColors.onSecondaryFixedVariant),
+        tertiaryFixed = mix(LightColors.tertiaryFixed, DarkColors.tertiaryFixed),
+        tertiaryFixedDim = mix(LightColors.tertiaryFixedDim, DarkColors.tertiaryFixedDim),
+        onTertiaryFixed = mix(LightColors.onTertiaryFixed, DarkColors.onTertiaryFixed),
+        onTertiaryFixedVariant = mix(LightColors.onTertiaryFixedVariant, DarkColors.onTertiaryFixedVariant),
+    )
+}
+
 @Composable
 fun WorkTimeTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -120,11 +185,15 @@ fun WorkTimeTheme(
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-
-    // Theme changes are global state changes. Interpolating every Material color role caused
-    // a long, visibly asynchronous repaint and unnecessary recomposition work. Apply the new
-    // palette atomically; local controls provide the short interaction feedback instead.
-    val colorScheme = if (darkTheme) DarkColors else LightColors
+    val darkFraction by animateFloatAsState(
+        targetValue = if (darkTheme) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = AppMotion.FastMillis,
+            easing = AppMotion.StandardEasing,
+        ),
+        label = "app theme palette",
+    )
+    val colorScheme = blendedColorScheme(darkFraction)
 
     val view = LocalView.current
     if (!view.isInEditMode) {
