@@ -62,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
@@ -525,7 +526,7 @@ private fun NumericEditorSection(
             editorFocusRequester = editorFocusRequester,
             onEditorFocusChanged = onEditorFocusChanged,
             modifier = Modifier
-                .offset(y = editorY)
+                .offset { IntOffset(0, editorY.roundToPx()) }
                 .testTag("day-editor-active-field")
                 .fillMaxWidth()
                 .height(rowHeight),
