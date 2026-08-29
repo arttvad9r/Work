@@ -49,7 +49,7 @@ Amounts use integer micros in domain/data code. `Float` and `Double` are not use
 
 - Kotlin 2.4.x
 - Jetpack Compose + Material 3
-- AGP 9.3.1 / Gradle Wrapper 9.5.0 / Java 17
+- AGP 9.3.2 / Gradle Wrapper 9.5.0 / Java 17
 - Room 2.8.4
 - DataStore 1.2.1
 - coroutines and `StateFlow`
