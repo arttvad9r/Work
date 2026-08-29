@@ -1,53 +1,50 @@
 # Release signing
 
-WorkTime uses Google Play App Signing. The local private key is an **upload key** used to sign the AAB before upload; Google Play keeps the separate app-signing key used for APKs delivered to users.
+WorkTime is distributed as a directly installable APK through GitHub Releases. There is no store-managed app-signing layer: the private key used here is the **actual app-signing key** trusted by Android for every installed release.
 
-The upload keystore and its passwords must never be committed to this repository or pasted into issue/PR logs. The project already reads signing inputs from Gradle properties or `RELEASE_*` environment variables and never falls back to debug signing.
+That key is a long-lived release identity. Every future APK intended to update an existing WorkTime installation must be signed with the same certificate. Losing the private key means existing installations cannot receive a normally installable update signed by a replacement key.
 
-## One-time upload key creation
+The keystore and passwords must never be committed to this repository or pasted into issue/PR logs. The project reads signing inputs from Gradle properties or `RELEASE_*` environment variables and never falls back to debug signing.
 
-Create the keystore locally from a trusted machine. The command below prompts for the keystore/key password instead of putting it in shell history:
+## One-time app-signing key creation
+
+Create the keystore locally on a trusted machine. The command prompts for secrets instead of putting passwords in shell history:
 
 ```bash
 mkdir -p "$HOME/.android/keys"
 keytool -genkeypair -v \
-  -keystore "$HOME/.android/keys/worktime-upload.jks" \
+  -keystore "$HOME/.android/keys/worktime-release.jks" \
   -storetype JKS \
-  -alias worktime-upload \
+  -alias worktime-release \
   -keyalg RSA \
   -keysize 2048 \
   -validity 10000
 ```
 
-Use a unique strong password and store it in a password manager. Keep at least two encrypted backups of `worktime-upload.jks` in separate locations. Do not keep the only copy on the development machine.
+Use a unique strong password and keep it in a password manager. Keep at least two encrypted backups of `worktime-release.jks` in separate locations. Do not keep the only copy on the development machine or only in GitHub Actions.
 
-The certificate validity above is longer than 25 years, which is the minimum lifetime recommended by Android documentation for long-lived app updates.
-
-## Export the public upload certificate
-
-The public certificate can be registered with Google Play and is safe to share. It does not contain the private key:
+Export and archive the public certificate and its SHA-256 fingerprint. The certificate is safe to publish; the private key is not:
 
 ```bash
 keytool -export -rfc \
-  -keystore "$HOME/.android/keys/worktime-upload.jks" \
-  -alias worktime-upload \
-  -file "$HOME/.android/keys/worktime-upload-certificate.pem"
+  -keystore "$HOME/.android/keys/worktime-release.jks" \
+  -alias worktime-release \
+  -file "$HOME/.android/keys/worktime-release-certificate.pem"
+
+keytool -list -v \
+  -keystore "$HOME/.android/keys/worktime-release.jks" \
+  -alias worktime-release
 ```
 
-After Play App Signing is configured, record the SHA-256 fingerprints for both:
+Record the certificate SHA-256 fingerprint in the private release records. Compare it with the `signerSha256` emitted for every candidate.
 
-- the **upload certificate** — identifies the key used for future uploads;
-- the **app-signing certificate** — identifies APKs actually delivered by Google Play.
+## Build a signed release candidate locally
 
-These are intentionally different when Google manages the app-signing key.
-
-## Build a signed release candidate
-
-Use the exact clean commit that passed CI. Set the path and alias normally; enter passwords interactively so they are not written to shell history:
+Use the exact clean commit that passed CI. Set the path and alias normally; enter passwords interactively:
 
 ```bash
-export RELEASE_STORE_FILE="$HOME/.android/keys/worktime-upload.jks"
-export RELEASE_KEY_ALIAS="worktime-upload"
+export RELEASE_STORE_FILE="$HOME/.android/keys/worktime-release.jks"
+export RELEASE_KEY_ALIAS="worktime-release"
 
 read -rsp "Keystore password: " RELEASE_STORE_PASSWORD; export RELEASE_STORE_PASSWORD; echo
 read -rsp "Key password: " RELEASE_KEY_PASSWORD; export RELEASE_KEY_PASSWORD; echo
@@ -57,38 +54,69 @@ read -rsp "Key password: " RELEASE_KEY_PASSWORD; export RELEASE_KEY_PASSWORD; ec
 unset RELEASE_STORE_PASSWORD RELEASE_KEY_PASSWORD
 ```
 
-The script refuses a dirty working tree, runs the static audit and release lint, builds the optimized release AAB, verifies that the bundle is signed, and records:
+The script refuses a dirty working tree, runs the static audit and release lint, builds the optimized release APK, verifies it with Android `apksigner`, and records:
 
 - exact Git commit;
 - `versionCode` / `versionName`;
-- AAB SHA-256;
+- APK SHA-256;
 - signer certificate SHA-256;
-- matching R8 mapping path.
+- matching R8 mapping.
 
-Outputs:
+Distribution outputs are copied to:
 
 ```text
-app/build/outputs/bundle/release/app-release.aab
-app/build/outputs/mapping/release/mapping.txt
+app/build/outputs/release-candidate/WorkTime-<version>.apk
+app/build/outputs/release-candidate/SHA256SUMS.txt
 app/build/outputs/release-candidate/metadata.txt
+app/build/outputs/release-candidate/WorkTime-<version>-mapping.txt
 ```
 
-Archive the AAB, mapping and metadata together. The upload keystore and passwords are **not** part of the release archive.
+The keystore and passwords are never part of the release output.
 
-## Play App Signing setup
+## GitHub Actions secrets
 
-For the first Google Play release:
+The tag release workflow can build the same signed APK in GitHub Actions. Configure these repository Actions secrets before creating the first release tag:
 
-1. Create/select the WorkTime application in Play Console.
-2. Use Play App Signing and let Google generate/manage the app-signing key unless there is a specific cross-store requirement for controlling the app-signing key yourself.
-3. Upload the AAB signed with the WorkTime upload key.
-4. Confirm the upload-certificate SHA-256 fingerprint shown by Play matches the fingerprint recorded by `build_release_candidate.sh`.
-5. Install the build from the Internal Testing track and run the physical-device release checklist on that Play-delivered build.
+- `RELEASE_KEYSTORE_BASE64` — base64-encoded contents of `worktime-release.jks`;
+- `RELEASE_STORE_PASSWORD`;
+- `RELEASE_KEY_ALIAS`;
+- `RELEASE_KEY_PASSWORD`.
 
-For later updates, keep signing uploads with the same upload key. If the upload key is lost or compromised, Play App Signing supports an upload-key reset without changing the app-signing key used for existing users.
+Example local encoding on Linux:
+
+```bash
+base64 -w 0 "$HOME/.android/keys/worktime-release.jks"
+```
+
+On systems without `-w`, remove line breaks from the base64 output before storing it as the secret.
+
+GitHub Actions is a convenience copy of the signing material, not the backup strategy. Keep independent encrypted backups outside GitHub.
+
+## Release tags and GitHub Releases
+
+A release tag must be named `v<versionName>`, for example `v0.1.0`, and must point to a commit contained in `main`.
+
+Pushing such a tag runs `.github/workflows/release.yml`. The workflow:
+
+1. verifies the tag matches `versionName` and points into `main`;
+2. restores the signing keystore only inside the runner temporary directory;
+3. runs `scripts/build_release_candidate.sh`;
+4. creates a **draft GitHub Release** with the signed APK, SHA-256 file, release metadata and R8 mapping.
+
+The release remains draft intentionally. Download that exact APK, install/update it on the target phone, complete the physical-device checklist, verify the checksum and signer fingerprint, then publish the draft release. Do not rebuild a different APK after QA.
+
+## Update continuity
+
+For every later release:
+
+- increment `versionCode`;
+- set the intended `versionName`;
+- sign with the same WorkTime app-signing certificate;
+- verify installation over the previous public APK without uninstalling;
+- confirm Room/DataStore data and the home-screen widget survive the update.
+
+Changing package name or signing certificate creates a different Android installation identity and is not a normal update path.
 
 ## CI signing smoke test
 
-CI intentionally does **not** have the production upload key. The `signing-smoke` job creates a disposable keystore inside the GitHub runner, builds the same optimized `release` variant with the normal `RELEASE_*` inputs and verifies the resulting AAB with `jarsigner`.
-
-That job proves that the signing plumbing works while keeping the real upload key outside GitHub. Its disposable signed AAB is never uploaded as a workflow artifact and must never be distributed.
+Normal PR/main CI intentionally uses a disposable signing key in `signing-smoke`. It exercises the same release signing configuration, `assembleRelease`, `apksigner`, metadata and checksum path without using the real WorkTime key. The disposable APK is never uploaded or distributed.
