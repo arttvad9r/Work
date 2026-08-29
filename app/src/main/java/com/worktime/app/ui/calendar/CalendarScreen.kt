@@ -613,7 +613,7 @@ private fun MonthlySummaryPanel(
     val summary = state.summary
     val totalText = stringResource(
         R.string.amount_with_currency,
-        formatWholeAmountMicros(summary.totalPayMicros, locale),
+        formatAmountMicros(summary.totalPayMicros, locale),
     )
     val detailText = summaryLine(
         shiftCount = summary.shiftCount,
@@ -679,18 +679,18 @@ private fun MonthlySummaryPanel(
 
             LabelValueRow(
                 label = stringResource(R.string.calculation_base),
-                value = formatWholeAmountMicros(summary.basePayMicros, locale),
+                value = formatAmountMicros(summary.basePayMicros, locale),
             )
             if (summary.bonusMicros > 0L) {
                 LabelValueRow(
                     label = stringResource(R.string.calculation_bonus),
-                    value = "+${formatWholeAmountMicros(summary.bonusMicros, locale)}",
+                    value = "+${formatAmountMicros(summary.bonusMicros, locale)}",
                 )
             }
             if (summary.penaltyMicros > 0L) {
                 LabelValueRow(
                     label = stringResource(R.string.calculation_penalty),
-                    value = "−${formatWholeAmountMicros(summary.penaltyMicros, locale)}",
+                    value = "−${formatAmountMicros(summary.penaltyMicros, locale)}",
                 )
             }
 
@@ -1137,17 +1137,6 @@ internal fun shouldShowTodayEntryPrompt(
     entryDates: Set<LocalDate>,
     today: LocalDate,
 ): Boolean = visibleMonth == YearMonth.from(today) && today !in entryDates
-
-// Kept as a pure helper because existing presentation tests cover gesture intent. The
-// production calendar now delegates drag physics to HorizontalPager.
-internal enum class MonthSwipe { NONE, TO_PREVIOUS, TO_NEXT }
-
-internal fun resolveMonthSwipe(deltaX: Float, deltaY: Float, thresholdPx: Float): MonthSwipe = when {
-    abs(deltaY) >= abs(deltaX) -> MonthSwipe.NONE
-    deltaX <= -thresholdPx -> MonthSwipe.TO_NEXT
-    deltaX >= thresholdPx -> MonthSwipe.TO_PREVIOUS
-    else -> MonthSwipe.NONE
-}
 
 internal fun buildDayCellDescription(
     dateLabel: String,
