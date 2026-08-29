@@ -19,10 +19,12 @@ import java.time.LocalDate
 import java.time.Year
 import java.time.YearMonth
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -35,11 +37,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarViewModel(
@@ -48,7 +48,6 @@ class CalendarViewModel(
 ) : ViewModel() {
     private val visibleMonth = MutableStateFlow(YearMonth.now())
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
-    private val settingsOpen = MutableStateFlow(false)
     private val changeRateSheetOpen = MutableStateFlow(false)
     private val changeRateInitialRange = MutableStateFlow<ClosedRange<LocalDate>?>(null)
     private val yearSummaryOpen = MutableStateFlow(false)
@@ -94,9 +93,8 @@ class CalendarViewModel(
         visibleMonthEntries,
         userPreferencesRepository.preferences,
         selectedDate,
-        settingsOpen,
         operationError,
-    ) { monthUi, preferences, selected, isSettingsOpen, error ->
+    ) { monthUi, preferences, selected, error ->
         CalendarUiState(
             visibleMonth = monthUi.requestedMonth,
             entries = monthUi.entries,
@@ -104,7 +102,6 @@ class CalendarViewModel(
             selectedDate = selected,
             defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
             themeMode = preferences.themeMode,
-            isSettingsOpen = isSettingsOpen,
             isReady = true,
             operationError = error,
         )
@@ -120,7 +117,6 @@ class CalendarViewModel(
                 LocalDate.of(year, 12, 31),
             )
                 .map { entries -> YearSummaryUi(isOpen = true, summary = buildYearSummary(year, entries)) }
-                // Show the open sheet immediately while Room loads the rows.
                 .onStart { emit(YearSummaryUi(isOpen = true, summary = null)) }
         }
     }
@@ -186,24 +182,12 @@ class CalendarViewModel(
 
     fun selectDate(date: LocalDate) {
         operationError.value = null
-        settingsOpen.value = false
         selectedDate.value = date
     }
 
     fun dismissEditor() {
         operationError.value = null
         selectedDate.value = null
-    }
-
-    fun openSettings() {
-        operationError.value = null
-        selectedDate.value = null
-        settingsOpen.value = true
-    }
-
-    fun dismissSettings() {
-        operationError.value = null
-        settingsOpen.value = false
     }
 
     fun openChangeRate(range: ClosedRange<LocalDate>?) {

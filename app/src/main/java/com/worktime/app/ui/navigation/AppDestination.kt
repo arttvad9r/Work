@@ -12,5 +12,5 @@ sealed interface AppDestination : NavKey {
     data object Settings : AppDestination
 
     @Serializable
-    data object YearSummary : AppDestination
+    data class YearSummary(val initialYear: Int) : AppDestination
 }
