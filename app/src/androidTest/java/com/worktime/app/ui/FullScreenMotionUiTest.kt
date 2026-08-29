@@ -33,13 +33,13 @@ class FullScreenMotionUiTest {
             .performClick()
         composeRule.waitForIdle()
 
-        assertFullScreenExitTravelsFarEnough(
+        assertSettingsExitTravelsFarEnough(
             composeRule.onNodeWithText(settings),
         )
     }
 
     @Test
-    fun yearSummaryExitTravelsBeyondLegacyPartialWidthTarget() {
+    fun yearSummaryExitMovesDownward() {
         // App readiness is asynchronous. Wait for the summary semantics node rather than racing
         // the repository load. On compact managed devices the strip can also sit just below the
         // visible viewport, so invoke its canonical semantics action instead of touch geometry.
@@ -56,17 +56,16 @@ class FullScreenMotionUiTest {
             .performClick()
         composeRule.waitForIdle()
 
-        // The title text can legitimately appear in more than one semantics node. The previous-
-        // year control is a unique descendant of the same full-screen layer, so its X position is
-        // an unambiguous proxy for the destination's exit travel.
-        assertFullScreenExitTravelsFarEnough(
+        // The previous-year control is a unique descendant of the full-screen report and gives
+        // us stable geometry while the whole destination performs its short downward reveal exit.
+        assertYearSummaryExitMovesDown(
             composeRule.onNodeWithContentDescription(
                 composeRule.activity.getString(R.string.previous_year),
             ),
         )
     }
 
-    private fun assertFullScreenExitTravelsFarEnough(node: SemanticsNodeInteraction) {
+    private fun assertSettingsExitTravelsFarEnough(node: SemanticsNodeInteraction) {
         node.assertIsDisplayed()
         val initialLeft = node.fetchSemanticsNode().boundsInRoot.left
         val rootWidth = composeRule.onRoot().fetchSemanticsNode().boundsInRoot.width
@@ -76,9 +75,6 @@ class FullScreenMotionUiTest {
             composeRule.activity.onBackPressedDispatcher.onBackPressed()
         }
 
-        // Sample the whole transition instead of assuming a device-specific position at one
-        // timestamp. The old regression targeted exactly width/5, so while composed it could
-        // never travel beyond 20% of the viewport. The intended full-width exit must cross it.
         var maxTravelled = 0f
         repeat(60) {
             composeRule.mainClock.advanceTimeByFrame()
@@ -90,9 +86,37 @@ class FullScreenMotionUiTest {
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()
         assertTrue(
-            "Expected full-screen exit to travel beyond the old width/5 target; " +
+            "Expected settings exit to travel beyond the old width/5 target; " +
                 "maxTravelled=$maxTravelled rootWidth=$rootWidth",
             maxTravelled > rootWidth * 0.21f,
+        )
+        node.assertDoesNotExist()
+    }
+
+    private fun assertYearSummaryExitMovesDown(node: SemanticsNodeInteraction) {
+        node.assertIsDisplayed()
+        val initialTop = node.fetchSemanticsNode().boundsInRoot.top
+        val rootHeight = composeRule.onRoot().fetchSemanticsNode().boundsInRoot.height
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnUiThread {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
+
+        var maxTravelled = 0f
+        repeat(40) {
+            composeRule.mainClock.advanceTimeByFrame()
+            val top = runCatching { node.fetchSemanticsNode().boundsInRoot.top }.getOrNull()
+                ?: return@repeat
+            maxTravelled = maxOf(maxTravelled, top - initialTop)
+        }
+
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        assertTrue(
+            "Expected year summary exit to move downward; " +
+                "maxTravelled=$maxTravelled rootHeight=$rootHeight",
+            maxTravelled > rootHeight * 0.06f,
         )
         node.assertDoesNotExist()
     }
