@@ -286,8 +286,8 @@ private fun widgetMonthLabel(month: YearMonth): String {
 
 private fun openAppPendingIntent(context: Context, openToday: Boolean): PendingIntent {
     val intent = Intent(context, MainActivity::class.java).apply {
+        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         if (openToday) {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             putExtra(MainActivity.EXTRA_OPEN_TODAY, true)
         }
     }
