@@ -93,13 +93,15 @@ The shared segmented control uses one animated selected pill and emits one light
 ## Data export and import
 
 - JSON export is the complete backup format and can be imported back.
+- Backup version 2 preserves both visible preferences and the hidden default-rate initialization state, so export/import is a behavioral round trip even when the stored default rate is zero.
+- Version 1 JSON backups remain import-compatible; legacy initialization state is inferred from the stored default and worked entries because the old format did not contain the flag explicitly.
 - CSV is spreadsheet-oriented and export-only.
 - Import validates the complete file before replacing current entries/settings and uses compensation snapshots if the multi-store replacement fails.
 - Core operation remains fully local; export/import uses the system document picker.
 
 ## Home-screen widget
 
-An optional 4 × 1 widget shows the current month, shift count, worked hours and income, plus a compact add/open affordance. It follows the current light/dark presentation, supports horizontal resizing, and refreshes from entry changes plus system update/date invalidation paths.
+An optional 4 × 1 widget shows the current month, shift count, worked hours and income. Tapping the body opens WorkTime; the compact `+` action opens today's day editor directly. Explicit Light/Dark choices follow the app preference, while System mode remains resource-driven and follows the device configuration. Live Room/DataStore observation is kept only while at least one widget is installed; system update/date invalidation paths remain as fallback refresh mechanisms. The widget supports horizontal resizing.
 
 ## Launch behavior
 
