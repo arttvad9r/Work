@@ -4,10 +4,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -189,31 +187,25 @@ fun WorkTimeApp(
                 )
             }
 
+            // Full-screen surfaces stay fully opaque throughout navigation. Fading the whole
+            // screen revealed the calendar underneath for several frames on real hardware,
+            // which read as a flash/ghost image. A short, shallow horizontal travel preserves
+            // hierarchy without blending two dense screens together.
             AnimatedVisibility(
                 visible = state.isSettingsOpen,
-                enter = fadeIn(
+                enter = slideInHorizontally(
                     animationSpec = tween(
                         durationMillis = AppMotion.StandardMillis,
                         easing = AppMotion.StandardEasing,
                     ),
-                ) + scaleIn(
-                    initialScale = 0.985f,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.StandardMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
+                    initialOffsetX = { width -> width / 14 },
                 ),
-                exit = fadeOut(
+                exit = slideOutHorizontally(
                     animationSpec = tween(
                         durationMillis = AppMotion.FastMillis,
                         easing = AppMotion.StandardEasing,
                     ),
-                ) + scaleOut(
-                    targetScale = 0.992f,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.FastMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
+                    targetOffsetX = { width -> width / 14 },
                 ),
             ) {
                 val operationErrorMessage = when (state.operationError) {
@@ -248,29 +240,19 @@ fun WorkTimeApp(
 
             AnimatedVisibility(
                 visible = state.isYearSummaryOpen,
-                enter = fadeIn(
+                enter = slideInHorizontally(
                     animationSpec = tween(
                         durationMillis = AppMotion.StandardMillis,
                         easing = AppMotion.StandardEasing,
                     ),
-                ) + scaleIn(
-                    initialScale = 0.985f,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.StandardMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
+                    initialOffsetX = { width -> width / 14 },
                 ),
-                exit = fadeOut(
+                exit = slideOutHorizontally(
                     animationSpec = tween(
                         durationMillis = AppMotion.FastMillis,
                         easing = AppMotion.StandardEasing,
                     ),
-                ) + scaleOut(
-                    targetScale = 0.992f,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.FastMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
+                    targetOffsetX = { width -> width / 14 },
                 ),
             ) {
                 YearSummaryScreen(

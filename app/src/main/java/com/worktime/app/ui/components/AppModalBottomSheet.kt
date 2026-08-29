@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -34,6 +35,9 @@ fun AppModalBottomSheet(
         sheetState = sheetState,
         shape = AppSheetShape,
         dragHandle = null,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        tonalElevation = 0.dp,
+        scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.28f),
     ) {
         Column(
             modifier = Modifier
