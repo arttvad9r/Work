@@ -2,9 +2,9 @@ package com.worktime.app.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -47,15 +47,13 @@ import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.ui.calendar.YearSummary
 import com.worktime.app.ui.components.AppDimens
+import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.LabelValueRow
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import java.time.Month
 import java.time.format.TextStyle
-
-private const val YearMotionMillis = 130
-private const val YearFadeMillis = 90
 
 @Composable
 fun YearSummaryScreen(
@@ -107,16 +105,21 @@ fun YearSummaryScreen(
                         modifier = Modifier.padding(horizontal = 12.dp),
                         transitionSpec = {
                             val forward = (targetState ?: Int.MIN_VALUE) > (initialState ?: Int.MIN_VALUE)
-                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 8 else -width / 8 }
-                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 8 else width / 8 }
-                            (slideInHorizontally(
-                                animationSpec = tween(YearMotionMillis),
+                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 7 else -width / 7 }
+                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 7 else width / 7 }
+                            slideInHorizontally(
+                                animationSpec = tween(
+                                    durationMillis = AppMotion.StandardMillis,
+                                    easing = AppMotion.StandardEasing,
+                                ),
                                 initialOffsetX = enterOffset,
-                            ) + fadeIn(animationSpec = tween(YearFadeMillis))) togetherWith
-                                (slideOutHorizontally(
-                                    animationSpec = tween(YearMotionMillis),
-                                    targetOffsetX = exitOffset,
-                                ) + fadeOut(animationSpec = tween(YearFadeMillis)))
+                            ) togetherWith slideOutHorizontally(
+                                animationSpec = tween(
+                                    durationMillis = AppMotion.StandardMillis,
+                                    easing = AppMotion.StandardEasing,
+                                ),
+                                targetOffsetX = exitOffset,
+                            )
                         },
                         label = "year title",
                     ) { year ->
@@ -154,20 +157,24 @@ fun YearSummaryScreen(
                         .weight(1f),
                     transitionSpec = {
                         if (targetState.year == initialState.year) {
-                            fadeIn(animationSpec = tween(YearFadeMillis)) togetherWith
-                                fadeOut(animationSpec = tween(YearFadeMillis))
+                            EnterTransition.None togetherWith ExitTransition.None
                         } else {
                             val forward = targetState.year > initialState.year
-                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 12 else -width / 12 }
-                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 12 else width / 12 }
-                            (slideInHorizontally(
-                                animationSpec = tween(YearMotionMillis),
+                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 10 else -width / 10 }
+                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 10 else width / 10 }
+                            slideInHorizontally(
+                                animationSpec = tween(
+                                    durationMillis = AppMotion.StandardMillis,
+                                    easing = AppMotion.StandardEasing,
+                                ),
                                 initialOffsetX = enterOffset,
-                            ) + fadeIn(animationSpec = tween(YearFadeMillis))) togetherWith
-                                (slideOutHorizontally(
-                                    animationSpec = tween(YearMotionMillis),
-                                    targetOffsetX = exitOffset,
-                                ) + fadeOut(animationSpec = tween(YearFadeMillis)))
+                            ) togetherWith slideOutHorizontally(
+                                animationSpec = tween(
+                                    durationMillis = AppMotion.StandardMillis,
+                                    easing = AppMotion.StandardEasing,
+                                ),
+                                targetOffsetX = exitOffset,
+                            )
                         }
                     },
                     label = "year summary content",
