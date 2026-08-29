@@ -188,7 +188,7 @@ fun WorkTimeTheme(
     val darkFraction by animateFloatAsState(
         targetValue = if (darkTheme) 1f else 0f,
         animationSpec = tween(
-            durationMillis = AppMotion.FastMillis,
+            durationMillis = AppMotion.StandardMillis,
             easing = AppMotion.StandardEasing,
         ),
         label = "app theme palette",

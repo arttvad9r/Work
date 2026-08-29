@@ -3,7 +3,7 @@ package com.worktime.app.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
@@ -116,7 +116,10 @@ fun WorkTimeApp(
                         CalendarOperationError.UNDO ->
                             snackbarHostState.showSnackbar(undoFailedMessage, duration = SnackbarDuration.Long)
                         CalendarOperationError.DEFAULT_RATE_ADOPTION ->
-                            snackbarHostState.showSnackbar(defaultRateAdoptionFailedMessage, duration = SnackbarDuration.Long)
+                            snackbarHostState.showSnackbar(
+                                defaultRateAdoptionFailedMessage,
+                                duration = SnackbarDuration.Long,
+                            )
                         else -> Unit
                     }
                 else -> Unit
@@ -187,25 +190,24 @@ fun WorkTimeApp(
                 )
             }
 
-            // Full-screen surfaces stay fully opaque throughout navigation. Fading the whole
-            // screen revealed the calendar underneath for several frames on real hardware,
-            // which read as a flash/ghost image. A short, shallow horizontal travel preserves
-            // hierarchy without blending two dense screens together.
+            // Full-screen destinations stay fully opaque, but now travel far enough to read
+            // as navigation rather than a near-instant replacement. Critically damped motion
+            // remains interruptible and avoids the frame-counted feel visible in device QA.
             AnimatedVisibility(
                 visible = state.isSettingsOpen,
                 enter = slideInHorizontally(
-                    animationSpec = tween(
-                        durationMillis = AppMotion.StandardMillis,
-                        easing = AppMotion.StandardEasing,
+                    animationSpec = spring(
+                        dampingRatio = AppMotion.NoBounceDampingRatio,
+                        stiffness = AppMotion.NavigationStiffness,
                     ),
-                    initialOffsetX = { width -> width / 14 },
+                    initialOffsetX = { width -> width / 5 },
                 ),
                 exit = slideOutHorizontally(
-                    animationSpec = tween(
-                        durationMillis = AppMotion.FastMillis,
-                        easing = AppMotion.StandardEasing,
+                    animationSpec = spring(
+                        dampingRatio = AppMotion.NoBounceDampingRatio,
+                        stiffness = AppMotion.NavigationStiffness,
                     ),
-                    targetOffsetX = { width -> width / 14 },
+                    targetOffsetX = { width -> width / 5 },
                 ),
             ) {
                 val operationErrorMessage = when (state.operationError) {
@@ -241,18 +243,18 @@ fun WorkTimeApp(
             AnimatedVisibility(
                 visible = state.isYearSummaryOpen,
                 enter = slideInHorizontally(
-                    animationSpec = tween(
-                        durationMillis = AppMotion.StandardMillis,
-                        easing = AppMotion.StandardEasing,
+                    animationSpec = spring(
+                        dampingRatio = AppMotion.NoBounceDampingRatio,
+                        stiffness = AppMotion.NavigationStiffness,
                     ),
-                    initialOffsetX = { width -> width / 14 },
+                    initialOffsetX = { width -> width / 5 },
                 ),
                 exit = slideOutHorizontally(
-                    animationSpec = tween(
-                        durationMillis = AppMotion.FastMillis,
-                        easing = AppMotion.StandardEasing,
+                    animationSpec = spring(
+                        dampingRatio = AppMotion.NoBounceDampingRatio,
+                        stiffness = AppMotion.NavigationStiffness,
                     ),
-                    targetOffsetX = { width -> width / 14 },
+                    targetOffsetX = { width -> width / 5 },
                 ),
             ) {
                 YearSummaryScreen(

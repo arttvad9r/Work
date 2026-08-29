@@ -3,6 +3,7 @@ package com.worktime.app.ui.settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +52,8 @@ import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import java.time.Month
 import java.time.format.TextStyle
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun YearSummaryScreen(
@@ -63,34 +66,71 @@ fun YearSummaryScreen(
     val density = LocalDensity.current
     var displayedSummary by remember { mutableStateOf<YearSummary?>(summary) }
     val contentOffset = remember { Animatable(0f) }
-    val settleTravelPx = with(density) { 12.dp.toPx() }
+    val contentAlpha = remember { Animatable(1f) }
+    val transitionTravelPx = with(density) { 32.dp.toPx() }
 
-    // Keep the previous report visible while the next query is loading, then replace it as
-    // one layer. The incoming layer receives a tiny directional settle of its own; there is
-    // never an outgoing + incoming pair that can paint dense rows on top of each other.
-    LaunchedEffect(summary, settleTravelPx) {
+    // Dense year reports are always rendered as exactly one layer. When a new query result
+    // arrives, move the old report a short distance out while fading it away, swap the data
+    // only while the layer is invisible, then settle the same layer back in from the opposite
+    // side. This preserves direction without ever painting two reports on top of each other.
+    LaunchedEffect(summary, transitionTravelPx) {
         val next = summary ?: return@LaunchedEffect
-        if (next == displayedSummary) return@LaunchedEffect
+        val previous = displayedSummary
+        if (next == previous) return@LaunchedEffect
 
-        val previousYear = displayedSummary?.year
-        val direction = when {
-            previousYear == null || next.year == previousYear -> 0f
-            next.year > previousYear -> 1f
-            else -> -1f
+        val previousYear = previous?.year
+        if (previousYear == null || next.year == previousYear) {
+            displayedSummary = next
+            contentOffset.snapTo(0f)
+            contentAlpha.snapTo(1f)
+            return@LaunchedEffect
         }
 
-        contentOffset.snapTo(direction * settleTravelPx)
+        val direction = if (next.year > previousYear) 1f else -1f
+
+        coroutineScope {
+            launch {
+                contentOffset.animateTo(
+                    targetValue = -direction * transitionTravelPx,
+                    animationSpec = tween(
+                        durationMillis = AppMotion.MicroMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                )
+            }
+            launch {
+                contentAlpha.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(
+                        durationMillis = AppMotion.MicroMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                )
+            }
+        }
+
         displayedSummary = next
-        if (direction != 0f) {
-            contentOffset.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = AppMotion.NoBounceDampingRatio,
-                    stiffness = AppMotion.NavigationStiffness,
-                ),
-            )
-        } else {
-            contentOffset.snapTo(0f)
+        contentOffset.snapTo(direction * transitionTravelPx)
+
+        coroutineScope {
+            launch {
+                contentOffset.animateTo(
+                    targetValue = 0f,
+                    animationSpec = spring(
+                        dampingRatio = AppMotion.NoBounceDampingRatio,
+                        stiffness = AppMotion.NavigationStiffness,
+                    ),
+                )
+            }
+            launch {
+                contentAlpha.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(
+                        durationMillis = AppMotion.FastMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                )
+            }
         }
     }
 
@@ -127,7 +167,10 @@ fun YearSummaryScreen(
                         text = displayedSummary?.year?.toString().orEmpty(),
                         modifier = Modifier
                             .padding(horizontal = 12.dp)
-                            .graphicsLayer { translationX = contentOffset.value },
+                            .graphicsLayer {
+                                translationX = contentOffset.value
+                                alpha = contentAlpha.value
+                            },
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Medium,
@@ -156,7 +199,10 @@ fun YearSummaryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .graphicsLayer { translationX = contentOffset.value },
+                        .graphicsLayer {
+                            translationX = contentOffset.value
+                            alpha = contentAlpha.value
+                        },
                 ) {
                     YearSummaryContent(
                         summary = shownSummary,
