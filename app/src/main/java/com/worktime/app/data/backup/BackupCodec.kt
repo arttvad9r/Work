@@ -29,7 +29,7 @@ object BackupCodec {
     fun encode(
         entries: List<WorkEntry>,
         preferences: UserPreferences,
-        defaultRateInitialized: Boolean = preferences.defaultHourlyRateMicros != 0L,
+        defaultRateInitialized: Boolean = true,
     ): String {
         val root = JSONObject()
         root.put("version", VERSION)
