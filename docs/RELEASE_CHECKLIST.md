@@ -6,14 +6,25 @@ Run this checklist against the exact commit that will be distributed. Prior veri
 
 - [ ] `python3 scripts/static_audit.py` passes on the exact release candidate.
 - [ ] `:app:testDebugUnitTest` passes with no failed or skipped regression tests.
-- [ ] `:app:lintDebug` passes; any remaining hints are reviewed and understood.
-- [ ] `:app:assembleDebug` and `:app:assembleDebugAndroidTest` pass through the checked-in Gradle Wrapper.
-- [ ] The matching GitHub Actions run is green and retains verification-report/debug-APK artifacts.
-- [ ] Release signing/configuration is prepared outside source control.
+- [ ] `:app:lintDebug` and `:app:lintRelease` pass; any remaining hints are reviewed and understood.
+- [ ] `:app:assembleDebug`, `:app:assembleDebugAndroidTest` and `:app:bundleRelease` pass through the checked-in Gradle Wrapper.
+- [ ] Release optimization remains enabled through AGP `optimization { enable = true }`.
+- [ ] The matching GitHub Actions run is green, including the managed-device instrumentation job.
+- [ ] CI retains the unsigned release AAB and R8 mapping for inspection; neither is treated as a production artifact.
+- [ ] Release signing/configuration is prepared outside source control and never falls back to debug signing.
+
+## Release artifact
+
+- [ ] Final `versionCode` and `versionName` are set before building the candidate.
+- [ ] The exact candidate is built as an optimized release AAB with production upload-key signing.
+- [ ] The signed AAB is archived together with its commit SHA and matching R8 mapping.
+- [ ] The candidate is accepted by Play Internal Testing and installed from Play-generated APKs on a target phone.
+- [ ] No code, resources, signing inputs or version metadata change after the final QA pass without producing a new candidate.
 
 ## Functional QA
 
 - [ ] Create, edit, delete and relaunch are verified on a physical phone.
+- [ ] Process death/relaunch preserves Room/DataStore state and returns to a valid UI state.
 - [ ] Monthly calculation is manually reconciled.
 - [ ] Historical rate snapshots are verified.
 - [ ] Empty, populated, bonus and penalty months are verified.
@@ -22,7 +33,9 @@ Run this checklist against the exact commit that will be distributed. Prior veri
 - [ ] Repeated report open/collapse cycles keep the same peek height and anchors.
 - [ ] Holding the report handle never shows Material's drag-handle tooltip.
 - [ ] Persistence failure path retains the draft/settings surface and shows transient feedback.
+- [ ] JSON export/import is verified through the system document picker on the release build.
 - [ ] JSON import rollback preserves the previous Room/DataStore state when preference restore is forced to fail.
+- [ ] Install/update over the previous build preserves local data and widget behavior.
 
 ## UI/accessibility
 
@@ -38,15 +51,17 @@ Run this checklist against the exact commit that will be distributed. Prior veri
 - [ ] Narrow portrait screen and 200% font-scale passes complete.
 - [ ] Light/dark contrast and TalkBack checks complete.
 - [ ] Fixed `₽` and `₽/h` labels are readable in the supported locales.
-- [ ] Home-screen widget theme, layout, body tap and `+` action are verified on the target launcher.
+- [ ] Home-screen widget theme, layout, body tap, `+` action and refresh after data changes are verified on the target launcher.
+- [ ] Widget refresh is verified across date/time/time-zone changes and process restart.
 - [ ] Final launcher/store assets approved.
 
 ## Privacy/release
 
-- [ ] No unnecessary permission, analytics or ad SDK.
-- [ ] Backup/transfer behavior matches privacy docs.
-- [ ] Final privacy policy and Play Data Safety form reviewed.
-- [ ] Version code/name and release notes finalized.
-- [ ] Internal testing and pre-launch report completed.
+- [ ] Final release dependency graph contains no unnecessary permission, analytics or ad SDK.
+- [ ] Backup/transfer behavior matches privacy docs on a release device.
+- [ ] Final privacy policy and Play Data Safety form reviewed against the signed release candidate.
+- [ ] Ads, target-audience and content-rating declarations are finalized in Play Console.
+- [ ] Store description, screenshots and release notes are finalized.
+- [ ] Internal testing and Play pre-launch report completed and reviewed.
 
-The merged feature set has automated coverage, but the release is not considered device-verified until a fresh run records the exact phone, Android version and release-candidate commit.
+The merged feature set has automated coverage, but the release is not considered device-verified until a fresh run records the exact phone, Android version, signed release-candidate commit and Play-delivered build.

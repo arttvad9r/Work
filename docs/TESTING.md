@@ -8,7 +8,7 @@
 python3 scripts/static_audit.py
 ```
 
-Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback, pinned CI actions, wrapper checksum, release signing and supported Nix platforms.
+Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback, pinned CI actions, wrapper checksum, release signing safety, release optimization and required release-build CI tasks.
 
 ### JVM tests
 
@@ -16,23 +16,35 @@ Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest 
 ./gradlew :app:testDebugUnitTest
 ```
 
-Coverage includes work-entry invariants, salary rounding/aggregation, month grids, entity mapping, preferences, neutral/compact amount formatting, compact duration formatting and digit-to-duration input formatting.
+Coverage includes work-entry invariants, salary rounding/aggregation, month grids, entity mapping, preferences, neutral/compact amount formatting, compact duration formatting, digit-to-duration input formatting and LTR/RTL full-screen navigation direction.
 
 ### Android build and lint
 
 ```bash
-./gradlew :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+./gradlew \
+  :app:lintDebug \
+  :app:lintRelease \
+  :app:assembleDebug \
+  :app:assembleDebugAndroidTest \
+  :app:bundleRelease
 ```
 
-`./scripts/verify.sh` runs the static audit and all commands above through the repository Gradle Wrapper.
+`./scripts/verify.sh` runs the static audit and all commands above through the repository Gradle Wrapper. `bundleRelease` exercises the same optimized release variant that will later be signed for distribution.
 
-### Device tests
+### Managed-device tests
+
+CI executes the Android instrumentation suite after the build gate:
 
 ```bash
-./gradlew connectedDebugAndroidTest
+./gradlew :app:pixel2Api30DebugAndroidTest \
+  -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
 ```
 
-Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`, especially for IME visibility, haptics, widget presentation and bottom-sheet gestures.
+The managed device is a Pixel 2 API 30 AOSP ATD image. Current coverage includes database/repository integration, smoke/UI consistency, large-font behavior and full-screen motion regressions.
+
+### Physical-device tests
+
+A managed emulator does not replace the manual interaction checklist in `ANDROID_QA.md`, especially for IME visibility, haptics, widget presentation, launcher behavior, document picker flows and bottom-sheet gestures. The final pass must use the exact signed optimized release candidate.
 
 ## Required regression cases
 
@@ -62,9 +74,11 @@ Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`,
 - sparse same-rate entries are labelled as recorded-entry groups, not continuous effective periods.
 - concurrent theme and default-rate updates preserve both independent preference values.
 - portrait orientation remains enforced.
+- Settings and Year Summary exits travel beyond the old partial-width target before composition removes them.
+- LTR/RTL full-screen navigation direction stays mirrored while predictive back follows the actual swipe edge.
 
 ## Current evidence
 
-The feature merge candidate passed the full automated gate with 104 JVM tests, lint, debug APK assembly and instrumentation APK assembly on Gradle 9.7.1 / Java 17. A subsequent cold `main` run exposed a nondeterministic rollback test that relied on `advanceUntilIdle()` even though the operation runs in `viewModelScope`; repository cleanup replaces that scheduler assumption with explicit completion waits.
+`main` CI #713 passed static audit, JVM tests, lint/debug compilation and the complete 17-test managed-device instrumentation suite after the predictive-back, motion-regression and RTL changes were merged.
 
-The application has previously been exercised on physical hardware, but exact device/build details were not recorded. Do not expand that into unsupported device-specific claims. The merged persistent-editor, haptic and widget changes require one fresh documented physical-device pass before release.
+The application has previously been exercised on physical hardware, but exact device/build details were not recorded. Do not expand that into unsupported device-specific claims. The final signed optimized release candidate still requires one fresh documented physical-device pass before release.

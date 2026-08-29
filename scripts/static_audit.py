@@ -226,10 +226,22 @@ build_file = (APP / "build.gradle.kts").read_text(encoding="utf-8")
 catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
 wrapper_file = (ROOT / "gradle/wrapper/gradle-wrapper.properties").read_text(encoding="utf-8")
 workflow_file = (ROOT / ".github/workflows/android.yml").read_text(encoding="utf-8")
+verify_script_file = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
 if "distributionSha256Sum=" not in wrapper_file:
     fail("Gradle wrapper distributionSha256Sum is missing")
 if re.search(r"release\s*\{[^}]*signingConfig\s*=\s*signingConfigs\.getByName\(\"debug\"\)", build_file, re.DOTALL):
     fail("Release build must not use debug signing")
+if re.search(
+    r"release\s*\{.*?optimization\s*\{\s*enable\s*=\s*true",
+    build_file,
+    re.DOTALL,
+) is None:
+    fail("Release build must enable AGP optimization (R8 + resource shrinking)")
+for required_task in (":app:lintRelease", ":app:bundleRelease"):
+    if required_task not in workflow_file:
+        fail(f"CI release gate is missing task: {required_task}")
+    if required_task not in verify_script_file:
+        fail(f"Local verification gate is missing task: {required_task}")
 action_ref_pattern = re.compile(r"^\s*(?:-\s*)?uses:\s*([^@\s]+)@([^\s#]+)", re.MULTILINE)
 for action, ref in action_ref_pattern.findall(workflow_file):
     if action.startswith("./"):
@@ -253,5 +265,5 @@ print(
     "static-audit: OK "
     f"({len(base_keys)} app strings + {len(base_plural_keys)} app plurals; "
     f"{len(widget_base_keys)} widget strings + {len(widget_plural_keys)} widget plurals; "
-    "XML/privacy/domain invariants passed)"
+    "XML/privacy/domain/release invariants passed)"
 )

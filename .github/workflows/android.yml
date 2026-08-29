@@ -15,7 +15,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
@@ -32,8 +32,10 @@ jobs:
           ./gradlew --no-daemon \
             :app:testDebugUnitTest \
             :app:lintDebug \
+            :app:lintRelease \
             :app:assembleDebug \
             :app:assembleDebugAndroidTest \
+            :app:bundleRelease \
             --stacktrace
       - name: Upload verification reports
         if: always()
@@ -44,6 +46,8 @@ jobs:
             app/build/reports/tests/testDebugUnitTest/
             app/build/reports/lint-results-debug.html
             app/build/reports/lint-results-debug.xml
+            app/build/reports/lint-results-release.html
+            app/build/reports/lint-results-release.xml
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload debug APK
@@ -52,6 +56,22 @@ jobs:
         with:
           name: worktime-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload unsigned release AAB
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: worktime-release-aab-unsigned
+          path: app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload R8 mapping
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: worktime-release-mapping
+          path: app/build/outputs/mapping/release/
           if-no-files-found: error
           retention-days: 14
 
