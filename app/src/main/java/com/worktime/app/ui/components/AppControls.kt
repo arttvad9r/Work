@@ -1,9 +1,8 @@
 package com.worktime.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -36,9 +35,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
+private const val SegmentedIndicatorMillis = 110
+private const val SegmentedColorMillis = 75
+
 /**
  * The one segmented presentation for mutually exclusive options (theme, period).
- * A single selected pill moves between equal-width options instead of hard-swapping fills.
+ * The selected pill settles quickly enough to read as direct state feedback rather than
+ * a separate travelling object.
  */
 @Composable
 fun AppSegmentedControl(
@@ -66,10 +69,7 @@ fun AppSegmentedControl(
         val segmentWidth = maxWidth / options.size
         val indicatorOffset by animateDpAsState(
             targetValue = segmentWidth * safeIndex,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMediumLow,
-            ),
+            animationSpec = tween(SegmentedIndicatorMillis),
             label = "segmented indicator",
         )
 
@@ -96,6 +96,7 @@ fun AppSegmentedControl(
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
+                    animationSpec = tween(SegmentedColorMillis),
                     label = "segmented content",
                 )
                 Box(

@@ -1,11 +1,8 @@
 package com.worktime.app.ui.theme
 
 import android.app.Activity
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -13,7 +10,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalView
@@ -21,8 +17,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import com.worktime.app.domain.preferences.ThemeMode
-
-private const val ThemeTransitionMillis = 220
 
 private val LightColors = lightColorScheme(
     primary = Color(0xFF3568B5),
@@ -116,61 +110,6 @@ private val WorkTimeShapes = Shapes(
     extraLarge = RoundedCornerShape(28.dp),
 )
 
-/**
- * Theme selection used to replace the complete palette in one frame. Interpolating the
- * roles that are actually visible in WorkTime removes that flash while keeping layout,
- * typography and business state completely unchanged.
- */
-@Composable
-private fun animateWorkTimeColorScheme(target: ColorScheme): ColorScheme {
-    @Composable
-    fun animated(color: Color, label: String): Color {
-        val value by animateColorAsState(
-            targetValue = color,
-            animationSpec = tween(ThemeTransitionMillis),
-            label = label,
-        )
-        return value
-    }
-
-    return target.copy(
-        primary = animated(target.primary, "theme primary"),
-        onPrimary = animated(target.onPrimary, "theme onPrimary"),
-        primaryContainer = animated(target.primaryContainer, "theme primaryContainer"),
-        onPrimaryContainer = animated(target.onPrimaryContainer, "theme onPrimaryContainer"),
-        secondary = animated(target.secondary, "theme secondary"),
-        onSecondary = animated(target.onSecondary, "theme onSecondary"),
-        secondaryContainer = animated(target.secondaryContainer, "theme secondaryContainer"),
-        onSecondaryContainer = animated(target.onSecondaryContainer, "theme onSecondaryContainer"),
-        tertiary = animated(target.tertiary, "theme tertiary"),
-        onTertiary = animated(target.onTertiary, "theme onTertiary"),
-        tertiaryContainer = animated(target.tertiaryContainer, "theme tertiaryContainer"),
-        onTertiaryContainer = animated(target.onTertiaryContainer, "theme onTertiaryContainer"),
-        background = animated(target.background, "theme background"),
-        onBackground = animated(target.onBackground, "theme onBackground"),
-        surface = animated(target.surface, "theme surface"),
-        onSurface = animated(target.onSurface, "theme onSurface"),
-        surfaceVariant = animated(target.surfaceVariant, "theme surfaceVariant"),
-        onSurfaceVariant = animated(target.onSurfaceVariant, "theme onSurfaceVariant"),
-        surfaceContainerLowest = animated(target.surfaceContainerLowest, "theme surfaceContainerLowest"),
-        surfaceContainerLow = animated(target.surfaceContainerLow, "theme surfaceContainerLow"),
-        surfaceContainer = animated(target.surfaceContainer, "theme surfaceContainer"),
-        surfaceContainerHigh = animated(target.surfaceContainerHigh, "theme surfaceContainerHigh"),
-        surfaceContainerHighest = animated(target.surfaceContainerHighest, "theme surfaceContainerHighest"),
-        outline = animated(target.outline, "theme outline"),
-        outlineVariant = animated(target.outlineVariant, "theme outlineVariant"),
-        error = animated(target.error, "theme error"),
-        onError = animated(target.onError, "theme onError"),
-        errorContainer = animated(target.errorContainer, "theme errorContainer"),
-        onErrorContainer = animated(target.onErrorContainer, "theme onErrorContainer"),
-        inverseSurface = animated(target.inverseSurface, "theme inverseSurface"),
-        inverseOnSurface = animated(target.inverseOnSurface, "theme inverseOnSurface"),
-        inversePrimary = animated(target.inversePrimary, "theme inversePrimary"),
-        surfaceTint = animated(target.surfaceTint, "theme surfaceTint"),
-        scrim = animated(target.scrim, "theme scrim"),
-    )
-}
-
 @Composable
 fun WorkTimeTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -182,8 +121,10 @@ fun WorkTimeTheme(
         ThemeMode.DARK -> true
     }
 
-    val targetScheme = if (darkTheme) DarkColors else LightColors
-    val colorScheme = animateWorkTimeColorScheme(targetScheme)
+    // Theme changes are global state changes. Interpolating every Material color role caused
+    // a long, visibly asynchronous repaint and unnecessary recomposition work. Apply the new
+    // palette atomically; local controls provide the short interaction feedback instead.
+    val colorScheme = if (darkTheme) DarkColors else LightColors
 
     val view = LocalView.current
     if (!view.isInEditMode) {

@@ -52,7 +52,7 @@ import com.worktime.app.ui.components.CompactMoneyField
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
 
-private const val InlineEditorFadeMillis = 140
+private const val InlineEditorFadeMillis = 90
 
 @Composable
 fun SettingsScreen(

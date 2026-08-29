@@ -1,9 +1,6 @@
 package com.worktime.app.ui.dayeditor
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -41,11 +38,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -82,8 +79,8 @@ import com.worktime.app.ui.format.sanitizeMoneyInput
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-private const val AdjustmentFadeInMillis = 140
-private const val AdjustmentFadeOutMillis = 90
+private const val AdjustmentFadeInMillis = 90
+private const val AdjustmentFadeOutMillis = 60
 
 @Composable
 fun DayEditorSheet(
@@ -157,8 +154,8 @@ internal fun DayEditorSheetContent(
         )
     }
 
-    // One focusable editor moves between the fixed value slots. Keeping the same
-    // node preserves the platform IME session when the user switches numeric fields.
+    // One focusable editor relocates between fixed value slots. Keeping the same node
+    // preserves the platform IME session while avoiding a distracting travelling field.
     val editorState = rememberTextFieldState(initialText = durationState.text.toString())
     var activeField by remember { mutableStateOf(NumericField.Duration) }
     var editorHasFocus by remember { mutableStateOf(false) }
@@ -426,20 +423,12 @@ private fun NumericEditorSection(
     val adjustmentTop = rateY + rowHeight
     val penaltyTop = adjustmentTop + rowHeight
     val sectionHeight = penaltyTop + rowHeight
-    val editorTargetY = when (activeField) {
+    val editorY = when (activeField) {
         NumericField.Duration -> 0.dp
         NumericField.Rate -> rateY
         NumericField.Bonus -> adjustmentTop
         NumericField.Penalty -> penaltyTop
     }
-    val editorY by animateDpAsState(
-        targetValue = editorTargetY,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow,
-        ),
-        label = "numeric editor position",
-    )
     val bonusPresentation = when {
         activeField == NumericField.Bonus -> AdjustmentPresentation.Active
         bonusVisible -> AdjustmentPresentation.Value

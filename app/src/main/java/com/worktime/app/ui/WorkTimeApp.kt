@@ -6,10 +6,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -46,9 +42,8 @@ import com.worktime.app.ui.settings.YearSummaryScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
 import java.time.LocalDate
 
-private const val ScreenEnterMillis = 260
-private const val ScreenExitMillis = 220
-private const val ScreenFadeMillis = 180
+private const val ScreenEnterMillis = 120
+private const val ScreenExitMillis = 90
 
 @Composable
 fun WorkTimeApp(
@@ -196,14 +191,8 @@ fun WorkTimeApp(
 
             AnimatedVisibility(
                 visible = state.isSettingsOpen,
-                enter = slideInHorizontally(
-                    animationSpec = tween(ScreenEnterMillis),
-                    initialOffsetX = { width -> width / 5 },
-                ) + fadeIn(animationSpec = tween(ScreenFadeMillis)),
-                exit = slideOutHorizontally(
-                    animationSpec = tween(ScreenExitMillis),
-                    targetOffsetX = { width -> width / 6 },
-                ) + fadeOut(animationSpec = tween(ScreenFadeMillis)),
+                enter = fadeIn(animationSpec = tween(ScreenEnterMillis)),
+                exit = fadeOut(animationSpec = tween(ScreenExitMillis)),
             ) {
                 val operationErrorMessage = when (state.operationError) {
                     CalendarOperationError.SAVE_SETTINGS -> stringResource(R.string.save_settings_failed)
@@ -237,14 +226,8 @@ fun WorkTimeApp(
 
             AnimatedVisibility(
                 visible = state.isYearSummaryOpen,
-                enter = slideInVertically(
-                    animationSpec = tween(ScreenEnterMillis),
-                    initialOffsetY = { height -> height / 4 },
-                ) + fadeIn(animationSpec = tween(ScreenFadeMillis)),
-                exit = slideOutVertically(
-                    animationSpec = tween(ScreenExitMillis),
-                    targetOffsetY = { height -> height / 4 },
-                ) + fadeOut(animationSpec = tween(ScreenFadeMillis)),
+                enter = fadeIn(animationSpec = tween(ScreenEnterMillis)),
+                exit = fadeOut(animationSpec = tween(ScreenExitMillis)),
             ) {
                 YearSummaryScreen(
                     summary = state.yearSummary,
