@@ -1,10 +1,5 @@
 package com.worktime.app.ui.dayeditor
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -78,9 +73,6 @@ import com.worktime.app.ui.format.parseDecimalMicros
 import com.worktime.app.ui.format.sanitizeMoneyInput
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
-private const val AdjustmentFadeInMillis = 90
-private const val AdjustmentFadeOutMillis = 60
 
 @Composable
 fun DayEditorSheet(
@@ -534,35 +526,21 @@ private fun AdjustmentSlot(
     testTag: String,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedContent(
-        targetState = presentation,
-        modifier = modifier,
-        transitionSpec = {
-            fadeIn(animationSpec = tween(AdjustmentFadeInMillis)) togetherWith
-                fadeOut(animationSpec = tween(AdjustmentFadeOutMillis))
-        },
-        label = "adjustment row transition",
-    ) { state ->
-        when (state) {
-            AdjustmentPresentation.Add -> AdjustmentAddRow(
-                label = label,
-                onClick = onAdd,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag(testTag),
-            )
-            AdjustmentPresentation.Value -> EditorValueRow(
-                label = label,
-                valueText = valueText,
-                placeholderText = null,
-                isError = isError,
-                onClick = onClick,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag(testTag),
-            )
-            AdjustmentPresentation.Active -> Box(modifier = Modifier.fillMaxSize())
-        }
+    when (presentation) {
+        AdjustmentPresentation.Add -> AdjustmentAddRow(
+            label = label,
+            onClick = onAdd,
+            modifier = modifier.testTag(testTag),
+        )
+        AdjustmentPresentation.Value -> EditorValueRow(
+            label = label,
+            valueText = valueText,
+            placeholderText = null,
+            isError = isError,
+            onClick = onClick,
+            modifier = modifier.testTag(testTag),
+        )
+        AdjustmentPresentation.Active -> Box(modifier = modifier)
     }
 }
 

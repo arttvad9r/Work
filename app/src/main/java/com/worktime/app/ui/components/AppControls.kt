@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,7 +43,8 @@ private const val SegmentedColorMillis = 75
 /**
  * The one segmented presentation for mutually exclusive options (theme, period).
  * The selected pill settles quickly enough to read as direct state feedback rather than
- * a separate travelling object.
+ * a separate travelling object. The pill and haptic tick are the only press feedback;
+ * the default rectangular selectable indication is intentionally suppressed.
  */
 @Composable
 fun AppSegmentedControl(
@@ -90,6 +93,7 @@ fun AppSegmentedControl(
         ) {
             options.forEachIndexed { index, option ->
                 val selected = safeIndex == index
+                val interactionSource = remember(index) { MutableInteractionSource() }
                 val contentColor by animateColorAsState(
                     targetValue = if (selected) {
                         MaterialTheme.colorScheme.onSecondaryContainer
@@ -105,6 +109,8 @@ fun AppSegmentedControl(
                         .fillMaxHeight()
                         .selectable(
                             selected = selected,
+                            interactionSource = interactionSource,
+                            indication = null,
                             role = Role.RadioButton,
                             onClick = {
                                 if (index != safeIndex) {

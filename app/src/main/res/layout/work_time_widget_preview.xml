@@ -5,26 +5,49 @@
     android:orientation="vertical"
     android:gravity="center_vertical"
     android:background="@drawable/widget_background"
-    android:paddingStart="14dp"
-    android:paddingEnd="14dp"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="7dp"
+    android:paddingBottom="7dp">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:text="@string/widget_preview_month"
-        android:textColor="@color/widget_text_secondary"
-        android:textSize="11sp" />
+        android:layout_height="32dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="1dp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="@string/widget_preview_month"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/widget_add_background"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="@string/widget_add_symbol"
+            android:textColor="@color/widget_accent"
+            android:textSize="22sp" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
+        android:layout_marginTop="1dp"
         android:gravity="center_vertical"
         android:baselineAligned="false"
         android:orientation="horizontal">
@@ -32,7 +55,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="0.65"
+            android:layout_weight="0.72"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -55,13 +78,13 @@
                 android:maxLines="1"
                 android:text="@string/widget_shift_unit"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1.15"
+            android:layout_weight="1.16"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -85,13 +108,13 @@
                 android:maxLines="1"
                 android:text="@string/widget_hour_unit"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1.70"
+            android:layout_weight="1.62"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -115,18 +138,7 @@
                 android:maxLines="1"
                 android:text="@string/widget_income_unit"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
         </LinearLayout>
-
-        <TextView
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/widget_add_background"
-            android:gravity="center"
-            android:includeFontPadding="false"
-            android:text="@string/widget_add_symbol"
-            android:textColor="@color/widget_accent"
-            android:textSize="26sp" />
     </LinearLayout>
 </LinearLayout>
