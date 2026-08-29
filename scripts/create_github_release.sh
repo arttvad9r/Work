@@ -66,19 +66,39 @@ else
   exit 2
 fi
 
+git fetch --quiet origin main
+if ! git merge-base --is-ancestor "$commit" origin/main; then
+  echo "Current release commit $commit is not contained in origin/main." >&2
+  exit 1
+fi
+
 if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
   echo "Local release tag $tag does not exist." >&2
-  echo "Create and push the tag only after the candidate commit has passed CI and device QA." >&2
+  echo "Create and push the tag after the candidate commit has passed CI." >&2
   exit 1
 fi
 
 if [ "$(git rev-list -n 1 "$tag")" != "$commit" ]; then
-  echo "Tag $tag does not point to current commit $commit." >&2
+  echo "Local tag $tag does not point to current commit $commit." >&2
   exit 1
 fi
 
-if ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+remote_commit="$(
+  git ls-remote --tags origin "refs/tags/$tag^{}" \
+    | awk 'NR == 1 {print $1}'
+)"
+if [ -z "$remote_commit" ]; then
+  remote_commit="$(
+    git ls-remote --tags origin "refs/tags/$tag" \
+      | awk 'NR == 1 {print $1}'
+  )"
+fi
+if [ -z "$remote_commit" ]; then
   echo "Tag $tag has not been pushed to origin." >&2
+  exit 1
+fi
+if [ "$remote_commit" != "$commit" ]; then
+  echo "Remote tag $tag resolves to $remote_commit instead of release commit $commit." >&2
   exit 1
 fi
 
