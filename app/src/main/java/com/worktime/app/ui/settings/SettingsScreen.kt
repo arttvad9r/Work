@@ -44,7 +44,6 @@ import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppFieldValueSlot
 import com.worktime.app.ui.components.AppModalBottomSheet
-import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppNavigationRow
 import com.worktime.app.ui.components.AppSegmentedControl
 import com.worktime.app.ui.components.AppSectionHeader
@@ -52,9 +51,8 @@ import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.CompactMoneyField
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
-import kotlinx.coroutines.delay
 
-private const val InlineEditorFadeMillis = 90
+private const val InlineEditorFadeMillis = 75
 
 @Composable
 fun SettingsScreen(
@@ -76,15 +74,9 @@ fun SettingsScreen(
 
     BackHandler(onBack = onDismiss)
 
-    // The video QA showed the global palette switching while the selected capsule was still
-    // travelling. Let the local control finish its direct feedback first, then commit the
-    // global theme atomically. A newer tap cancels this effect automatically.
-    LaunchedEffect(presentedThemeMode) {
-        if (presentedThemeMode != themeMode) {
-            delay(AppMotion.FastMillis.toLong())
-            onThemeChange(presentedThemeMode)
-        }
-    }
+    // External preference changes (restore/system-driven state) remain authoritative.
+    // A direct tap, however, commits the global palette from the segmented-control spring's
+    // finished callback below instead of guessing its duration with a fixed delay.
     LaunchedEffect(themeMode) {
         if (themeMode != presentedThemeMode) {
             presentedThemeMode = themeMode
@@ -139,6 +131,12 @@ fun SettingsScreen(
                     options = ThemeMode.entries.map { themeLabel(it) },
                     selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
                     onSelect = { index -> presentedThemeMode = ThemeMode.entries[index] },
+                    onIndicatorSettled = { index ->
+                        val settledMode = ThemeMode.entries[index]
+                        if (settledMode == presentedThemeMode && settledMode != themeMode) {
+                            onThemeChange(settledMode)
+                        }
+                    },
                     modifier = Modifier.padding(vertical = AppDimens.rowGap),
                 )
 

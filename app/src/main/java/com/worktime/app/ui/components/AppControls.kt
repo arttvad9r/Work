@@ -2,6 +2,7 @@ package com.worktime.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,12 +42,18 @@ import androidx.compose.ui.unit.dp
  * The one segmented presentation for mutually exclusive options (theme, period).
  * The selected pill is the only moving surface. A quiet container behind it keeps the
  * control visually stable while the framework rectangular press indication stays disabled.
+ *
+ * Position uses a critically damped spring rather than a duration-based tween. This keeps
+ * the capsule interruptible and equally responsive when the display switches between
+ * 120/90/60 Hz. [onIndicatorSettled] is useful when an external state change should happen
+ * only after the visual selection has physically reached its destination (theme palette).
  */
 @Composable
 fun AppSegmentedControl(
     options: List<String>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
+    onIndicatorSettled: ((Int) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     if (options.isEmpty()) return
@@ -69,10 +76,11 @@ fun AppSegmentedControl(
         val segmentWidth = maxWidth / options.size
         val indicatorOffset by animateDpAsState(
             targetValue = segmentWidth * safeIndex,
-            animationSpec = tween(
-                durationMillis = AppMotion.StandardMillis,
-                easing = AppMotion.StandardEasing,
+            animationSpec = spring(
+                dampingRatio = AppMotion.NoBounceDampingRatio,
+                stiffness = AppMotion.ControlStiffness,
             ),
+            finishedListener = { onIndicatorSettled?.invoke(safeIndex) },
             label = "segmented indicator",
         )
 
