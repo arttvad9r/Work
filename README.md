@@ -73,9 +73,11 @@ Physical-device interaction testing remains a separate release gate, especially 
 
 Public builds are distributed only through GitHub Releases as signed optimized APKs.
 
-A tag named `v<versionName>` on a tested `main` commit starts `.github/workflows/release.yml`. With the repository signing secrets configured, the workflow builds and verifies the APK and creates a **draft GitHub Release** containing the APK, SHA-256 checksums, release metadata and R8 mapping. The exact APK downloaded from that draft is tested on a physical device before the release is published.
+The permanent WorkTime signing key stays outside GitHub. A tested clean `main` commit is signed locally with `./scripts/build_release_candidate.sh`. After the matching `v<versionName>` tag is pushed, `./scripts/create_github_release.sh` uploads those already-signed files into a **draft GitHub Release** without rebuilding or resigning the APK.
 
-The permanent app-signing key must remain unchanged across releases so Android can install newer APKs over existing WorkTime installations. See [release signing](docs/RELEASE_SIGNING.md) and the [release checklist](docs/RELEASE_CHECKLIST.md).
+The exact APK downloaded back from that draft is tested on a physical device before publication. The permanent app-signing key must remain unchanged across releases so Android can install newer APKs over existing WorkTime installations.
+
+See [release signing](docs/RELEASE_SIGNING.md) and the [release checklist](docs/RELEASE_CHECKLIST.md).
 
 ## Documentation
 
