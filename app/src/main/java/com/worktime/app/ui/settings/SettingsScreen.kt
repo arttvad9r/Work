@@ -1,6 +1,5 @@
 package com.worktime.app.ui.settings
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -72,8 +71,6 @@ fun SettingsScreen(
     var privacyDataOpen by rememberSaveable { mutableStateOf(false) }
     var presentedThemeMode by remember { mutableStateOf(themeMode) }
     val snackbarHostState = remember { SnackbarHostState() }
-
-    BackHandler(onBack = onDismiss)
 
     // External preference changes (restore/system-driven state) remain authoritative.
     // A direct tap, however, commits the global palette from the segmented-control spring's
