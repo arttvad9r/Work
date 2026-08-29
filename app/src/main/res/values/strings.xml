@@ -75,6 +75,7 @@
 
     <string name="entry_deleted">Entry deleted</string>
     <string name="rate_changed">Rate for period changed</string>
+    <string name="no_entries_in_period">No entries in the selected period</string>
     <string name="undo">Undo</string>
 
     <string name="save_entry_failed">Could not save the entry. Your draft is still open.</string>
