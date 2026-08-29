@@ -6,11 +6,13 @@ All notable product changes are documented here. Detailed intermediate implement
 
 ### Motion and interaction
 
-- Reworked the motion system around direct state feedback: day selection no longer stacks ripple and delayed color transitions, calendar paging uses a short deterministic snap, theme changes apply atomically, segmented controls and inline editors settle quickly, and full-screen settings/year navigation avoids long entrance slides.
+- Reworked the motion system around a shared direct-feedback vocabulary: micro state changes, compact controls, local transitions and directional navigation now use one non-overshooting easing curve and consistent timing tiers.
 - The persistent day-editor numeric node still preserves one IME session but now relocates between fixed slots without visually travelling up and down the form; Bonus/Penalty presentation changes are atomic so their labels and values do not cross-fade through an empty frame.
-- Calendar navigation now uses a real horizontal pager so adjacent months follow the finger; arrow navigation uses the same pager with short directional travel, and day/month summary content no longer cross-fades stale values between months.
-- Segmented controls use the moving capsule and haptic tick as their feedback layer without the framework's rectangular press indication flashing behind the pill.
-- Added restrained state/content transitions and a deliberately sparse haptic set; ordinary navigation remains silent and there is no decorative looping/bounce motion.
+- Calendar navigation uses a real horizontal pager so adjacent months follow the finger; arrow navigation uses a calmer directional travel, adjacent pages receive a restrained depth/alpha treatment, and the month title/summary soften only while paging is in progress.
+- Day/month content does not cross-fade stale values between months, so the new page settles without old entries or summary text blinking through it.
+- Segmented controls use a quiet stable container, moving capsule and haptic tick as one feedback layer without the framework's rectangular press indication flashing behind the pill.
+- Full-screen settings and year-summary surfaces use a restrained fade plus near-1:1 scale transition rather than long entrance slides.
+- Added a deliberately sparse haptic set; ordinary navigation remains silent and there is no decorative looping/bounce motion.
 - AndroidX SplashScreen provides the launch transition without an artificial delay.
 
 ### Data integrity and reports
@@ -25,7 +27,7 @@ All notable product changes are documented here. Detailed intermediate implement
 - Widget Light/Dark follows the app theme preference while System remains resource-driven.
 - Widget observation only stays active while widgets are installed; date/time/time-zone changes perform a cold refresh correctly after process death.
 - Widget body opens the app and `+` opens today's editor without recreating an already-running activity or leaving the editor hidden behind another surface.
-- The 4×1 widget now uses a balanced two-level hierarchy: month and compact add action in the header, with centered shift/hour/income metrics using the full width below; the widget picker preview mirrors the same layout.
+- The 4×1 widget now mirrors the app's lower monthly-summary strip: the same secondary-container family, 16 dp corner language, centered month, one compact `shifts · hours · income` line with whole-ruble formatting, and a small dedicated add action; the picker preview mirrors the real layout.
 - Launcher resources and API-specific monochrome/adaptive icon variants were consolidated and lint intent is documented explicitly.
 
 ### Engineering and maintenance

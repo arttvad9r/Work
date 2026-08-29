@@ -37,14 +37,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
-private const val SegmentedIndicatorMillis = 110
-private const val SegmentedColorMillis = 75
-
 /**
  * The one segmented presentation for mutually exclusive options (theme, period).
- * The selected pill settles quickly enough to read as direct state feedback rather than
- * a separate travelling object. The pill and haptic tick are the only press feedback;
- * the default rectangular selectable indication is intentionally suppressed.
+ * The selected pill is the only moving surface. A quiet container behind it keeps the
+ * control visually stable while the framework rectangular press indication stays disabled.
  */
 @Composable
 fun AppSegmentedControl(
@@ -62,9 +58,10 @@ fun AppSegmentedControl(
             .fillMaxWidth()
             .height(AppDimens.compactControlHeight)
             .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.46f))
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
                 shape = MaterialTheme.shapes.small,
             ),
     ) {
@@ -72,7 +69,10 @@ fun AppSegmentedControl(
         val segmentWidth = maxWidth / options.size
         val indicatorOffset by animateDpAsState(
             targetValue = segmentWidth * safeIndex,
-            animationSpec = tween(SegmentedIndicatorMillis),
+            animationSpec = tween(
+                durationMillis = AppMotion.StandardMillis,
+                easing = AppMotion.StandardEasing,
+            ),
             label = "segmented indicator",
         )
 
@@ -81,7 +81,7 @@ fun AppSegmentedControl(
                 .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
                 .width(segmentWidth)
                 .fillMaxHeight()
-                .padding(2.dp)
+                .padding(3.dp)
                 .clip(MaterialTheme.shapes.small)
                 .background(MaterialTheme.colorScheme.secondaryContainer),
         )
@@ -100,7 +100,10 @@ fun AppSegmentedControl(
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                    animationSpec = tween(SegmentedColorMillis),
+                    animationSpec = tween(
+                        durationMillis = AppMotion.FastMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
                     label = "segmented content",
                 )
                 Box(
@@ -124,6 +127,7 @@ fun AppSegmentedControl(
                     Text(
                         text = option,
                         style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
                         color = contentColor,
                         maxLines = 1,
                     )

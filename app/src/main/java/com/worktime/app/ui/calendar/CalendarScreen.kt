@@ -1,6 +1,5 @@
 package com.worktime.app.ui.calendar
 
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -82,6 +81,7 @@ import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.components.AppDimens
+import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppNavigationRow
 import com.worktime.app.ui.components.AppSheetShape
 import com.worktime.app.ui.components.LabelValueRow
@@ -101,9 +101,6 @@ import kotlin.math.abs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-private const val CalendarFadeMillis = 100
-private const val PagerSnapMillis = 135
-private const val PagerProgrammaticMillis = 190
 private const val PagerPageCount = 24_001
 private const val PagerAnchorPage = PagerPageCount / 2
 
@@ -131,7 +128,10 @@ fun CalendarScreen(
     )
     val pagerFlingBehavior = PagerDefaults.flingBehavior(
         state = pagerState,
-        snapAnimationSpec = tween(PagerSnapMillis, easing = FastOutSlowInEasing),
+        snapAnimationSpec = tween(
+            durationMillis = AppMotion.StandardMillis,
+            easing = AppMotion.StandardEasing,
+        ),
         snapPositionalThreshold = 0.35f,
     )
     var programmaticPage by remember { mutableStateOf<Int?>(null) }
@@ -182,13 +182,16 @@ fun CalendarScreen(
         programmaticScrollJob = scope.launch {
             pagerState.animateScrollToPage(
                 page = targetPage,
-                animationSpec = tween(PagerProgrammaticMillis, easing = FastOutSlowInEasing),
+                animationSpec = tween(
+                    durationMillis = AppMotion.EmphasizedMillis,
+                    easing = AppMotion.StandardEasing,
+                ),
             )
         }
     }
 
     // External month changes (month picker, restored state) move the pager to the same month.
-    // Adjacent changes use the same short directional travel as the arrows; large jumps are immediate.
+    // Adjacent changes use the same directional travel as the arrows; large jumps are immediate.
     LaunchedEffect(state.visibleMonth) {
         val targetPage = pageForMonth(state.visibleMonth)
         if (targetPage !in 0 until PagerPageCount || targetPage == pagerState.settledPage) {
@@ -199,7 +202,10 @@ fun CalendarScreen(
         if (abs(targetPage - pagerState.currentPage) <= 1) {
             pagerState.animateScrollToPage(
                 page = targetPage,
-                animationSpec = tween(PagerProgrammaticMillis, easing = FastOutSlowInEasing),
+                animationSpec = tween(
+                    durationMillis = AppMotion.EmphasizedMillis,
+                    easing = AppMotion.StandardEasing,
+                ),
             )
         } else {
             pagerState.scrollToPage(targetPage)
@@ -267,9 +273,11 @@ fun CalendarScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val displayedMonth = monthForPage(pagerState.currentPage)
+            val monthTransitionActive = pagerState.isScrollInProgress || displayedMonth != state.visibleMonth
             CalendarHeader(
                 visibleMonth = displayedMonth,
                 isReady = state.isReady,
+                transitioning = monthTransitionActive,
                 locale = locale,
                 onPreviousMonth = {
                     closeSummaryBehind {
@@ -310,6 +318,9 @@ fun CalendarScreen(
                     val month = monthForPage(page)
                     val entries = state.monthEntries[month]
                         ?: if (month == state.visibleMonth) state.entries else emptyMap()
+                    val pageOffset = abs(
+                        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction,
+                    ).coerceIn(0f, 1f)
                     CalendarGrid(
                         state = state.copy(
                             visibleMonth = month,
@@ -317,7 +328,15 @@ fun CalendarScreen(
                         ),
                         onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
                         locale = locale,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                val emphasis = 1f - pageOffset
+                                alpha = 0.90f + 0.10f * emphasis
+                                val scale = 0.985f + 0.015f * emphasis
+                                scaleX = scale
+                                scaleY = scale
+                            },
                     )
                 }
                 if (
@@ -336,6 +355,7 @@ fun CalendarScreen(
                     state = state,
                     locale = locale,
                     expanded = summaryTargetExpanded,
+                    transitioning = monthTransitionActive,
                     onClick = toggleSummary,
                     onSwipeUp = {
                         scope.launch { summarySheetState.expand() }
@@ -401,6 +421,7 @@ private fun TodayEntryPrompt(
 private fun CalendarHeader(
     visibleMonth: YearMonth,
     isReady: Boolean,
+    transitioning: Boolean,
     locale: Locale,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -410,6 +431,14 @@ private fun CalendarHeader(
     val monthTitle = visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
     val largeFont = LocalDensity.current.fontScale >= 1.5f
     val titleFontSize = if (largeFont) 18.sp else 22.sp
+    val titleAlpha by animateFloatAsState(
+        targetValue = if (transitioning) 0.72f else 1f,
+        animationSpec = tween(
+            durationMillis = AppMotion.MicroMillis,
+            easing = AppMotion.StandardEasing,
+        ),
+        label = "calendar month title alpha",
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -431,6 +460,7 @@ private fun CalendarHeader(
                 modifier = Modifier
                     .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
                     .padding(horizontal = 4.dp)
+                    .graphicsLayer { alpha = titleAlpha }
                     .testTag("calendar-month-title")
                     .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
                 style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
@@ -466,6 +496,7 @@ private fun SummaryStrip(
     state: CalendarUiState,
     locale: Locale,
     expanded: Boolean,
+    transitioning: Boolean,
     onClick: () -> Unit,
     onSwipeUp: () -> Unit,
     modifier: Modifier = Modifier,
@@ -480,8 +511,19 @@ private fun SummaryStrip(
     val haptics = LocalHapticFeedback.current
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(CalendarFadeMillis),
+        animationSpec = tween(
+            durationMillis = AppMotion.StandardMillis,
+            easing = AppMotion.StandardEasing,
+        ),
         label = "summary chevron",
+    )
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (transitioning) 0.68f else 1f,
+        animationSpec = tween(
+            durationMillis = AppMotion.MicroMillis,
+            easing = AppMotion.StandardEasing,
+        ),
+        label = "summary transition alpha",
     )
 
     Box(
@@ -520,7 +562,7 @@ private fun SummaryStrip(
                     )
                 }
                 .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.76f))
+                .background(MaterialTheme.colorScheme.secondaryContainer)
                 .clickable(
                     onClickLabel = stringResource(R.string.monthly_summary),
                     onClick = onClick,
@@ -531,7 +573,9 @@ private fun SummaryStrip(
         ) {
             Text(
                 text = summaryText,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .graphicsLayer { alpha = contentAlpha },
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -540,7 +584,10 @@ private fun SummaryStrip(
             )
             Icon(
                 Icons.Filled.KeyboardArrowUp,
-                modifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
+                modifier = Modifier.graphicsLayer {
+                    rotationZ = chevronRotation
+                    alpha = contentAlpha
+                },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )

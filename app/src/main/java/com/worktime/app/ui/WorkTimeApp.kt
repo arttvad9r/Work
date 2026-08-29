@@ -6,6 +6,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -35,15 +37,13 @@ import com.worktime.app.ui.calendar.CalendarOperationError
 import com.worktime.app.ui.calendar.CalendarOperationEvent
 import com.worktime.app.ui.calendar.CalendarScreen
 import com.worktime.app.ui.calendar.CalendarViewModel
+import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.dayeditor.DayEditorSheet
 import com.worktime.app.ui.settings.ChangeRateSheet
 import com.worktime.app.ui.settings.SettingsScreen
 import com.worktime.app.ui.settings.YearSummaryScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
 import java.time.LocalDate
-
-private const val ScreenEnterMillis = 120
-private const val ScreenExitMillis = 90
 
 @Composable
 fun WorkTimeApp(
@@ -191,8 +191,30 @@ fun WorkTimeApp(
 
             AnimatedVisibility(
                 visible = state.isSettingsOpen,
-                enter = fadeIn(animationSpec = tween(ScreenEnterMillis)),
-                exit = fadeOut(animationSpec = tween(ScreenExitMillis)),
+                enter = fadeIn(
+                    animationSpec = tween(
+                        durationMillis = AppMotion.StandardMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                ) + scaleIn(
+                    initialScale = 0.985f,
+                    animationSpec = tween(
+                        durationMillis = AppMotion.StandardMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                ),
+                exit = fadeOut(
+                    animationSpec = tween(
+                        durationMillis = AppMotion.FastMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                ) + scaleOut(
+                    targetScale = 0.992f,
+                    animationSpec = tween(
+                        durationMillis = AppMotion.FastMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                ),
             ) {
                 val operationErrorMessage = when (state.operationError) {
                     CalendarOperationError.SAVE_SETTINGS -> stringResource(R.string.save_settings_failed)
@@ -226,8 +248,30 @@ fun WorkTimeApp(
 
             AnimatedVisibility(
                 visible = state.isYearSummaryOpen,
-                enter = fadeIn(animationSpec = tween(ScreenEnterMillis)),
-                exit = fadeOut(animationSpec = tween(ScreenExitMillis)),
+                enter = fadeIn(
+                    animationSpec = tween(
+                        durationMillis = AppMotion.StandardMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                ) + scaleIn(
+                    initialScale = 0.985f,
+                    animationSpec = tween(
+                        durationMillis = AppMotion.StandardMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                ),
+                exit = fadeOut(
+                    animationSpec = tween(
+                        durationMillis = AppMotion.FastMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                ) + scaleOut(
+                    targetScale = 0.992f,
+                    animationSpec = tween(
+                        durationMillis = AppMotion.FastMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                ),
             ) {
                 YearSummaryScreen(
                     summary = state.yearSummary,

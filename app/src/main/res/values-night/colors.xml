@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Compact 4×1 month widget, aligned with the app's dark Material palette. -->
-    <color name="widget_surface">#191C22</color>
-    <color name="widget_text">#F0F1F7</color>
-    <color name="widget_text_secondary">#B8BCC6</color>
+    <!-- System-following widget resources mirror the app's dark secondary-container strip. -->
+    <color name="widget_surface">#354054</color>
+    <color name="widget_text">#E0E7F5</color>
+    <color name="widget_text_secondary">#B0B8C8</color>
     <color name="widget_accent">#B8CCFF</color>
-    <color name="widget_accent_container">#354054</color>
+    <color name="widget_accent_container">#2C4670</color>
 </resources>
