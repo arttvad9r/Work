@@ -1,9 +1,7 @@
 package com.worktime.app.ui.settings
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -28,15 +28,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -52,8 +57,11 @@ import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import java.time.Month
 import java.time.format.TextStyle
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+
+private const val YearPagerPageCount = 24_001
+private const val YearPagerAnchorPage = YearPagerPageCount / 2
 
 @Composable
 fun YearSummaryScreen(
@@ -63,74 +71,80 @@ fun YearSummaryScreen(
     onNextYear: () -> Unit,
 ) {
     val locale = LocalLocale.current.platformLocale
-    val density = LocalDensity.current
-    var displayedSummary by remember { mutableStateOf<YearSummary?>(summary) }
-    val contentOffset = remember { Animatable(0f) }
-    val contentAlpha = remember { Animatable(1f) }
-    val transitionTravelPx = with(density) { 32.dp.toPx() }
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+    val summaries = remember { mutableStateMapOf<Int, YearSummary>() }
+    var originYear by rememberSaveable { mutableStateOf<Int?>(null) }
+    var requestedYear by rememberSaveable { mutableStateOf<Int?>(null) }
+    var programmaticPage by remember { mutableStateOf<Int?>(null) }
+    var programmaticScrollJob by remember { mutableStateOf<Job?>(null) }
 
-    // Dense year reports are always rendered as exactly one layer. When a new query result
-    // arrives, move the old report a short distance out while fading it away, swap the data
-    // only while the layer is invisible, then settle the same layer back in from the opposite
-    // side. This preserves direction without ever painting two reports on top of each other.
-    LaunchedEffect(summary, transitionTravelPx) {
+    val pagerState = rememberPagerState(
+        initialPage = YearPagerAnchorPage,
+        pageCount = { YearPagerPageCount },
+    )
+    val pagerFlingBehavior = PagerDefaults.flingBehavior(
+        state = pagerState,
+        snapAnimationSpec = spring(
+            dampingRatio = AppMotion.NoBounceDampingRatio,
+            stiffness = AppMotion.PagerStiffness,
+        ),
+        snapPositionalThreshold = 0.35f,
+    )
+
+    // Keep every visited report warm. The repository still owns the requested year; this local
+    // cache only prevents a swipe back to an already seen year from flashing through loading.
+    LaunchedEffect(summary) {
         val next = summary ?: return@LaunchedEffect
-        val previous = displayedSummary
-        if (next == previous) return@LaunchedEffect
-
-        val previousYear = previous?.year
-        if (previousYear == null || next.year == previousYear) {
-            displayedSummary = next
-            contentOffset.snapTo(0f)
-            contentAlpha.snapTo(1f)
-            return@LaunchedEffect
-        }
-
-        val direction = if (next.year > previousYear) 1f else -1f
-
-        coroutineScope {
-            launch {
-                contentOffset.animateTo(
-                    targetValue = -direction * transitionTravelPx,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.MicroMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
-                )
-            }
-            launch {
-                contentAlpha.animateTo(
-                    targetValue = 0f,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.MicroMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
-                )
+        summaries[next.year] = next
+        if (originYear == null) {
+            originYear = next.year
+            requestedYear = next.year
+            if (pagerState.currentPage != YearPagerAnchorPage) {
+                pagerState.scrollToPage(YearPagerAnchorPage)
             }
         }
+    }
 
-        displayedSummary = next
-        contentOffset.snapTo(direction * transitionTravelPx)
+    val anchorYear = originYear
+    fun yearForPage(page: Int): Int =
+        (anchorYear ?: summary?.year ?: 0) + page - YearPagerAnchorPage
 
-        coroutineScope {
-            launch {
-                contentOffset.animateTo(
-                    targetValue = 0f,
-                    animationSpec = spring(
-                        dampingRatio = AppMotion.NoBounceDampingRatio,
-                        stiffness = AppMotion.NavigationStiffness,
-                    ),
-                )
+    val animateToPage: (Int) -> Unit = { requestedPage ->
+        val targetPage = requestedPage.coerceIn(0, YearPagerPageCount - 1)
+        programmaticPage = targetPage
+        programmaticScrollJob?.cancel()
+        programmaticScrollJob = scope.launch {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
+
+    // Exactly like the calendar pager, business state changes only after the page settles.
+    // The horizontal gesture itself is therefore direct and interruptible instead of being
+    // simulated by a post-click content animation.
+    LaunchedEffect(pagerState, anchorYear) {
+        val baseYear = anchorYear ?: return@LaunchedEffect
+        var previousSettledPage = pagerState.settledPage
+        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+            if (settledPage == previousSettledPage) return@collect
+
+            val targetYear = baseYear + settledPage - YearPagerAnchorPage
+            val currentRequestedYear = requestedYear ?: baseYear
+            val delta = targetYear - currentRequestedYear
+            if (delta != 0) {
+                val userDriven = programmaticPage == null || programmaticPage != settledPage
+                if (userDriven) {
+                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                }
+                requestedYear = targetYear
+                if (delta > 0) {
+                    repeat(delta) { onNextYear() }
+                } else {
+                    repeat(-delta) { onPreviousYear() }
+                }
             }
-            launch {
-                contentAlpha.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.FastMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
-                )
-            }
+            programmaticPage = null
+            previousSettledPage = settledPage
         }
     }
 
@@ -150,64 +164,82 @@ fun YearSummaryScreen(
                 onBack = onDismiss,
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(AppDimens.rowMinHeight),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onPreviousYear) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = stringResource(R.string.previous_year),
-                        )
-                    }
-                    Text(
-                        text = displayedSummary?.year?.toString().orEmpty(),
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp)
-                            .graphicsLayer {
-                                translationX = contentOffset.value
-                                alpha = contentAlpha.value
-                            },
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    IconButton(onClick = onNextYear) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = stringResource(R.string.next_year),
-                        )
-                    }
-                }
-            }
-
-            val shownSummary = displayedSummary
-            if (shownSummary == null) {
+            if (anchorYear == null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = AppDimens.sectionSpacing * 3f),
+                        .weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
                 }
             } else {
+                val displayedYear = yearForPage(pagerState.currentPage)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .graphicsLayer {
-                            translationX = contentOffset.value
-                            alpha = contentAlpha.value
-                        },
+                        .height(AppDimens.rowMinHeight),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    YearSummaryContent(
-                        summary = shownSummary,
-                        locale = locale,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = {
+                                val basePage = programmaticPage ?: pagerState.currentPage
+                                if (basePage > 0) animateToPage(basePage - 1)
+                            },
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                contentDescription = stringResource(R.string.previous_year),
+                            )
+                        }
+                        Text(
+                            text = displayedYear.toString(),
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        IconButton(
+                            onClick = {
+                                val basePage = programmaticPage ?: pagerState.currentPage
+                                if (basePage < YearPagerPageCount - 1) animateToPage(basePage + 1)
+                            },
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = stringResource(R.string.next_year),
+                            )
+                        }
+                    }
+                }
+
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .testTag("year-summary-pager"),
+                    beyondViewportPageCount = 1,
+                    flingBehavior = pagerFlingBehavior,
+                    key = { page -> yearForPage(page) },
+                ) { page ->
+                    val pageYear = yearForPage(page)
+                    val pageSummary = summaries[pageYear]
+                        ?: summary?.takeIf { it.year == pageYear }
+                    if (pageSummary == null) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    } else {
+                        YearSummaryContent(
+                            summary = pageSummary,
+                            locale = locale,
+                        )
+                    }
                 }
             }
         }
