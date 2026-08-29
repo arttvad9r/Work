@@ -2,6 +2,7 @@ package com.worktime.app.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -103,7 +104,7 @@ class UiConsistencyTest {
             }
         }
 
-                composeRule.waitForIdle()
+        composeRule.waitForIdle()
         fun topOf(tag: String) =
             composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.top
 
@@ -142,7 +143,7 @@ class UiConsistencyTest {
 
     @Test
     fun segmentedControlReportsSelectionForEveryOption() {
-        var selected = -1
+        val selected = mutableIntStateOf(0)
         composeRule.setContent {
             WorkTimeTheme {
                 AppSegmentedControl(
@@ -150,8 +151,8 @@ class UiConsistencyTest {
                         string(R.string.current_month),
                         string(R.string.custom_period),
                     ),
-                    selectedIndex = if (selected == 1) 1 else 0,
-                    onSelect = { selected = it },
+                    selectedIndex = selected.intValue,
+                    onSelect = { selected.intValue = it },
                 )
             }
         }
@@ -159,9 +160,13 @@ class UiConsistencyTest {
         composeRule.onNodeWithText(string(R.string.current_month)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.custom_period)).assertIsDisplayed()
             .performClick()
-        composeRule.runOnIdle { check(selected == 1) { "custom period not selected: $selected" } }
+        composeRule.runOnIdle {
+            check(selected.intValue == 1) { "custom period not selected: ${selected.intValue}" }
+        }
         composeRule.onNodeWithText(string(R.string.current_month)).performClick()
-        composeRule.runOnIdle { check(selected == 0) { "current month not selected: $selected" } }
+        composeRule.runOnIdle {
+            check(selected.intValue == 0) { "current month not selected: ${selected.intValue}" }
+        }
     }
 
     @Test
