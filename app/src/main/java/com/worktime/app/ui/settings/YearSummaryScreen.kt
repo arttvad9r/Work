@@ -49,8 +49,8 @@ import com.worktime.app.ui.calendar.YearSummary
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.LabelValueRow
+import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
-import com.worktime.app.ui.format.formatWholeAmountMicros
 import java.time.Month
 import java.time.format.TextStyle
 
@@ -210,7 +210,7 @@ private fun YearSummaryContent(
             Text(
                 text = stringResource(
                     R.string.amount_with_currency,
-                    formatWholeAmountMicros(summary.total.totalPayMicros, locale),
+                    formatAmountMicros(summary.total.totalPayMicros, locale),
                 ),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
@@ -236,7 +236,7 @@ private fun YearSummaryContent(
         if (summary.monthsWithData > 0) {
             LabelValueRow(
                 label = stringResource(R.string.average_working_month),
-                value = formatWholeAmountMicros(
+                value = formatAmountMicros(
                     summary.total.totalPayMicros / summary.monthsWithData,
                     locale,
                 ),
@@ -255,14 +255,14 @@ private fun YearSummaryContent(
         if (summary.total.bonusMicros > 0L) {
             LabelValueRow(
                 label = stringResource(R.string.year_bonuses),
-                value = "+${formatWholeAmountMicros(summary.total.bonusMicros, locale)}",
+                value = "+${formatAmountMicros(summary.total.bonusMicros, locale)}",
                 modifier = Modifier.heightIn(min = 28.dp),
             )
         }
         if (summary.total.penaltyMicros > 0L) {
             LabelValueRow(
                 label = stringResource(R.string.calculation_penalty),
-                value = "−${formatWholeAmountMicros(summary.total.penaltyMicros, locale)}",
+                value = "−${formatAmountMicros(summary.total.penaltyMicros, locale)}",
                 modifier = Modifier.heightIn(min = 28.dp),
             )
         }
@@ -294,7 +294,7 @@ private fun YearSummaryContent(
                     } else {
                         "${monthTotal.shiftCount} · ${formatDurationCompact(monthTotal.workedMinutes)}"
                     },
-                    amount = formatWholeAmountMicros(monthTotal.totalPayMicros, locale),
+                    amount = formatAmountMicros(monthTotal.totalPayMicros, locale),
                     dimmed = empty,
                 )
             }
