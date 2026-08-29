@@ -4,7 +4,7 @@ WorkTime is distributed as a directly installable APK through GitHub Releases. T
 
 That key is a long-lived release identity. Every future APK intended to update an existing WorkTime installation must be signed with the same certificate. Losing the private key means existing installations cannot receive a normally installable update signed by a replacement key.
 
-The keystore and passwords must never be committed to this repository or pasted into issue/PR logs. The project reads signing inputs from Gradle properties or `RELEASE_*` environment variables and never falls back to debug signing.
+The keystore and passwords must never be committed to this repository, uploaded to GitHub Actions, or pasted into issue/PR logs. The project reads signing inputs from Gradle properties or `RELEASE_*` environment variables and never falls back to debug signing.
 
 ## One-time app-signing key creation
 
@@ -21,7 +21,7 @@ keytool -genkeypair -v \
   -validity 10000
 ```
 
-Use a unique strong password and keep it in a password manager. Keep at least two encrypted backups of `worktime-release.jks` in separate locations. Do not keep the only copy on the development machine or only in GitHub Actions.
+Use a unique strong password and keep it in a password manager. Keep at least two encrypted backups of `worktime-release.jks` in separate locations. Do not keep the only copy on the development machine.
 
 Export and archive the public certificate and its SHA-256 fingerprint. The certificate is safe to publish; the private key is not:
 
@@ -36,7 +36,7 @@ keytool -list -v \
   -alias worktime-release
 ```
 
-Record the certificate SHA-256 fingerprint in the private release records. Compare it with the `signerSha256` emitted for every candidate.
+Record the certificate SHA-256 fingerprint in private release records. Compare it with the `signerSha256` emitted for every candidate.
 
 ## Build a signed release candidate locally
 
@@ -73,37 +73,40 @@ app/build/outputs/release-candidate/WorkTime-<version>-mapping.txt
 
 The keystore and passwords are never part of the release output.
 
-## GitHub Actions secrets
+## Create a draft GitHub Release
 
-The tag release workflow can build the same signed APK in GitHub Actions. Configure these repository Actions secrets before creating the first release tag:
+The release helper uses the already-built local candidate. It does not rebuild or resign anything and therefore does not need the signing key.
 
-- `RELEASE_KEYSTORE_BASE64` — base64-encoded contents of `worktime-release.jks`;
-- `RELEASE_STORE_PASSWORD`;
-- `RELEASE_KEY_ALIAS`;
-- `RELEASE_KEY_PASSWORD`.
+Prerequisites:
 
-Example local encoding on Linux:
+- GitHub CLI (`gh`) is installed and authenticated for this repository;
+- the current clean `HEAD` is the tested release commit;
+- a tag named `v<versionName>` points to the same commit and has been pushed to `origin`;
+- `build_release_candidate.sh` has already produced the candidate files above.
+
+Example:
 
 ```bash
-base64 -w 0 "$HOME/.android/keys/worktime-release.jks"
+git tag -a v0.1.0 -m "WorkTime 0.1.0"
+git push origin v0.1.0
+
+./scripts/create_github_release.sh
 ```
 
-On systems without `-w`, remove line breaks from the base64 output before storing it as the secret.
+`create_github_release.sh` verifies the candidate metadata and SHA-256, verifies the local and remote tag, refuses to replace an existing release, then creates a **draft GitHub Release** with:
 
-GitHub Actions is a convenience copy of the signing material, not the backup strategy. Keep independent encrypted backups outside GitHub.
+- `WorkTime-<version>.apk`;
+- `SHA256SUMS.txt`;
+- `metadata.txt`;
+- `WorkTime-<version>-mapping.txt`.
 
-## Release tags and GitHub Releases
+The release remains draft intentionally. Download that exact APK from GitHub, install/update it on the target phone, complete the physical-device checklist, verify its checksum and signer fingerprint, then publish the same draft. Do not rebuild a different APK after QA.
 
-A release tag must be named `v<versionName>`, for example `v0.1.0`, and must point to a commit contained in `main`.
+## Why the permanent key stays out of GitHub
 
-Pushing such a tag runs `.github/workflows/release.yml`. The workflow:
+Normal CI proves the signing plumbing with a disposable key. The real WorkTime key is more sensitive because direct-distribution Android updates depend permanently on its certificate and there is no store-side key reset layer. Keeping the private key offline reduces the number of systems that can expose the release identity.
 
-1. verifies the tag matches `versionName` and points into `main`;
-2. restores the signing keystore only inside the runner temporary directory;
-3. runs `scripts/build_release_candidate.sh`;
-4. creates a **draft GitHub Release** with the signed APK, SHA-256 file, release metadata and R8 mapping.
-
-The release remains draft intentionally. Download that exact APK, install/update it on the target phone, complete the physical-device checklist, verify the checksum and signer fingerprint, then publish the draft release. Do not rebuild a different APK after QA.
+GitHub hosts only the final signed APK and non-secret verification files. A signed APK and public certificate reveal the public signing identity, not the private signing key.
 
 ## Update continuity
 
