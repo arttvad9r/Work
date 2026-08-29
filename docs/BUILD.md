@@ -4,7 +4,7 @@
 
 - Java 17
 - Gradle Wrapper 9.5.0
-- Android Gradle Plugin 9.3.1
+- Android Gradle Plugin 9.3.2
 - Kotlin 2.4.10
 - compile/target SDK 37
 - Compose BOM 2026.08.00
