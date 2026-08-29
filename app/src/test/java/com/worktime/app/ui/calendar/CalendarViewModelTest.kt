@@ -472,9 +472,10 @@ class CalendarViewModelTest {
 
         viewModel.deleteEntry(entry.date)
         advanceUntilIdle()
-        viewModel.operationEvents.first()
+        assertEquals(CalendarOperationEvent.Success.ENTRY_DELETED, viewModel.operationEvents.first())
         viewModel.saveEntry(replacement)
         advanceUntilIdle()
+        assertEquals(CalendarOperationEvent.Success.ENTRY_SAVED, viewModel.operationEvents.first())
         viewModel.undoLastOperation()
         assertEquals(null, withTimeoutOrNull(50) { viewModel.operationEvents.first() })
         assertFalse(viewModel.state.value.canUndo)
@@ -558,6 +559,7 @@ class CalendarViewModelTest {
 
         assertEquals(entry, repository.entries.first { it.isNotEmpty() }.single())
         assertEquals(CalendarOperationEvent.Error(CalendarOperationError.DEFAULT_RATE_ADOPTION), viewModel.operationEvents.first())
+        assertEquals(CalendarOperationEvent.Success.ENTRY_SAVED, viewModel.operationEvents.first())
         assertEquals(null, withTimeoutOrNull(50) { viewModel.operationEvents.first() })
         assertEquals(null, viewModel.state.value.selectedDate)
         assertEquals(CalendarOperationError.DEFAULT_RATE_ADOPTION, viewModel.state.value.operationError)
