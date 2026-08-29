@@ -83,7 +83,7 @@
                 android:maxLines="1"
                 android:text="@string/widget_shift_unit"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -114,7 +114,7 @@
                 android:maxLines="1"
                 android:text="@string/widget_hour_unit"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -145,7 +145,7 @@
                 android:maxLines="1"
                 android:text="@string/widget_income_unit"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp" />
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
