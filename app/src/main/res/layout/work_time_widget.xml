@@ -47,6 +47,7 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/widget_days_unit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:includeFontPadding="false"
@@ -57,6 +58,7 @@
         </LinearLayout>
 
         <TextView
+            android:id="@+id/widget_separator_days_hours"
             android:layout_width="14dp"
             android:layout_height="wrap_content"
             android:gravity="center"
@@ -84,6 +86,7 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/widget_hours_unit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:includeFontPadding="false"
@@ -94,6 +97,7 @@
         </LinearLayout>
 
         <TextView
+            android:id="@+id/widget_separator_hours_income"
             android:layout_width="14dp"
             android:layout_height="wrap_content"
             android:gravity="center"
@@ -121,6 +125,7 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/widget_income_unit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:includeFontPadding="false"
