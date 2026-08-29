@@ -42,6 +42,7 @@ import com.worktime.app.ui.components.AppNavigationRow
 import com.worktime.app.ui.components.AppPrimaryButton
 import com.worktime.app.ui.components.AppSegmentedControl
 import com.worktime.app.ui.components.CompactMoneyField
+import com.worktime.app.ui.components.LabelValueRow
 import com.worktime.app.ui.format.parseDecimalMicros
 import java.time.Instant
 import java.time.LocalDate
@@ -123,26 +124,24 @@ fun ChangeRateSheet(
                     },
                 )
 
-                if (period == RatePeriod.CURRENT_MONTH) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = AppDimens.rowMinHeight),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = visibleMonth.format(
-                                DateTimeFormatter.ofPattern("LLLL yyyy", LocalLocale.current.platformLocale),
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Both modes occupy the exact same two-row geometry. Only interactivity changes,
+                // so moving the segmented capsule never causes the sheet body/button to jump.
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    if (period == RatePeriod.CURRENT_MONTH) {
+                        LabelValueRow(
+                            label = stringResource(R.string.start_date),
+                            value = visibleMonth.atDay(1).format(dateFormatter),
+                            modifier = Modifier.heightIn(min = AppDimens.rowMinHeight),
                         )
-                    }
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(0.dp),
-                    ) {
+                        LabelValueRow(
+                            label = stringResource(R.string.end_date),
+                            value = visibleMonth.atEndOfMonth().format(dateFormatter),
+                            modifier = Modifier.heightIn(min = AppDimens.rowMinHeight),
+                        )
+                    } else {
                         AppNavigationRow(
                             label = stringResource(R.string.start_date),
                             value = customStart?.format(dateFormatter) ?: "",
