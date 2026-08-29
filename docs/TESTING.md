@@ -32,7 +32,7 @@ Coverage includes work-entry invariants, salary rounding/aggregation, month grid
 ./gradlew connectedDebugAndroidTest
 ```
 
-Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`, especially for IME visibility and bottom-sheet gestures.
+Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`, especially for IME visibility, haptics, widget presentation and bottom-sheet gestures.
 
 ## Required regression cases
 
@@ -57,6 +57,7 @@ Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`,
 - values remain attached to their logical fields across repeated switches and survive save/reopen.
 - persistence failures keep the relevant sheet open and surface transient Snackbar feedback without layout reflow.
 - import cancellation after Room replacement restores the previous Room/DataStore snapshot or reports `BACKUP_IMPORT_ROLLBACK`.
+- rollback tests wait for observable operation completion; they do not treat coroutine-test scheduler drain as proof that `viewModelScope` work finished.
 - initial default-rate adoption runs once; manually clearing the rate to zero does not re-enable it.
 - sparse same-rate entries are labelled as recorded-entry groups, not continuous effective periods.
 - concurrent theme and default-rate updates preserve both independent preference values.
@@ -64,8 +65,6 @@ Device tests do not replace the manual interaction checklist in `ANDROID_QA.md`,
 
 ## Current evidence
 
-The `main` baseline has been exercised on physical hardware by the project owner. Exact device/build details were not previously recorded in the repository, so that result should not be expanded into unsupported device-specific claims.
+The feature merge candidate passed the full automated gate with 104 JVM tests, lint, debug APK assembly and instrumentation APK assembly on Gradle 9.7.1 / Java 17. A subsequent cold `main` run exposed a nondeterministic rollback test that relied on `advanceUntilIdle()` even though the operation runs in `viewModelScope`; repository cleanup replaces that scheduler assumption with explicit completion waits.
 
-Physical-device ADB diagnostics on the interaction-stability branch identified the previous keyboard jump as a client-side IME hide/restart/show sequence during focus transfer between separate Compose TextFields. The persistent editor architecture has already eliminated that jump for `Время <-> Ставка`; the current branch extends the same mechanism to bonus and penalty and therefore requires one fresh four-field hardware pass before merge.
-
-GitHub Actions may fail to start while the account's Actions usage limit is exhausted. A run with no executed steps is an infrastructure/account limitation, not a test result. Local wrapper verification and recorded device QA remain valid evidence while CI runners are unavailable.
+The application has previously been exercised on physical hardware, but exact device/build details were not recorded. Do not expand that into unsupported device-specific claims. The merged persistent-editor, haptic and widget changes require one fresh documented physical-device pass before release.
