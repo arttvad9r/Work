@@ -177,21 +177,23 @@ fun CalendarScreen(
 
     val animateToPage: (Int) -> Unit = { requestedPage ->
         val targetPage = requestedPage.coerceIn(0, PagerPageCount - 1)
-        programmaticPage = targetPage
-        programmaticScrollJob?.cancel()
-        programmaticScrollJob = scope.launch {
-            pagerState.animateScrollToPage(
-                page = targetPage,
-                animationSpec = tween(
-                    durationMillis = AppMotion.EmphasizedMillis,
-                    easing = AppMotion.StandardEasing,
-                ),
-            )
+        if (programmaticScrollJob?.isActive != true || programmaticPage != targetPage) {
+            programmaticPage = targetPage
+            programmaticScrollJob?.cancel()
+            programmaticScrollJob = scope.launch {
+                pagerState.animateScrollToPage(
+                    page = targetPage,
+                    animationSpec = tween(
+                        durationMillis = AppMotion.StandardMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                )
+            }
         }
     }
 
     // External month changes (month picker, restored state) move the pager to the same month.
-    // Adjacent changes use the same directional travel as the arrows; large jumps are immediate.
+    // Adjacent changes use the same short directional travel as the arrows; large jumps are immediate.
     LaunchedEffect(state.visibleMonth) {
         val targetPage = pageForMonth(state.visibleMonth)
         if (targetPage !in 0 until PagerPageCount || targetPage == pagerState.settledPage) {
@@ -203,7 +205,7 @@ fun CalendarScreen(
             pagerState.animateScrollToPage(
                 page = targetPage,
                 animationSpec = tween(
-                    durationMillis = AppMotion.EmphasizedMillis,
+                    durationMillis = AppMotion.StandardMillis,
                     easing = AppMotion.StandardEasing,
                 ),
             )
@@ -273,11 +275,15 @@ fun CalendarScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val displayedMonth = monthForPage(pagerState.currentPage)
-            val monthTransitionActive = pagerState.isScrollInProgress || displayedMonth != state.visibleMonth
+            val displayedEntries = state.monthEntries[displayedMonth]
+                ?: if (displayedMonth == state.visibleMonth) state.entries else emptyMap()
+            val displayedState = state.copy(
+                visibleMonth = displayedMonth,
+                entries = displayedEntries,
+            )
             CalendarHeader(
                 visibleMonth = displayedMonth,
                 isReady = state.isReady,
-                transitioning = monthTransitionActive,
                 locale = locale,
                 onPreviousMonth = {
                     closeSummaryBehind {
@@ -318,9 +324,6 @@ fun CalendarScreen(
                     val month = monthForPage(page)
                     val entries = state.monthEntries[month]
                         ?: if (month == state.visibleMonth) state.entries else emptyMap()
-                    val pageOffset = abs(
-                        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction,
-                    ).coerceIn(0f, 1f)
                     CalendarGrid(
                         state = state.copy(
                             visibleMonth = month,
@@ -328,21 +331,13 @@ fun CalendarScreen(
                         ),
                         onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
                         locale = locale,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                val emphasis = 1f - pageOffset
-                                alpha = 0.90f + 0.10f * emphasis
-                                val scale = 0.985f + 0.015f * emphasis
-                                scaleX = scale
-                                scaleY = scale
-                            },
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
                 if (
                     shouldShowTodayEntryPrompt(
-                        visibleMonth = state.visibleMonth,
-                        entryDates = state.entries.keys,
+                        visibleMonth = displayedMonth,
+                        entryDates = displayedEntries.keys,
                         today = today,
                     )
                 ) {
@@ -352,10 +347,9 @@ fun CalendarScreen(
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 SummaryStrip(
-                    state = state,
+                    state = displayedState,
                     locale = locale,
                     expanded = summaryTargetExpanded,
-                    transitioning = monthTransitionActive,
                     onClick = toggleSummary,
                     onSwipeUp = {
                         scope.launch { summarySheetState.expand() }
@@ -421,7 +415,6 @@ private fun TodayEntryPrompt(
 private fun CalendarHeader(
     visibleMonth: YearMonth,
     isReady: Boolean,
-    transitioning: Boolean,
     locale: Locale,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -431,14 +424,6 @@ private fun CalendarHeader(
     val monthTitle = visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
     val largeFont = LocalDensity.current.fontScale >= 1.5f
     val titleFontSize = if (largeFont) 18.sp else 22.sp
-    val titleAlpha by animateFloatAsState(
-        targetValue = if (transitioning) 0.72f else 1f,
-        animationSpec = tween(
-            durationMillis = AppMotion.MicroMillis,
-            easing = AppMotion.StandardEasing,
-        ),
-        label = "calendar month title alpha",
-    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -460,7 +445,6 @@ private fun CalendarHeader(
                 modifier = Modifier
                     .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
                     .padding(horizontal = 4.dp)
-                    .graphicsLayer { alpha = titleAlpha }
                     .testTag("calendar-month-title")
                     .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
                 style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
@@ -496,7 +480,6 @@ private fun SummaryStrip(
     state: CalendarUiState,
     locale: Locale,
     expanded: Boolean,
-    transitioning: Boolean,
     onClick: () -> Unit,
     onSwipeUp: () -> Unit,
     modifier: Modifier = Modifier,
@@ -516,14 +499,6 @@ private fun SummaryStrip(
             easing = AppMotion.StandardEasing,
         ),
         label = "summary chevron",
-    )
-    val contentAlpha by animateFloatAsState(
-        targetValue = if (transitioning) 0.68f else 1f,
-        animationSpec = tween(
-            durationMillis = AppMotion.MicroMillis,
-            easing = AppMotion.StandardEasing,
-        ),
-        label = "summary transition alpha",
     )
 
     Box(
@@ -573,9 +548,7 @@ private fun SummaryStrip(
         ) {
             Text(
                 text = summaryText,
-                modifier = Modifier
-                    .weight(1f)
-                    .graphicsLayer { alpha = contentAlpha },
+                modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -584,10 +557,7 @@ private fun SummaryStrip(
             )
             Icon(
                 Icons.Filled.KeyboardArrowUp,
-                modifier = Modifier.graphicsLayer {
-                    rotationZ = chevronRotation
-                    alpha = contentAlpha
-                },
+                modifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
