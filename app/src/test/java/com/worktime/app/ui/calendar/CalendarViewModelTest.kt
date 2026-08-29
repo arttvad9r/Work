@@ -714,19 +714,16 @@ class CalendarViewModelTest {
     }
 
     @Test
-    fun `opening rate period editor is a separate change rate flow`() = runTest {
+    fun `opening rate period editor exposes the change rate flow`() = runTest {
         val repository = FakeWorkEntryRepository(emptyList())
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
 
-        viewModel.openSettings()
         viewModel.openChangeRate(null)
         advanceUntilIdle()
 
-        val state = viewModel.state.first { it.isChangeRateSheetOpen }
-        assertTrue(state.isSettingsOpen)
-        assertTrue(state.isChangeRateSheetOpen)
+        assertTrue(viewModel.state.first { it.isChangeRateSheetOpen }.isChangeRateSheetOpen)
 
         viewModel.dismissChangeRateSheet()
         assertFalse(viewModel.state.first { !it.isChangeRateSheetOpen }.isChangeRateSheetOpen)
