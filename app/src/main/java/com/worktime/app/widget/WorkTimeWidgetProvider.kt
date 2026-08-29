@@ -240,8 +240,6 @@ private fun remoteViews(
         setTextColor(R.id.widget_hours_unit, palette.secondaryText)
         setTextColor(R.id.widget_income_value, palette.accent)
         setTextColor(R.id.widget_income_unit, palette.secondaryText)
-        setTextColor(R.id.widget_separator_days_hours, palette.separator)
-        setTextColor(R.id.widget_separator_hours_income, palette.separator)
         setTextColor(R.id.widget_add, palette.accent)
     }
 
@@ -266,7 +264,6 @@ private fun explicitWidgetPalette(context: Context, themeMode: ThemeMode): Widge
         primaryText = context.getColor(R.color.widget_text_dark),
         secondaryText = context.getColor(R.color.widget_text_secondary_dark),
         accent = context.getColor(R.color.widget_accent_dark),
-        separator = context.getColor(R.color.widget_separator_dark),
     )
     ThemeMode.LIGHT -> WidgetPalette(
         backgroundDrawable = R.drawable.widget_background_light,
@@ -274,7 +271,6 @@ private fun explicitWidgetPalette(context: Context, themeMode: ThemeMode): Widge
         primaryText = context.getColor(R.color.widget_text_light),
         secondaryText = context.getColor(R.color.widget_text_secondary_light),
         accent = context.getColor(R.color.widget_accent_light),
-        separator = context.getColor(R.color.widget_separator_light),
     )
 }
 
@@ -311,5 +307,4 @@ private data class WidgetPalette(
     val primaryText: Int,
     val secondaryText: Int,
     val accent: Int,
-    val separator: Int,
 )
