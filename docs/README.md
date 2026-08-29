@@ -12,7 +12,6 @@
 - [`DECISIONS.md`](DECISIONS.md) — product and architecture decisions.
 - [`BUILD.md`](BUILD.md) — toolchain, wrapper and CI behavior.
 - [`TESTING.md`](TESTING.md) — automated and device verification strategy.
-- [`NIX.md`](NIX.md) — optional Nix/FHS development environment; the project itself builds with the checked-in Gradle Wrapper on a normal compatible Android toolchain.
 
 ## Delivery
 
