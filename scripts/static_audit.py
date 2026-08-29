@@ -226,6 +226,7 @@ build_file = (APP / "build.gradle.kts").read_text(encoding="utf-8")
 catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
 wrapper_file = (ROOT / "gradle/wrapper/gradle-wrapper.properties").read_text(encoding="utf-8")
 workflow_file = (ROOT / ".github/workflows/android.yml").read_text(encoding="utf-8")
+release_workflow_file = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
 verify_script_file = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
 if "distributionSha256Sum=" not in wrapper_file:
     fail("Gradle wrapper distributionSha256Sum is missing")
@@ -237,17 +238,30 @@ if re.search(
     re.DOTALL,
 ) is None:
     fail("Release build must enable AGP optimization (R8 + resource shrinking)")
-for required_task in (":app:lintRelease", ":app:bundleRelease"):
+for required_task in (":app:lintRelease", ":app:assembleRelease"):
     if required_task not in workflow_file:
         fail(f"CI release gate is missing task: {required_task}")
     if required_task not in verify_script_file:
         fail(f"Local verification gate is missing task: {required_task}")
+for required_release_token in (
+    'tags:',
+    'contents: write',
+    'RELEASE_KEYSTORE_BASE64',
+    'gh release create',
+    '--draft',
+):
+    if required_release_token not in release_workflow_file:
+        fail(f"GitHub release workflow is missing: {required_release_token}")
 action_ref_pattern = re.compile(r"^\s*(?:-\s*)?uses:\s*([^@\s]+)@([^\s#]+)", re.MULTILINE)
-for action, ref in action_ref_pattern.findall(workflow_file):
-    if action.startswith("./"):
-        continue
-    if re.fullmatch(r"[0-9a-fA-F]{40}", ref) is None:
-        fail(f"GitHub Action is not pinned to a full commit SHA: {action}@{ref}")
+for workflow_name, workflow_text in (
+    ("android.yml", workflow_file),
+    ("release.yml", release_workflow_file),
+):
+    for action, ref in action_ref_pattern.findall(workflow_text):
+        if action.startswith("./"):
+            continue
+        if re.fullmatch(r"[0-9a-fA-F]{40}", ref) is None:
+            fail(f"GitHub Action is not pinned to a full commit SHA in {workflow_name}: {action}@{ref}")
 if 'testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"' not in build_file:
     fail("AndroidJUnitRunner is not configured")
 if 'androidx.test:runner' not in build_file and 'androidx.test:runner' not in catalog_file:
