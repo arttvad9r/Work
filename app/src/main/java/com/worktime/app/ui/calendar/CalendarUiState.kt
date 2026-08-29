@@ -19,7 +19,6 @@ data class CalendarUiState(
     val selectedDate: LocalDate? = null,
     val defaultHourlyRateMicros: Long = 0L,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val isSettingsOpen: Boolean = false,
     val isChangeRateSheetOpen: Boolean = false,
     val changeRateInitialRange: ClosedRange<LocalDate>? = null,
     val isYearSummaryOpen: Boolean = false,
