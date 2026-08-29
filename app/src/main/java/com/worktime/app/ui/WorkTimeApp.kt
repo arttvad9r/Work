@@ -33,8 +33,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.worktime.app.AppContainer
@@ -168,6 +170,7 @@ fun WorkTimeApp(
                 ?: viewModel.reportOperationError(CalendarOperationError.BACKUP_IMPORT)
         }
     }
+    val fullScreenDirection = fullScreenNavigationDirection(LocalLayoutDirection.current)
 
     var settingsPredictiveExit by remember { mutableStateOf(false) }
     var yearSummaryPredictiveExit by remember { mutableStateOf(false) }
@@ -210,8 +213,8 @@ fun WorkTimeApp(
             }
 
             // Full-screen destinations stay fully opaque. Entry remains a restrained depth cue,
-            // while exit travels completely off-screen before composition removes the destination;
-            // partial-width exits visibly snapped away on device recordings.
+            // while exit travels completely off-screen toward the logical end edge before
+            // composition removes the destination; partial-width exits visibly snapped away.
             AnimatedVisibility(
                 visible = state.isSettingsOpen,
                 enter = slideInHorizontally(
@@ -219,7 +222,7 @@ fun WorkTimeApp(
                         dampingRatio = AppMotion.NoBounceDampingRatio,
                         stiffness = AppMotion.NavigationStiffness,
                     ),
-                    initialOffsetX = { width -> width / 5 },
+                    initialOffsetX = { width -> fullScreenDirection * width / 5 },
                 ),
                 exit = if (settingsPredictiveExit) {
                     ExitTransition.None
@@ -229,7 +232,7 @@ fun WorkTimeApp(
                             dampingRatio = AppMotion.NoBounceDampingRatio,
                             stiffness = AppMotion.NavigationStiffness,
                         ),
-                        targetOffsetX = { width -> width },
+                        targetOffsetX = { width -> fullScreenDirection * width },
                     )
                 },
             ) {
@@ -276,7 +279,7 @@ fun WorkTimeApp(
                         dampingRatio = AppMotion.NoBounceDampingRatio,
                         stiffness = AppMotion.NavigationStiffness,
                     ),
-                    initialOffsetX = { width -> width / 5 },
+                    initialOffsetX = { width -> fullScreenDirection * width / 5 },
                 ),
                 exit = if (yearSummaryPredictiveExit) {
                     ExitTransition.None
@@ -286,7 +289,7 @@ fun WorkTimeApp(
                             dampingRatio = AppMotion.NoBounceDampingRatio,
                             stiffness = AppMotion.NavigationStiffness,
                         ),
-                        targetOffsetX = { width -> width },
+                        targetOffsetX = { width -> fullScreenDirection * width },
                     )
                 },
             ) {
@@ -335,6 +338,9 @@ fun WorkTimeApp(
         }
     }
 }
+
+internal fun fullScreenNavigationDirection(layoutDirection: LayoutDirection): Int =
+    if (layoutDirection == LayoutDirection.Ltr) 1 else -1
 
 @Composable
 private fun PredictiveBackLayer(
