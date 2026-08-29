@@ -6,7 +6,6 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.widget.RemoteViews
 import com.worktime.app.MainActivity
 import com.worktime.app.R
@@ -206,9 +205,20 @@ private fun remoteViews(
     summary: MonthSummary,
     themeMode: ThemeMode,
 ): RemoteViews = RemoteViews(context.packageName, R.layout.work_time_widget).apply {
-    val palette = widgetPalette(context, themeMode)
-    setInt(R.id.widget_root, "setBackgroundResource", palette.backgroundDrawable)
-    setInt(R.id.widget_add, "setBackgroundResource", palette.actionBackgroundDrawable)
+    explicitWidgetPalette(context, themeMode)?.let { palette ->
+        setInt(R.id.widget_root, "setBackgroundResource", palette.backgroundDrawable)
+        setInt(R.id.widget_add, "setBackgroundResource", palette.actionBackgroundDrawable)
+        setTextColor(R.id.widget_month, palette.secondaryText)
+        setTextColor(R.id.widget_days_value, palette.primaryText)
+        setTextColor(R.id.widget_days_unit, palette.secondaryText)
+        setTextColor(R.id.widget_hours_value, palette.primaryText)
+        setTextColor(R.id.widget_hours_unit, palette.secondaryText)
+        setTextColor(R.id.widget_income_value, palette.accent)
+        setTextColor(R.id.widget_income_unit, palette.secondaryText)
+        setTextColor(R.id.widget_separator_days_hours, palette.separator)
+        setTextColor(R.id.widget_separator_hours_income, palette.separator)
+        setTextColor(R.id.widget_add, palette.accent)
+    }
 
     setTextViewText(R.id.widget_month, widgetMonthLabel(month))
     setTextViewText(R.id.widget_days_value, summary.shiftCount.toString())
@@ -218,48 +228,29 @@ private fun remoteViews(
         context.getString(R.string.amount_with_currency, formatAmountMicros(summary.totalPayMicros)),
     )
 
-    setTextColor(R.id.widget_month, palette.secondaryText)
-    setTextColor(R.id.widget_days_value, palette.primaryText)
-    setTextColor(R.id.widget_days_unit, palette.secondaryText)
-    setTextColor(R.id.widget_hours_value, palette.primaryText)
-    setTextColor(R.id.widget_hours_unit, palette.secondaryText)
-    setTextColor(R.id.widget_income_value, palette.accent)
-    setTextColor(R.id.widget_income_unit, palette.secondaryText)
-    setTextColor(R.id.widget_separator_days_hours, palette.separator)
-    setTextColor(R.id.widget_separator_hours_income, palette.separator)
-    setTextColor(R.id.widget_add, palette.accent)
-
     setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent(context, openToday = false))
     setOnClickPendingIntent(R.id.widget_add, openAppPendingIntent(context, openToday = true))
 }
 
-private fun widgetPalette(context: Context, themeMode: ThemeMode): WidgetPalette {
-    val dark = when (themeMode) {
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-        ThemeMode.SYSTEM ->
-            (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                Configuration.UI_MODE_NIGHT_YES
-    }
-    return if (dark) {
-        WidgetPalette(
-            backgroundDrawable = R.drawable.widget_background_dark,
-            actionBackgroundDrawable = R.drawable.widget_add_background_dark,
-            primaryText = context.getColor(R.color.widget_text_dark),
-            secondaryText = context.getColor(R.color.widget_text_secondary_dark),
-            accent = context.getColor(R.color.widget_accent_dark),
-            separator = context.getColor(R.color.widget_separator_dark),
-        )
-    } else {
-        WidgetPalette(
-            backgroundDrawable = R.drawable.widget_background_light,
-            actionBackgroundDrawable = R.drawable.widget_add_background_light,
-            primaryText = context.getColor(R.color.widget_text_light),
-            secondaryText = context.getColor(R.color.widget_text_secondary_light),
-            accent = context.getColor(R.color.widget_accent_light),
-            separator = context.getColor(R.color.widget_separator_light),
-        )
-    }
+/** System mode deliberately stays resource-driven so values/values-night tracks configuration changes. */
+private fun explicitWidgetPalette(context: Context, themeMode: ThemeMode): WidgetPalette? = when (themeMode) {
+    ThemeMode.SYSTEM -> null
+    ThemeMode.DARK -> WidgetPalette(
+        backgroundDrawable = R.drawable.widget_background_dark,
+        actionBackgroundDrawable = R.drawable.widget_add_background_dark,
+        primaryText = context.getColor(R.color.widget_text_dark),
+        secondaryText = context.getColor(R.color.widget_text_secondary_dark),
+        accent = context.getColor(R.color.widget_accent_dark),
+        separator = context.getColor(R.color.widget_separator_dark),
+    )
+    ThemeMode.LIGHT -> WidgetPalette(
+        backgroundDrawable = R.drawable.widget_background_light,
+        actionBackgroundDrawable = R.drawable.widget_add_background_light,
+        primaryText = context.getColor(R.color.widget_text_light),
+        secondaryText = context.getColor(R.color.widget_text_secondary_light),
+        accent = context.getColor(R.color.widget_accent_light),
+        separator = context.getColor(R.color.widget_separator_light),
+    )
 }
 
 private fun widgetMonthLabel(month: YearMonth): String {
