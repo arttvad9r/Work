@@ -1,23 +1,16 @@
 package com.worktime.app.ui.calendar
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +26,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -109,10 +103,9 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
-private const val CalendarMotionMillis = 220
-private const val CalendarFadeMillis = 160
-private const val CellMotionMillis = 150
-private const val PressFeedbackMillis = 90
+private const val CalendarFadeMillis = 100
+private const val PagerSnapMillis = 130
+private const val PagerProgrammaticMillis = 120
 private const val PagerPageCount = 24_001
 private const val PagerAnchorPage = PagerPageCount / 2
 
@@ -137,6 +130,11 @@ fun CalendarScreen(
     val pagerState = rememberPagerState(
         initialPage = PagerAnchorPage,
         pageCount = { PagerPageCount },
+    )
+    val pagerFlingBehavior = PagerDefaults.flingBehavior(
+        state = pagerState,
+        snapAnimationSpec = tween(PagerSnapMillis),
+        snapPositionalThreshold = 0.35f,
     )
     var programmaticPage by remember { mutableStateOf<Int?>(null) }
 
@@ -182,12 +180,15 @@ fun CalendarScreen(
         val targetPage = requestedPage.coerceIn(0, PagerPageCount - 1)
         programmaticPage = targetPage
         scope.launch {
-            pagerState.animateScrollToPage(targetPage)
+            pagerState.animateScrollToPage(
+                page = targetPage,
+                animationSpec = tween(PagerProgrammaticMillis),
+            )
         }
     }
 
     // External month changes (month picker, restored state) move the pager to the same month.
-    // Large jumps are immediate; adjacent changes keep the same spatial animation as arrows.
+    // Adjacent changes use the same short snap as the arrows; large jumps remain immediate.
     LaunchedEffect(state.visibleMonth) {
         val targetPage = pageForMonth(state.visibleMonth)
         if (targetPage !in 0 until PagerPageCount || targetPage == pagerState.settledPage) {
@@ -195,7 +196,10 @@ fun CalendarScreen(
         }
         programmaticPage = targetPage
         if (abs(targetPage - pagerState.currentPage) <= 1) {
-            pagerState.animateScrollToPage(targetPage)
+            pagerState.animateScrollToPage(
+                page = targetPage,
+                animationSpec = tween(PagerProgrammaticMillis),
+            )
         } else {
             pagerState.scrollToPage(targetPage)
         }
@@ -299,6 +303,7 @@ fun CalendarScreen(
                         .height(calendarGridHeight())
                         .testTag("calendar-pager"),
                     beyondViewportPageCount = 1,
+                    flingBehavior = pagerFlingBehavior,
                     key = { page -> monthForPage(page).toString() },
                 ) { page ->
                     val month = monthForPage(page)
@@ -314,16 +319,12 @@ fun CalendarScreen(
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
-                AnimatedVisibility(
-                    visible = shouldShowTodayEntryPrompt(
+                if (
+                    shouldShowTodayEntryPrompt(
                         visibleMonth = state.visibleMonth,
                         entryDates = state.entries.keys,
                         today = today,
-                    ),
-                    enter = fadeIn(animationSpec = tween(CalendarFadeMillis)) +
-                        expandVertically(animationSpec = tween(CalendarMotionMillis), expandFrom = Alignment.Top),
-                    exit = fadeOut(animationSpec = tween(CalendarFadeMillis)) +
-                        shrinkVertically(animationSpec = tween(CalendarMotionMillis), shrinkTowards = Alignment.Top),
+                    )
                 ) {
                     TodayEntryPrompt(
                         onClick = { closeSummaryBehind { onDayClick(today) } },
@@ -424,27 +425,18 @@ private fun CalendarHeader(
                     contentDescription = stringResource(R.string.previous_month),
                 )
             }
-            AnimatedContent(
-                targetState = monthTitle,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
-                        fadeOut(animationSpec = tween(CalendarFadeMillis))
-                },
-                label = "month title",
-            ) { title ->
-                Text(
-                    text = title,
-                    modifier = Modifier
-                        .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
-                        .padding(horizontal = 4.dp)
-                        .testTag("calendar-month-title")
-                        .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                text = monthTitle,
+                modifier = Modifier
+                    .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
+                    .padding(horizontal = 4.dp)
+                    .testTag("calendar-month-title")
+                    .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             IconButton(onClick = onNextMonth) {
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -485,26 +477,11 @@ private fun SummaryStrip(
         locale = locale,
     )
     val haptics = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.988f else 1f,
-        animationSpec = tween(PressFeedbackMillis),
-        label = "summary press scale",
-    )
-    val containerColor by animateColorAsState(
-        targetValue = MaterialTheme.colorScheme.secondaryContainer.copy(
-            alpha = if (pressed) 0.90f else 0.76f,
-        ),
-        animationSpec = tween(PressFeedbackMillis),
-        label = "summary press color",
-    )
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = tween(CalendarFadeMillis),
         label = "summary chevron",
     )
-    val indication = LocalIndication.current
 
     Box(
         modifier = modifier
@@ -514,10 +491,6 @@ private fun SummaryStrip(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = pressScale
-                    scaleY = pressScale
-                }
                 .pointerInput(haptics) {
                     val threshold = 40.dp.toPx()
                     var totalDrag = 0f
@@ -546,10 +519,8 @@ private fun SummaryStrip(
                     )
                 }
                 .clip(MaterialTheme.shapes.medium)
-                .background(containerColor)
+                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.76f))
                 .clickable(
-                    interactionSource = interactionSource,
-                    indication = indication,
                     onClickLabel = stringResource(R.string.monthly_summary),
                     onClick = onClick,
                 )
@@ -562,7 +533,7 @@ private fun SummaryStrip(
                 modifier = Modifier.weight(1f),
                 transitionSpec = {
                     fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
-                        fadeOut(animationSpec = tween(100))
+                        fadeOut(animationSpec = tween(70))
                 },
                 label = "summary value",
             ) { text ->
@@ -642,7 +613,7 @@ private fun MonthlySummaryPanel(
                 targetState = totalText,
                 transitionSpec = {
                     fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
-                        fadeOut(animationSpec = tween(100))
+                        fadeOut(animationSpec = tween(70))
                 },
                 label = "monthly total",
             ) { text ->
@@ -665,7 +636,7 @@ private fun MonthlySummaryPanel(
                 targetState = detailText,
                 transitionSpec = {
                     fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
-                        fadeOut(animationSpec = tween(100))
+                        fadeOut(animationSpec = tween(70))
                 },
                 label = "monthly detail",
             ) { text ->
@@ -896,6 +867,7 @@ private fun DayCell(
 ) {
     val visibleEntry = entry.takeIf { isInVisibleMonth }
     val largeFont = LocalDensity.current.fontScale >= 1.5f
+    val interactionSource = remember { MutableInteractionSource() }
     val totalMicros = visibleEntry?.let {
         runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull()
     }
@@ -928,46 +900,26 @@ private fun DayCell(
             null
         },
     )
-    val targetDateColor = when {
+    val dateColor = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.24f)
         isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
     }
-    val targetAmountColor = if ((totalMicros ?: 0L) < 0L) {
+    val amountColor = if ((totalMicros ?: 0L) < 0L) {
         MaterialTheme.colorScheme.error
     } else {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.90f)
     }
-    val targetBorderColor = if (isToday && isInVisibleMonth) {
+    val borderColor = if (isToday && isInVisibleMonth) {
         MaterialTheme.colorScheme.primary
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
     }
-    val targetBackgroundColor = when {
+    val backgroundColor = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         visibleEntry != null -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
         else -> Color.Transparent
     }
-    val dateColor by animateColorAsState(
-        targetValue = targetDateColor,
-        animationSpec = tween(CellMotionMillis),
-        label = "day date color",
-    )
-    val amountColor by animateColorAsState(
-        targetValue = targetAmountColor,
-        animationSpec = tween(CellMotionMillis),
-        label = "day amount color",
-    )
-    val borderColor by animateColorAsState(
-        targetValue = targetBorderColor,
-        animationSpec = tween(CellMotionMillis),
-        label = "day border color",
-    )
-    val backgroundColor by animateColorAsState(
-        targetValue = targetBackgroundColor,
-        animationSpec = tween(CellMotionMillis),
-        label = "day background color",
-    )
 
     Box(
         modifier = Modifier
@@ -983,7 +935,12 @@ private fun DayCell(
                 if (isLastGridRow && isInVisibleMonth) Modifier.testTag("calendar-last-row-day")
                 else Modifier,
             )
-            .clickable(enabled = isInVisibleMonth, onClick = onClick),
+            .clickable(
+                enabled = isInVisibleMonth,
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -1005,11 +962,8 @@ private fun DayCell(
                 targetState = visibleEntry,
                 modifier = Modifier.fillMaxSize(),
                 transitionSpec = {
-                    (fadeIn(animationSpec = tween(CalendarFadeMillis)) +
-                        scaleIn(
-                            animationSpec = tween(CalendarFadeMillis),
-                            initialScale = 0.97f,
-                        )) togetherWith fadeOut(animationSpec = tween(100))
+                    fadeIn(animationSpec = tween(90)) togetherWith
+                        fadeOut(animationSpec = tween(60))
                 },
                 label = "day entry content",
             ) { animatedEntry ->
