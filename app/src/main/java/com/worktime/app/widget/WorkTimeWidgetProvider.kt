@@ -15,8 +15,8 @@ import com.worktime.app.domain.model.MonthSummary
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
-import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
+import com.worktime.app.ui.format.formatWholeAmountMicros
 import java.time.Duration
 import java.time.YearMonth
 import java.time.ZoneId
@@ -234,25 +234,32 @@ private fun remoteViews(
         setInt(R.id.widget_root, "setBackgroundResource", palette.backgroundDrawable)
         setInt(R.id.widget_add, "setBackgroundResource", palette.actionBackgroundDrawable)
         setTextColor(R.id.widget_month, palette.secondaryText)
-        setTextColor(R.id.widget_days_value, palette.primaryText)
-        setTextColor(R.id.widget_days_unit, palette.secondaryText)
-        setTextColor(R.id.widget_hours_value, palette.primaryText)
-        setTextColor(R.id.widget_hours_unit, palette.secondaryText)
-        setTextColor(R.id.widget_income_value, palette.accent)
-        setTextColor(R.id.widget_income_unit, palette.secondaryText)
+        setTextColor(R.id.widget_summary, palette.primaryText)
         setTextColor(R.id.widget_add, palette.accent)
     }
 
     setTextViewText(R.id.widget_month, widgetMonthLabel(month))
-    setTextViewText(R.id.widget_days_value, summary.shiftCount.toString())
-    setTextViewText(R.id.widget_hours_value, formatDurationCompact(summary.workedMinutes))
-    setTextViewText(
-        R.id.widget_income_value,
-        context.getString(R.string.amount_with_currency, formatAmountMicros(summary.totalPayMicros)),
-    )
+    setTextViewText(R.id.widget_summary, widgetSummaryLine(context, summary))
 
     setOnClickPendingIntent(R.id.widget_root, openAppPendingIntent(context, openToday = false))
     setOnClickPendingIntent(R.id.widget_add, openAppPendingIntent(context, openToday = true))
+}
+
+private fun widgetSummaryLine(context: Context, summary: MonthSummary): String {
+    val shifts = context.resources.getQuantityString(
+        R.plurals.shifts_short,
+        summary.shiftCount,
+        summary.shiftCount,
+    )
+    val hours = context.getString(
+        R.string.hours_short,
+        formatDurationCompact(summary.workedMinutes),
+    )
+    val income = context.getString(
+        R.string.amount_with_currency,
+        formatWholeAmountMicros(summary.totalPayMicros),
+    )
+    return "$shifts · $hours · $income"
 }
 
 /** System mode deliberately stays resource-driven so values/values-night tracks configuration changes. */
