@@ -72,6 +72,7 @@ fun WorkTimeApp(
 
     val entryDeletedMessage = stringResource(R.string.entry_deleted)
     val rateChangedMessage = stringResource(R.string.rate_changed)
+    val noEntriesInPeriodMessage = stringResource(R.string.no_entries_in_period)
     val undoLabel = stringResource(R.string.undo)
     val undoFailedMessage = stringResource(R.string.undo_failed)
     val backupExportedMessage = stringResource(R.string.backup_exported)
@@ -84,6 +85,7 @@ fun WorkTimeApp(
         haptics,
         entryDeletedMessage,
         rateChangedMessage,
+        noEntriesInPeriodMessage,
         undoLabel,
         undoFailedMessage,
         backupExportedMessage,
@@ -102,12 +104,14 @@ fun WorkTimeApp(
                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     showUndoSnackbar(snackbarHostState, rateChangedMessage, undoLabel, viewModel)
                 }
+                CalendarOperationEvent.Success.NO_OP ->
+                    snackbarHostState.showSnackbar(noEntriesInPeriodMessage)
                 CalendarOperationEvent.Success.BACKUP_EXPORTED ->
                     snackbarHostState.showSnackbar(backupExportedMessage)
                 CalendarOperationEvent.Success.BACKUP_IMPORTED ->
                     snackbarHostState.showSnackbar(backupImportedMessage)
-                // Undo fires from a consumed root snackbar after every sheet is gone,
-                // so it is the only error with no owning surface to display it.
+                // Undo and default-rate adoption can surface after their originating sheet
+                // has closed, so root feedback owns those errors.
                 is CalendarOperationEvent.Error ->
                     when (event.kind) {
                         CalendarOperationError.UNDO ->
