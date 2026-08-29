@@ -33,8 +33,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.worktime.app.AppContainer
 import com.worktime.app.R
@@ -49,6 +51,7 @@ import com.worktime.app.ui.settings.ChangeRateSheet
 import com.worktime.app.ui.settings.SettingsScreen
 import com.worktime.app.ui.settings.YearSummaryScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
+import com.worktime.app.ui.yearsummary.YearSummaryViewModel
 import java.time.LocalDate
 
 @Composable
@@ -68,11 +71,6 @@ fun WorkTimeApp(
     val haptics = LocalHapticFeedback.current
 
     fun dismissCurrentDestination() {
-        when (backStack.lastOrNull()) {
-            AppDestination.Settings -> viewModel.dismissSettings()
-            AppDestination.YearSummary -> viewModel.dismissYearSummary()
-            else -> Unit
-        }
         if (backStack.size > 1) {
             backStack.removeLastOrNull()
         }
@@ -83,8 +81,6 @@ fun WorkTimeApp(
             while (backStack.size > 1) {
                 backStack.removeLastOrNull()
             }
-            viewModel.dismissSettings()
-            viewModel.dismissYearSummary()
             viewModel.dismissChangeRateSheet()
             viewModel.cancelImport()
             viewModel.selectDate(LocalDate.now())
@@ -184,6 +180,10 @@ fun WorkTimeApp(
                 backStack = backStack,
                 modifier = Modifier.fillMaxSize(),
                 onBack = ::dismissCurrentDestination,
+                entryDecorators = listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator(),
+                ),
                 transitionSpec = {
                     slideInHorizontally(
                         animationSpec = spring(
@@ -220,25 +220,24 @@ fun WorkTimeApp(
                             onSelectMonth = viewModel::showMonth,
                             onDayClick = viewModel::selectDate,
                             onSettingsClick = {
-                                viewModel.openSettings()
+                                viewModel.dismissEditor()
                                 if (backStack.lastOrNull() != AppDestination.Settings) {
                                     backStack.add(AppDestination.Settings)
                                 }
                             },
                             onOpenYearSummary = {
-                                viewModel.openYearSummary()
-                                if (backStack.lastOrNull() != AppDestination.YearSummary) {
-                                    backStack.add(AppDestination.YearSummary)
+                                viewModel.dismissEditor()
+                                if (backStack.lastOrNull() !is AppDestination.YearSummary) {
+                                    backStack.add(
+                                        AppDestination.YearSummary(
+                                            initialYear = state.visibleMonth.year,
+                                        ),
+                                    )
                                 }
                             },
                         )
                     }
                     entry<AppDestination.Settings> {
-                        LaunchedEffect(Unit) {
-                            if (!viewModel.state.value.isSettingsOpen) {
-                                viewModel.openSettings()
-                            }
-                        }
                         val operationErrorMessage = when (state.operationError) {
                             CalendarOperationError.SAVE_SETTINGS -> stringResource(R.string.save_settings_failed)
                             CalendarOperationError.BACKUP_EXPORT -> stringResource(R.string.backup_export_failed)
@@ -268,17 +267,19 @@ fun WorkTimeApp(
                             },
                         )
                     }
-                    entry<AppDestination.YearSummary> {
-                        LaunchedEffect(Unit) {
-                            if (!viewModel.state.value.isYearSummaryOpen) {
-                                viewModel.openYearSummary()
-                            }
-                        }
+                    entry<AppDestination.YearSummary> { destination ->
+                        val yearSummaryViewModel: YearSummaryViewModel = viewModel(
+                            factory = YearSummaryViewModel.factory(
+                                workEntryRepository = container.workEntryRepository,
+                                initialYear = destination.initialYear,
+                            ),
+                        )
+                        val yearSummaryState by yearSummaryViewModel.state.collectAsStateWithLifecycle()
                         YearSummaryScreen(
-                            summary = state.yearSummary,
+                            summary = yearSummaryState.summary,
                             onDismiss = ::dismissCurrentDestination,
-                            onPreviousYear = viewModel::showPreviousYear,
-                            onNextYear = viewModel::showNextYear,
+                            onPreviousYear = yearSummaryViewModel::showPreviousYear,
+                            onNextYear = yearSummaryViewModel::showNextYear,
                         )
                     }
                 },
