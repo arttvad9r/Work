@@ -2,6 +2,14 @@ package com.worktime.app.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -18,7 +26,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,8 +46,15 @@ import com.worktime.app.ui.settings.YearSummaryScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
 import java.time.LocalDate
 
+private const val ScreenEnterMillis = 260
+private const val ScreenExitMillis = 220
+private const val ScreenFadeMillis = 180
+
 @Composable
-fun WorkTimeApp(container: AppContainer) {
+fun WorkTimeApp(
+    container: AppContainer,
+    openTodayRequest: Long = 0L,
+) {
     val viewModel: CalendarViewModel = viewModel(
         factory = CalendarViewModel.factory(
             workEntryRepository = container.workEntryRepository,
@@ -45,9 +63,22 @@ fun WorkTimeApp(container: AppContainer) {
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val haptics = LocalHapticFeedback.current
+
+    LaunchedEffect(viewModel, openTodayRequest) {
+        if (openTodayRequest > 0L) {
+            // The widget add action is explicit navigation, not a passive app reopen.
+            // Clear transient overlays so the requested editor is actually visible.
+            viewModel.dismissChangeRateSheet()
+            viewModel.dismissYearSummary()
+            viewModel.cancelImport()
+            viewModel.selectDate(LocalDate.now())
+        }
+    }
 
     val entryDeletedMessage = stringResource(R.string.entry_deleted)
     val rateChangedMessage = stringResource(R.string.rate_changed)
+    val noEntriesInPeriodMessage = stringResource(R.string.no_entries_in_period)
     val undoLabel = stringResource(R.string.undo)
     val undoFailedMessage = stringResource(R.string.undo_failed)
     val backupExportedMessage = stringResource(R.string.backup_exported)
@@ -57,8 +88,10 @@ fun WorkTimeApp(container: AppContainer) {
     // cannot redisplay an already-consumed event.
     LaunchedEffect(
         viewModel,
+        haptics,
         entryDeletedMessage,
         rateChangedMessage,
+        noEntriesInPeriodMessage,
         undoLabel,
         undoFailedMessage,
         backupExportedMessage,
@@ -67,16 +100,24 @@ fun WorkTimeApp(container: AppContainer) {
     ) {
         viewModel.operationEvents.collect { event ->
             when (event) {
-                CalendarOperationEvent.Success.ENTRY_DELETED ->
+                CalendarOperationEvent.Success.ENTRY_SAVED ->
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                CalendarOperationEvent.Success.ENTRY_DELETED -> {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     showUndoSnackbar(snackbarHostState, entryDeletedMessage, undoLabel, viewModel)
-                CalendarOperationEvent.Success.RATE_UPDATED ->
+                }
+                CalendarOperationEvent.Success.RATE_UPDATED -> {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     showUndoSnackbar(snackbarHostState, rateChangedMessage, undoLabel, viewModel)
+                }
+                CalendarOperationEvent.Success.NO_OP ->
+                    snackbarHostState.showSnackbar(noEntriesInPeriodMessage)
                 CalendarOperationEvent.Success.BACKUP_EXPORTED ->
                     snackbarHostState.showSnackbar(backupExportedMessage)
                 CalendarOperationEvent.Success.BACKUP_IMPORTED ->
                     snackbarHostState.showSnackbar(backupImportedMessage)
-                // Undo fires from a consumed root snackbar after every sheet is gone,
-                // so it is the only error with no owning surface to display it.
+                // Undo and default-rate adoption can surface after their originating sheet
+                // has closed, so root feedback owns those errors.
                 is CalendarOperationEvent.Error ->
                     when (event.kind) {
                         CalendarOperationError.UNDO ->
@@ -153,7 +194,17 @@ fun WorkTimeApp(container: AppContainer) {
                 )
             }
 
-            if (state.isSettingsOpen) {
+            AnimatedVisibility(
+                visible = state.isSettingsOpen,
+                enter = slideInHorizontally(
+                    animationSpec = tween(ScreenEnterMillis),
+                    initialOffsetX = { width -> width / 5 },
+                ) + fadeIn(animationSpec = tween(ScreenFadeMillis)),
+                exit = slideOutHorizontally(
+                    animationSpec = tween(ScreenExitMillis),
+                    targetOffsetX = { width -> width / 6 },
+                ) + fadeOut(animationSpec = tween(ScreenFadeMillis)),
+            ) {
                 val operationErrorMessage = when (state.operationError) {
                     CalendarOperationError.SAVE_SETTINGS -> stringResource(R.string.save_settings_failed)
                     CalendarOperationError.BACKUP_EXPORT -> stringResource(R.string.backup_export_failed)
@@ -184,8 +235,17 @@ fun WorkTimeApp(container: AppContainer) {
                 )
             }
 
-
-            if (state.isYearSummaryOpen) {
+            AnimatedVisibility(
+                visible = state.isYearSummaryOpen,
+                enter = slideInVertically(
+                    animationSpec = tween(ScreenEnterMillis),
+                    initialOffsetY = { height -> height / 4 },
+                ) + fadeIn(animationSpec = tween(ScreenFadeMillis)),
+                exit = slideOutVertically(
+                    animationSpec = tween(ScreenExitMillis),
+                    targetOffsetY = { height -> height / 4 },
+                ) + fadeOut(animationSpec = tween(ScreenFadeMillis)),
+            ) {
                 YearSummaryScreen(
                     summary = state.yearSummary,
                     onDismiss = viewModel::dismissYearSummary,
@@ -251,7 +311,9 @@ private fun ImportConfirmationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.import_confirmation_title)) },
-        text = { Text(stringResource(R.string.import_confirmation_text, pendingCount)) },
+        text = {
+            Text(pluralStringResource(R.plurals.import_confirmation_text, pendingCount, pendingCount))
+        },
         confirmButton = {
             TextButton(onClick = onConfirm) { Text(stringResource(R.string.replace)) }
         },

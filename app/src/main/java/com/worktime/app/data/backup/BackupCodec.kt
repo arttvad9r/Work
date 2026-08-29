@@ -3,9 +3,9 @@ package com.worktime.app.data.backup
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.preferences.UserPreferences
+import java.nio.charset.StandardCharsets
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
-import java.nio.charset.StandardCharsets
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -13,24 +13,32 @@ import org.json.JSONObject
 data class BackupData(
     val entries: List<WorkEntry>,
     val preferences: UserPreferences,
+    val defaultRateInitialized: Boolean,
 )
 
 /**
  * JSON backup format:
- * `{"version":1,"preferences":{...},"entries":[{...}]}` — see [encode].
+ * `{"version":2,"preferences":{...},"entries":[{...}]}` — see [encode].
+ * Version 1 remains import-compatible.
  */
 object BackupCodec {
-    const val VERSION = 1
+    const val VERSION = 2
+    private const val LEGACY_VERSION = 1
     const val MAX_BACKUP_SIZE_BYTES = 4 * 1024 * 1024
 
-    fun encode(entries: List<WorkEntry>, preferences: UserPreferences): String {
+    fun encode(
+        entries: List<WorkEntry>,
+        preferences: UserPreferences,
+        defaultRateInitialized: Boolean = true,
+    ): String {
         val root = JSONObject()
         root.put("version", VERSION)
         root.put(
             "preferences",
             JSONObject()
                 .put("defaultHourlyRateMicros", preferences.defaultHourlyRateMicros)
-                .put("themeMode", preferences.themeMode.name),
+                .put("themeMode", preferences.themeMode.name)
+                .put("defaultRateInitialized", defaultRateInitialized),
         )
         val jsonEntries = JSONArray()
         entries.forEach { entry ->
@@ -55,7 +63,9 @@ object BackupCodec {
         }
         val root = JSONObject(text)
         val version = root.getInt("version")
-        require(version == VERSION) { "Unsupported backup version: $version" }
+        require(version == LEGACY_VERSION || version == VERSION) {
+            "Unsupported backup version: $version"
+        }
 
         val jsonPreferences = root.getJSONObject("preferences")
         val preferences = UserPreferences(
@@ -73,12 +83,21 @@ object BackupCodec {
                 hourlyRateMicros = jsonEntry.getLong("hourlyRateMicros"),
                 bonusMicros = jsonEntry.getLong("bonusMicros"),
                 penaltyMicros = jsonEntry.getLong("penaltyMicros"),
-                note = jsonEntry.getString("note"),
+                note = jsonEntry.optString("note", ""),
             )
             require(dates.add(entry.date)) { "Duplicate entry date: ${entry.date}" }
             entry
         }
-        BackupData(entries = entries, preferences = preferences)
+        val defaultRateInitialized = if (version >= VERSION) {
+            jsonPreferences.getBoolean("defaultRateInitialized")
+        } else {
+            inferLegacyDefaultRateInitialized(entries, preferences)
+        }
+        BackupData(
+            entries = entries,
+            preferences = preferences,
+            defaultRateInitialized = defaultRateInitialized,
+        )
     } catch (error: JSONException) {
         throw IllegalArgumentException("Malformed backup file", error)
     } catch (error: DateTimeParseException) {
@@ -86,4 +105,9 @@ object BackupCodec {
     } catch (error: IllegalArgumentException) {
         throw IllegalArgumentException("Malformed backup file", error)
     }
+
+    private fun inferLegacyDefaultRateInitialized(
+        entries: List<WorkEntry>,
+        preferences: UserPreferences,
+    ): Boolean = preferences.defaultHourlyRateMicros != 0L || entries.any { it.workedMinutes > 0 }
 }

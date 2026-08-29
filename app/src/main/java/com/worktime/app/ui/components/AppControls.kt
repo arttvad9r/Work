@@ -1,24 +1,44 @@
 package com.worktime.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 
 /**
  * The one segmented presentation for mutually exclusive options (theme, period).
- * Selected option uses secondaryContainer; unselected stay flat.
+ * A single selected pill moves between equal-width options instead of hard-swapping fills.
  */
 @Composable
 fun AppSegmentedControl(
@@ -27,33 +47,81 @@ fun AppSegmentedControl(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SingleChoiceSegmentedButtonRow(
+    if (options.isEmpty()) return
+
+    val haptics = LocalHapticFeedback.current
+
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .height(AppDimens.compactControlHeight),
+            .height(AppDimens.compactControlHeight)
+            .clip(MaterialTheme.shapes.small)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+                shape = MaterialTheme.shapes.small,
+            ),
     ) {
-        options.forEachIndexed { index, option ->
-            SegmentedButton(
-                selected = selectedIndex == index,
-                onClick = { onSelect(index) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    activeContentColor = MaterialTheme.colorScheme.onSurface,
-                    activeBorderColor = Color.Transparent,
-                    inactiveContainerColor = Color.Transparent,
-                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
-                ),
-                icon = {},
-                label = {
+        val safeIndex = selectedIndex.coerceIn(options.indices)
+        val segmentWidth = maxWidth / options.size
+        val indicatorOffset by animateDpAsState(
+            targetValue = segmentWidth * safeIndex,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
+            label = "segmented indicator",
+        )
+
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
+                .width(segmentWidth)
+                .fillMaxHeight()
+                .padding(2.dp)
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .selectableGroup(),
+        ) {
+            options.forEachIndexed { index, option ->
+                val selected = safeIndex == index
+                val contentColor by animateColorAsState(
+                    targetValue = if (selected) {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    label = "segmented content",
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .selectable(
+                            selected = selected,
+                            role = Role.RadioButton,
+                            onClick = {
+                                if (index != safeIndex) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                    onSelect(index)
+                                }
+                            },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Text(
                         text = option,
                         style = MaterialTheme.typography.bodyMedium,
+                        color = contentColor,
                         maxLines = 1,
                     )
-                },
-            )
+                }
+            }
         }
     }
 }

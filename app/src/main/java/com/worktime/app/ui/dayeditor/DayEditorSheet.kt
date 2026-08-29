@@ -1,10 +1,19 @@
 package com.worktime.app.ui.dayeditor
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -53,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
@@ -71,6 +81,9 @@ import com.worktime.app.ui.format.parseDecimalMicros
 import com.worktime.app.ui.format.sanitizeMoneyInput
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+
+private const val AdjustmentFadeInMillis = 140
+private const val AdjustmentFadeOutMillis = 90
 
 @Composable
 fun DayEditorSheet(
@@ -100,6 +113,12 @@ internal enum class NumericField(val labelTextRes: Int) {
     Rate(R.string.at_rate),
     Bonus(R.string.bonus),
     Penalty(R.string.penalty),
+}
+
+private enum class AdjustmentPresentation {
+    Add,
+    Value,
+    Active,
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -405,9 +424,32 @@ private fun NumericEditorSection(
     val rowHeight = AppDimens.rowMinHeight
     val rateY = rowHeight
     val adjustmentTop = rateY + rowHeight
-    val expandedAdjustments = bonusVisible || penaltyVisible
     val penaltyTop = adjustmentTop + rowHeight
     val sectionHeight = penaltyTop + rowHeight
+    val editorTargetY = when (activeField) {
+        NumericField.Duration -> 0.dp
+        NumericField.Rate -> rateY
+        NumericField.Bonus -> adjustmentTop
+        NumericField.Penalty -> penaltyTop
+    }
+    val editorY by animateDpAsState(
+        targetValue = editorTargetY,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "numeric editor position",
+    )
+    val bonusPresentation = when {
+        activeField == NumericField.Bonus -> AdjustmentPresentation.Active
+        bonusVisible -> AdjustmentPresentation.Value
+        else -> AdjustmentPresentation.Add
+    }
+    val penaltyPresentation = when {
+        activeField == NumericField.Penalty -> AdjustmentPresentation.Active
+        penaltyVisible -> AdjustmentPresentation.Value
+        else -> AdjustmentPresentation.Add
+    }
 
     Box(
         modifier = Modifier
@@ -443,80 +485,32 @@ private fun NumericEditorSection(
             )
         }
 
-        if (!expandedAdjustments) {
-            AdjustmentAddRow(
-                label = stringResource(R.string.bonus),
-                onClick = onShowBonus,
-                modifier = Modifier
-                    .offset(y = adjustmentTop)
-                    .testTag("day-editor-row-bonus")
-                    .fillMaxWidth()
-                    .height(rowHeight),
-            )
-            AdjustmentAddRow(
-                label = stringResource(R.string.penalty),
-                onClick = onShowPenalty,
-                modifier = Modifier
-                    .offset(y = penaltyTop)
-                    .testTag("day-editor-row-penalty")
-                    .fillMaxWidth()
-                    .height(rowHeight),
-            )
-        } else {
-            if (bonusVisible) {
-                if (activeField != NumericField.Bonus) {
-                    EditorValueRow(
-                        label = stringResource(NumericField.Bonus.labelTextRes),
-                        valueText = bonusState.text.toString().ifBlank { null },
-                        placeholderText = null,
-                        isError = bonusHasError,
-                        onClick = { onActivateField(NumericField.Bonus) },
-                        modifier = Modifier
-                            .offset(y = adjustmentTop)
-                            .testTag("day-editor-row-bonus")
-                            .fillMaxWidth()
-                            .height(rowHeight),
-                    )
-                }
-            } else {
-                AdjustmentAddRow(
-                    label = stringResource(R.string.bonus),
-                    onClick = onShowBonus,
-                    modifier = Modifier
-                        .offset(y = adjustmentTop)
-                        .testTag("day-editor-row-bonus")
-                        .fillMaxWidth()
-                        .height(rowHeight),
-                )
-            }
-
-            if (penaltyVisible) {
-                if (activeField != NumericField.Penalty) {
-                    EditorValueRow(
-                        label = stringResource(NumericField.Penalty.labelTextRes),
-                        valueText = penaltyState.text.toString().ifBlank { null },
-                        placeholderText = null,
-                        isError = penaltyHasError,
-                        onClick = { onActivateField(NumericField.Penalty) },
-                        modifier = Modifier
-                            .offset(y = penaltyTop)
-                            .testTag("day-editor-row-penalty")
-                            .fillMaxWidth()
-                            .height(rowHeight),
-                    )
-                }
-            } else {
-                AdjustmentAddRow(
-                    label = stringResource(R.string.penalty),
-                    onClick = onShowPenalty,
-                    modifier = Modifier
-                        .offset(y = penaltyTop)
-                        .testTag("day-editor-row-penalty")
-                        .fillMaxWidth()
-                        .height(rowHeight),
-                )
-            }
-        }
+        AdjustmentSlot(
+            presentation = bonusPresentation,
+            label = stringResource(NumericField.Bonus.labelTextRes),
+            valueText = bonusState.text.toString().ifBlank { null },
+            isError = bonusHasError,
+            onClick = { onActivateField(NumericField.Bonus) },
+            onAdd = onShowBonus,
+            testTag = "day-editor-row-bonus",
+            modifier = Modifier
+                .offset(y = adjustmentTop)
+                .fillMaxWidth()
+                .height(rowHeight),
+        )
+        AdjustmentSlot(
+            presentation = penaltyPresentation,
+            label = stringResource(NumericField.Penalty.labelTextRes),
+            valueText = penaltyState.text.toString().ifBlank { null },
+            isError = penaltyHasError,
+            onClick = { onActivateField(NumericField.Penalty) },
+            onAdd = onShowPenalty,
+            testTag = "day-editor-row-penalty",
+            modifier = Modifier
+                .offset(y = penaltyTop)
+                .fillMaxWidth()
+                .height(rowHeight),
+        )
 
         PersistentNumericEditor(
             state = editorState,
@@ -532,18 +526,54 @@ private fun NumericEditorSection(
             editorFocusRequester = editorFocusRequester,
             onEditorFocusChanged = onEditorFocusChanged,
             modifier = Modifier
-                .offset(
-                    y = when (activeField) {
-                        NumericField.Duration -> 0.dp
-                        NumericField.Rate -> rateY
-                        NumericField.Bonus -> adjustmentTop
-                        NumericField.Penalty -> penaltyTop
-                    },
-                )
+                .offset { IntOffset(0, editorY.roundToPx()) }
                 .testTag("day-editor-active-field")
                 .fillMaxWidth()
                 .height(rowHeight),
         )
+    }
+}
+
+@Composable
+private fun AdjustmentSlot(
+    presentation: AdjustmentPresentation,
+    label: String,
+    valueText: String?,
+    isError: Boolean,
+    onClick: () -> Unit,
+    onAdd: () -> Unit,
+    testTag: String,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedContent(
+        targetState = presentation,
+        modifier = modifier,
+        transitionSpec = {
+            fadeIn(animationSpec = tween(AdjustmentFadeInMillis)) togetherWith
+                fadeOut(animationSpec = tween(AdjustmentFadeOutMillis))
+        },
+        label = "adjustment row transition",
+    ) { state ->
+        when (state) {
+            AdjustmentPresentation.Add -> AdjustmentAddRow(
+                label = label,
+                onClick = onAdd,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(testTag),
+            )
+            AdjustmentPresentation.Value -> EditorValueRow(
+                label = label,
+                valueText = valueText,
+                placeholderText = null,
+                isError = isError,
+                onClick = onClick,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(testTag),
+            )
+            AdjustmentPresentation.Active -> Box(modifier = Modifier.fillMaxSize())
+        }
     }
 }
 

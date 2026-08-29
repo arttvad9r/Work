@@ -20,7 +20,7 @@ open month -> tap a day -> enter duration and hourly rate -> save
 - optional home-screen month-summary widget;
 - controlled light/dark Material 3 palettes and portrait-only layout.
 
-There is no currency selector or conversion model; presentation uses fixed `₽` labels. Notes and quick-duration presets are intentionally not part of the product. A fractional part is shown only when it is non-zero. Durations are displayed compactly (`0`, `15`, `15:30`).
+There is no currency selector or conversion model; presentation uses fixed `₽` labels. Notes and quick-duration presets are intentionally not part of the product. Detailed monetary values show a fractional part only when it is non-zero; dense calendar cells and the compact summary strip round to whole rubles to preserve fixed geometry. Durations are displayed compactly (`0`, `15`, `15:30`).
 
 The interface follows one shared component/dimension contract ([UI system](docs/UI_SYSTEM.md)): navigation, value, editable, segmented and action controls use the same semantics and sizing across screens and sheets.
 
@@ -49,11 +49,11 @@ Amounts use integer micros in domain/data code. `Float` and `Double` are not use
 
 - Kotlin 2.4.x
 - Jetpack Compose + Material 3
-- AGP 9.3.1 / Gradle Wrapper 9.5.0 / Java 17
+- AGP 9.3.2 / Gradle Wrapper 9.7.1 / Java 17
 - Room 2.8.4
 - DataStore 1.2.1
 - coroutines and `StateFlow`
-- JUnit 5 and AndroidX Test
+- JUnit 6 and AndroidX Test
 
 ## Verification
 

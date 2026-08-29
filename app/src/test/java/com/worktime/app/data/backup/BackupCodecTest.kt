@@ -5,7 +5,9 @@ import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.preferences.UserPreferences
 import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class BackupCodecTest {
@@ -26,13 +28,28 @@ class BackupCodecTest {
     )
 
     @Test
-    fun `encode decode round trip preserves entries and preferences`() {
-        val text = BackupCodec.encode(entries, preferences)
+    fun `encode decode round trip preserves entries preferences and initialization`() {
+        val text = BackupCodec.encode(entries, preferences, defaultRateInitialized = true)
 
         val restored = BackupCodec.decode(text)
 
         assertEquals(entries, restored.entries)
         assertEquals(preferences, restored.preferences)
+        assertTrue(restored.defaultRateInitialized)
+    }
+
+    @Test
+    fun `round trip preserves explicitly initialized zero default rate`() {
+        val text = BackupCodec.encode(
+            entries = emptyList(),
+            preferences = UserPreferences(),
+            defaultRateInitialized = true,
+        )
+
+        val restored = BackupCodec.decode(text)
+
+        assertEquals(0L, restored.preferences.defaultHourlyRateMicros)
+        assertTrue(restored.defaultRateInitialized)
     }
 
     @Test
@@ -46,6 +63,24 @@ class BackupCodecTest {
     }
 
     @Test
+    fun `legacy clean backup stays uninitialized`() {
+        val text = """{"version":1,"preferences":{"defaultHourlyRateMicros":0,"themeMode":"SYSTEM"},"entries":[]}"""
+
+        val restored = BackupCodec.decode(text)
+
+        assertFalse(restored.defaultRateInitialized)
+    }
+
+    @Test
+    fun `legacy backup with worked entries is treated as initialized`() {
+        val text = """{"version":1,"preferences":{"defaultHourlyRateMicros":0,"themeMode":"SYSTEM"},"entries":[{"date":"2026-08-09","workedMinutes":480,"hourlyRateMicros":10000000,"bonusMicros":0,"penaltyMicros":0}]}"""
+
+        val restored = BackupCodec.decode(text)
+
+        assertTrue(restored.defaultRateInitialized)
+    }
+
+    @Test
     fun `decode rejects malformed json`() {
         assertThrows(IllegalArgumentException::class.java) {
             BackupCodec.decode("not json at all")
@@ -55,7 +90,7 @@ class BackupCodecTest {
     @Test
     fun `decode rejects unsupported version`() {
         val text = BackupCodec.encode(entries, preferences)
-            .replaceFirst("\"version\":1", "\"version\":99")
+            .replaceFirst("\"version\":2", "\"version\":99")
 
         assertThrows(IllegalArgumentException::class.java) {
             BackupCodec.decode(text)

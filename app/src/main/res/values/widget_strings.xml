@@ -5,4 +5,5 @@
     <string name="widget_income_unit">income</string>
     <string name="widget_add_entry">Add entry</string>
     <string name="widget_separator" translatable="false">·</string>
+    <string name="widget_add_symbol" translatable="false">+</string>
 </resources>

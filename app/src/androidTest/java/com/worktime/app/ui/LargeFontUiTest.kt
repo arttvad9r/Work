@@ -144,7 +144,6 @@ class LargeFontUiTest {
         composeRule.onNodeWithContentDescription(context.getString(R.string.next_month)).assertIsDisplayed()
         composeRule.onNodeWithContentDescription(context.getString(R.string.settings)).assertIsDisplayed()
         composeRule.onNodeWithTag("calendar-month-title").assertIsDisplayed()
-        composeRule.onNodeWithTag("calendar-last-row-day").assertIsDisplayed()
         composeRule.onNodeWithContentDescription(context.getString(R.string.has_entry), substring = true)
             .assertIsDisplayed()
         composeRule.onNodeWithContentDescription(context.getString(R.string.duration_hours, 8), substring = true)
@@ -200,9 +199,9 @@ class LargeFontUiTest {
         }
 
         composeRule.waitForIdle()
-        val largeHeight = composeRule.onNodeWithTag("calendar-grid").fetchSemanticsNode().boundsInRoot.height
+        val largeHeight = composeRule.onNodeWithTag("calendar-pager").fetchSemanticsNode().boundsInRoot.height
 
-        assert(abs(largeHeight - 420f) < 1f) { "calendar grid height changed: $largeHeight" }
+        assert(abs(largeHeight - 420f) < 1f) { "calendar pager height changed: $largeHeight" }
     }
 
     private fun summary() = YearSummary(

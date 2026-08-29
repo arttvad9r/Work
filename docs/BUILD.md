@@ -3,8 +3,8 @@
 ## Toolchain
 
 - Java 17
-- Gradle Wrapper 9.5.0
-- Android Gradle Plugin 9.3.1
+- Gradle Wrapper 9.7.1
+- Android Gradle Plugin 9.3.2
 - Kotlin 2.4.10
 - compile/target SDK 37
 - Compose BOM 2026.08.00
@@ -45,7 +45,7 @@ The repository keeps an optional Nix/FHS environment for reproducibility and for
 
 ## CI
 
-`.github/workflows/android.yml` checks out source, installs Java, configures Gradle caching and executes the same checked-in wrapper for static audit, JVM tests, lint and APK builds.
+`.github/workflows/android.yml` checks out source, installs Java, configures Gradle caching and executes the same checked-in wrapper for static audit, JVM tests, lint and APK builds. Third-party actions are pinned to immutable commit SHAs; the current action set uses Node 24-native releases.
 
 GitHub Actions runs may fail before job steps begin because of account/runner availability. A run with no executed verification steps is an infrastructure result: it is neither successful Gradle verification nor evidence of a compiler/test defect.
 

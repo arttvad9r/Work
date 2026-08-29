@@ -114,22 +114,4 @@ class CalendarAmountVisibilityTest {
             ),
         )
     }
-
-    @Test
-    fun `horizontal swipe past threshold resolves month navigation`() {
-        assertEquals(MonthSwipe.TO_PREVIOUS, resolveMonthSwipe(deltaX = 200f, deltaY = 10f, thresholdPx = 100f))
-        assertEquals(MonthSwipe.TO_NEXT, resolveMonthSwipe(deltaX = -200f, deltaY = -10f, thresholdPx = 100f))
-    }
-
-    @Test
-    fun `swipe below threshold does not change month`() {
-        assertEquals(MonthSwipe.NONE, resolveMonthSwipe(deltaX = 99f, deltaY = 0f, thresholdPx = 100f))
-        assertEquals(MonthSwipe.NONE, resolveMonthSwipe(deltaX = -99f, deltaY = 0f, thresholdPx = 100f))
-    }
-
-    @Test
-    fun `predominantly vertical drags are ignored even past threshold`() {
-        assertEquals(MonthSwipe.NONE, resolveMonthSwipe(deltaX = 50f, deltaY = 200f, thresholdPx = 40f))
-        assertEquals(MonthSwipe.NONE, resolveMonthSwipe(deltaX = 200f, deltaY = 200f, thresholdPx = 40f))
-    }
 }

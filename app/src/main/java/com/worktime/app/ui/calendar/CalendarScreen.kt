@@ -1,9 +1,23 @@
 package com.worktime.app.ui.calendar
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,10 +32,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
@@ -39,22 +56,25 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -89,6 +109,13 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
+private const val CalendarMotionMillis = 220
+private const val CalendarFadeMillis = 160
+private const val CellMotionMillis = 150
+private const val PressFeedbackMillis = 90
+private const val PagerPageCount = 24_001
+private const val PagerAnchorPage = PagerPageCount / 2
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
@@ -102,7 +129,23 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalLocale.current.platformLocale
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
     var monthPickerOpen by rememberSaveable { mutableStateOf(false) }
+
+    val originMonthIndex = rememberSaveable { state.visibleMonth.toMonthIndex() }
+    val pagerState = rememberPagerState(
+        initialPage = PagerAnchorPage,
+        pageCount = { PagerPageCount },
+    )
+    var programmaticPage by remember { mutableStateOf<Int?>(null) }
+
+    fun monthForPage(page: Int): YearMonth =
+        yearMonthFromIndex(originMonthIndex + page - PagerAnchorPage)
+
+    fun pageForMonth(month: YearMonth): Int =
+        PagerAnchorPage + month.toMonthIndex() - originMonthIndex
+
     val summarySheetState = rememberStandardBottomSheetState(
         initialValue = SheetValue.Hidden,
         skipHiddenState = false,
@@ -110,7 +153,6 @@ fun CalendarScreen(
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = summarySheetState,
     )
-    val scope = rememberCoroutineScope()
     val summaryTargetExpanded = summarySheetState.targetValue == SheetValue.Expanded
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
         val shouldHide = summarySheetState.currentValue != SheetValue.Hidden ||
@@ -133,6 +175,51 @@ fun CalendarScreen(
             } else {
                 summarySheetState.expand()
             }
+        }
+    }
+
+    val animateToPage: (Int) -> Unit = { requestedPage ->
+        val targetPage = requestedPage.coerceIn(0, PagerPageCount - 1)
+        programmaticPage = targetPage
+        scope.launch {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
+
+    // External month changes (month picker, restored state) move the pager to the same month.
+    // Large jumps are immediate; adjacent changes keep the same spatial animation as arrows.
+    LaunchedEffect(state.visibleMonth) {
+        val targetPage = pageForMonth(state.visibleMonth)
+        if (targetPage !in 0 until PagerPageCount || targetPage == pagerState.settledPage) {
+            return@LaunchedEffect
+        }
+        programmaticPage = targetPage
+        if (abs(targetPage - pagerState.currentPage) <= 1) {
+            pagerState.animateScrollToPage(targetPage)
+        } else {
+            pagerState.scrollToPage(targetPage)
+        }
+    }
+
+    // A drag follows the finger through HorizontalPager. Commit business state only once
+    // the page has settled; user-driven snaps get one restrained tactile tick.
+    LaunchedEffect(pagerState, state.visibleMonth) {
+        var previousSettledPage = pagerState.settledPage
+        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+            if (settledPage == previousSettledPage) return@collect
+
+            val userDriven = programmaticPage != settledPage
+            if (userDriven) {
+                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            } else {
+                programmaticPage = null
+            }
+
+            val settledMonth = monthForPage(settledPage)
+            if (settledMonth != state.visibleMonth) {
+                onSelectMonth(settledMonth)
+            }
+            previousSettledPage = settledPage
         }
     }
 
@@ -174,11 +261,23 @@ fun CalendarScreen(
                 .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            val displayedMonth = monthForPage(pagerState.currentPage)
             CalendarHeader(
-                state = state,
+                visibleMonth = displayedMonth,
+                isReady = state.isReady,
                 locale = locale,
-                onPreviousMonth = { closeSummaryBehind(onPreviousMonth) },
-                onNextMonth = { closeSummaryBehind(onNextMonth) },
+                onPreviousMonth = {
+                    closeSummaryBehind {
+                        val target = pagerState.settledPage - 1
+                        if (target >= 0) animateToPage(target) else onPreviousMonth()
+                    }
+                },
+                onNextMonth = {
+                    closeSummaryBehind {
+                        val target = pagerState.settledPage + 1
+                        if (target < PagerPageCount) animateToPage(target) else onNextMonth()
+                    }
+                },
                 onSelectMonth = { monthPickerOpen = true },
                 onSettingsClick = { closeSummaryBehind(onSettingsClick) },
             )
@@ -193,20 +292,38 @@ fun CalendarScreen(
                 }
             } else {
                 val today = LocalDate.now()
-                CalendarGrid(
-                    state = state,
-                    onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
-                    onSwipeToPrevious = { closeSummaryBehind(onPreviousMonth) },
-                    onSwipeToNext = { closeSummaryBehind(onNextMonth) },
-                    locale = locale,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (
-                    shouldShowTodayEntryPrompt(
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(calendarGridHeight())
+                        .testTag("calendar-pager"),
+                    beyondViewportPageCount = 1,
+                    key = { page -> monthForPage(page).toString() },
+                ) { page ->
+                    val month = monthForPage(page)
+                    val entries = state.monthEntries[month]
+                        ?: if (month == state.visibleMonth) state.entries else emptyMap()
+                    CalendarGrid(
+                        state = state.copy(
+                            visibleMonth = month,
+                            entries = entries,
+                        ),
+                        onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
+                        locale = locale,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                AnimatedVisibility(
+                    visible = shouldShowTodayEntryPrompt(
                         visibleMonth = state.visibleMonth,
                         entryDates = state.entries.keys,
                         today = today,
-                    )
+                    ),
+                    enter = fadeIn(animationSpec = tween(CalendarFadeMillis)) +
+                        expandVertically(animationSpec = tween(CalendarMotionMillis), expandFrom = Alignment.Top),
+                    exit = fadeOut(animationSpec = tween(CalendarFadeMillis)) +
+                        shrinkVertically(animationSpec = tween(CalendarMotionMillis), shrinkTowards = Alignment.Top),
                 ) {
                     TodayEntryPrompt(
                         onClick = { closeSummaryBehind { onDayClick(today) } },
@@ -216,6 +333,7 @@ fun CalendarScreen(
                 SummaryStrip(
                     state = state,
                     locale = locale,
+                    expanded = summaryTargetExpanded,
                     onClick = toggleSummary,
                     onSwipeUp = {
                         scope.launch { summarySheetState.expand() }
@@ -279,14 +397,15 @@ private fun TodayEntryPrompt(
 
 @Composable
 private fun CalendarHeader(
-    state: CalendarUiState,
+    visibleMonth: YearMonth,
+    isReady: Boolean,
     locale: Locale,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectMonth: () -> Unit,
     onSettingsClick: () -> Unit,
 ) {
-    val monthTitle = state.visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+    val monthTitle = visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
     val largeFont = LocalDensity.current.fontScale >= 1.5f
     val titleFontSize = if (largeFont) 18.sp else 22.sp
     Row(
@@ -305,18 +424,27 @@ private fun CalendarHeader(
                     contentDescription = stringResource(R.string.previous_month),
                 )
             }
-            Text(
-                text = monthTitle,
-                modifier = Modifier
-                    .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
-                    .padding(horizontal = 4.dp)
-                    .testTag("calendar-month-title")
-                    .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            AnimatedContent(
+                targetState = monthTitle,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
+                        fadeOut(animationSpec = tween(CalendarFadeMillis))
+                },
+                label = "month title",
+            ) { title ->
+                Text(
+                    text = title,
+                    modifier = Modifier
+                        .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
+                        .padding(horizontal = 4.dp)
+                        .testTag("calendar-month-title")
+                        .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             IconButton(onClick = onNextMonth) {
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -329,7 +457,7 @@ private fun CalendarHeader(
             modifier = Modifier.weight(1f),
             contentAlignment = Alignment.CenterEnd,
         ) {
-            IconButton(onClick = onSettingsClick, enabled = state.isReady) {
+            IconButton(onClick = onSettingsClick, enabled = isReady) {
                 Icon(
                     Icons.Filled.Settings,
                     modifier = Modifier.size(22.dp),
@@ -344,11 +472,40 @@ private fun CalendarHeader(
 private fun SummaryStrip(
     state: CalendarUiState,
     locale: Locale,
+    expanded: Boolean,
     onClick: () -> Unit,
     onSwipeUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
+    val summaryText = summaryLine(
+        shiftCount = summary.shiftCount,
+        workedMinutes = summary.workedMinutes,
+        totalPayMicros = summary.totalPayMicros,
+        locale = locale,
+    )
+    val haptics = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.988f else 1f,
+        animationSpec = tween(PressFeedbackMillis),
+        label = "summary press scale",
+    )
+    val containerColor by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.secondaryContainer.copy(
+            alpha = if (pressed) 0.90f else 0.76f,
+        ),
+        animationSpec = tween(PressFeedbackMillis),
+        label = "summary press color",
+    )
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(CalendarFadeMillis),
+        label = "summary chevron",
+    )
+    val indication = LocalIndication.current
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -357,30 +514,42 @@ private fun SummaryStrip(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
+                .graphicsLayer {
+                    scaleX = pressScale
+                    scaleY = pressScale
+                }
+                .pointerInput(haptics) {
                     val threshold = 40.dp.toPx()
                     var totalDrag = 0f
-                    var triggered = false
+                    var thresholdActive = false
                     detectDragGestures(
                         onDragStart = {
                             totalDrag = 0f
-                            triggered = false
+                            thresholdActive = false
                         },
                         onDrag = { change, dragAmount ->
                             totalDrag += dragAmount.y
+                            val isEligible = totalDrag <= -threshold
+                            if (isEligible && !thresholdActive) {
+                                haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                thresholdActive = true
+                            } else if (!isEligible) {
+                                thresholdActive = false
+                            }
                             change.consume()
                         },
                         onDragEnd = {
-                            if (!triggered && totalDrag <= -threshold) {
-                                triggered = true
-                                onSwipeUp()
-                            }
+                            if (totalDrag <= -threshold) onSwipeUp()
+                            totalDrag = 0f
+                            thresholdActive = false
                         },
                     )
                 }
                 .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.76f))
+                .background(containerColor)
                 .clickable(
+                    interactionSource = interactionSource,
+                    indication = indication,
                     onClickLabel = stringResource(R.string.monthly_summary),
                     onClick = onClick,
                 )
@@ -388,22 +557,27 @@ private fun SummaryStrip(
                 .padding(horizontal = AppDimens.screenHorizontalPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = summaryLine(
-                    shiftCount = summary.shiftCount,
-                    workedMinutes = summary.workedMinutes,
-                    totalPayMicros = summary.totalPayMicros,
-                    locale = locale,
-                ),
+            AnimatedContent(
+                targetState = summaryText,
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-            )
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
+                        fadeOut(animationSpec = tween(100))
+                },
+                label = "summary value",
+            ) { text ->
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+            }
             Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                Icons.Filled.KeyboardArrowUp,
+                modifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
@@ -437,6 +611,15 @@ private fun MonthlySummaryPanel(
     modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
+    val totalText = stringResource(
+        R.string.amount_with_currency,
+        formatAmountMicros(summary.totalPayMicros, locale),
+    )
+    val detailText = summaryLine(
+        shiftCount = summary.shiftCount,
+        workedMinutes = summary.workedMinutes,
+        locale = locale,
+    )
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -455,48 +638,59 @@ private fun MonthlySummaryPanel(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                text = stringResource(
-                    R.string.amount_with_currency,
-                    formatWholeAmountMicros(summary.totalPayMicros, locale),
-                ),
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 20.sp,
-                    lineHeight = 24.sp,
-                ),
-                fontWeight = FontWeight.SemiBold,
-                color = if (shouldUseErrorColorForTotal(summary.totalPayMicros)) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurface
+            AnimatedContent(
+                targetState = totalText,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
+                        fadeOut(animationSpec = tween(100))
                 },
-                maxLines = 1,
-            )
-            Text(
-                text = summaryLine(
-                    shiftCount = summary.shiftCount,
-                    workedMinutes = summary.workedMinutes,
-                    locale = locale,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
+                label = "monthly total",
+            ) { text ->
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 20.sp,
+                        lineHeight = 24.sp,
+                    ),
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (shouldUseErrorColorForTotal(summary.totalPayMicros)) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    maxLines = 1,
+                )
+            }
+            AnimatedContent(
+                targetState = detailText,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(CalendarFadeMillis)) togetherWith
+                        fadeOut(animationSpec = tween(100))
+                },
+                label = "monthly detail",
+            ) { text ->
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
 
             LabelValueRow(
                 label = stringResource(R.string.calculation_base),
-                value = formatWholeAmountMicros(summary.basePayMicros, locale),
+                value = formatAmountMicros(summary.basePayMicros, locale),
             )
             if (summary.bonusMicros > 0L) {
                 LabelValueRow(
                     label = stringResource(R.string.calculation_bonus),
-                    value = "+${formatWholeAmountMicros(summary.bonusMicros, locale)}",
+                    value = "+${formatAmountMicros(summary.bonusMicros, locale)}",
                 )
             }
             if (summary.penaltyMicros > 0L) {
                 LabelValueRow(
                     label = stringResource(R.string.calculation_penalty),
-                    value = "−${formatWholeAmountMicros(summary.penaltyMicros, locale)}",
+                    value = "−${formatAmountMicros(summary.penaltyMicros, locale)}",
                 )
             }
 
@@ -602,45 +796,20 @@ private fun MonthPickerDialog(
     )
 }
 
-private val MonthSwipeThreshold = 48.dp
-
 @Composable
 private fun CalendarGrid(
     state: CalendarUiState,
     onDayClick: (LocalDate) -> Unit,
-    onSwipeToPrevious: () -> Unit,
-    onSwipeToNext: () -> Unit,
     locale: Locale,
     modifier: Modifier = Modifier,
 ) {
-    val currentOnSwipeToPrevious by rememberUpdatedState(onSwipeToPrevious)
-    val currentOnSwipeToNext by rememberUpdatedState(onSwipeToNext)
     val weekRowHeight = WeekRowHeight
     val weekdayRowHeight = 28.dp
     val dateAreaHeight = 28.dp
     Box(
         modifier = modifier
             .height(calendarGridHeight())
-            .testTag("calendar-grid")
-            .pointerInput(Unit) {
-                val swipeThresholdPx = MonthSwipeThreshold.toPx()
-                var totalDrag = Offset.Zero
-                detectDragGestures(
-                    onDragStart = { totalDrag = Offset.Zero },
-                    onDrag = { change, dragAmount ->
-                        totalDrag += dragAmount
-                        change.consume()
-                    },
-                    onDragEnd = {
-                        when (resolveMonthSwipe(totalDrag.x, totalDrag.y, swipeThresholdPx)) {
-                            MonthSwipe.TO_PREVIOUS -> currentOnSwipeToPrevious()
-                            MonthSwipe.TO_NEXT -> currentOnSwipeToNext()
-                            MonthSwipe.NONE -> Unit
-                        }
-                        totalDrag = Offset.Zero
-                    },
-                )
-            },
+            .testTag("calendar-grid"),
     ) {
         val weekdays = (0 until 7).map { DayOfWeek.MONDAY.plus(it.toLong()) }
         val firstDay = state.visibleMonth.atDay(1)
@@ -759,38 +928,56 @@ private fun DayCell(
             null
         },
     )
-    val dateColor = when {
+    val targetDateColor = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.24f)
         isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
     }
-    val amountColor = if ((totalMicros ?: 0L) < 0L) {
+    val targetAmountColor = if ((totalMicros ?: 0L) < 0L) {
         MaterialTheme.colorScheme.error
     } else {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.90f)
     }
+    val targetBorderColor = if (isToday && isInVisibleMonth) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+    }
+    val targetBackgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        visibleEntry != null -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
+        else -> Color.Transparent
+    }
+    val dateColor by animateColorAsState(
+        targetValue = targetDateColor,
+        animationSpec = tween(CellMotionMillis),
+        label = "day date color",
+    )
+    val amountColor by animateColorAsState(
+        targetValue = targetAmountColor,
+        animationSpec = tween(CellMotionMillis),
+        label = "day amount color",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = targetBorderColor,
+        animationSpec = tween(CellMotionMillis),
+        label = "day border color",
+    )
+    val backgroundColor by animateColorAsState(
+        targetValue = targetBackgroundColor,
+        animationSpec = tween(CellMotionMillis),
+        label = "day background color",
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .border(
                 width = if (isToday && isInVisibleMonth) 1.dp else 0.5.dp,
-                brush = SolidColor(
-                    if (isToday && isInVisibleMonth) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
-                    },
-                ),
+                brush = SolidColor(borderColor),
                 shape = RectangleShape,
             )
-            .background(
-                when {
-                    isSelected -> MaterialTheme.colorScheme.primaryContainer
-                    visibleEntry != null -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
-                    else -> Color.Transparent
-                },
-            )
+            .background(backgroundColor)
             .semantics(mergeDescendants = true) { contentDescription = a11yDescription }
             .then(
                 if (isLastGridRow && isInVisibleMonth) Modifier.testTag("calendar-last-row-day")
@@ -814,94 +1001,132 @@ private fun DayCell(
                     maxLines = 1,
                 )
             }
-            if (visibleEntry != null && largeFont) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = dateAreaHeight, start = 2.dp, end = 2.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = if (visibleEntry.workedMinutes > 0) {
-                            formatDurationCompact(visibleEntry.workedMinutes)
-                        } else {
-                            ""
-                        },
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 10.sp,
-                            lineHeight = 11.sp,
-                        ),
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
-                            formatWholeAmountMicros(totalMicros, locale)
-                        } else {
-                            ""
-                        },
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 7.sp,
-                            lineHeight = 8.sp,
-                        ),
-                        fontWeight = FontWeight.Medium,
-                        color = amountColor,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+            AnimatedContent(
+                targetState = visibleEntry,
+                modifier = Modifier.fillMaxSize(),
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(CalendarFadeMillis)) +
+                        scaleIn(
+                            animationSpec = tween(CalendarFadeMillis),
+                            initialScale = 0.97f,
+                        )) togetherWith fadeOut(animationSpec = tween(100))
+                },
+                label = "day entry content",
+            ) { animatedEntry ->
+                if (animatedEntry != null) {
+                    val animatedTotalMicros = runCatching {
+                        SalaryCalculator.entryPay(animatedEntry).totalPayMicros
+                    }.getOrNull()
+                    val animatedAmountColor = if ((animatedTotalMicros ?: 0L) < 0L) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.90f)
+                    }
+                    if (largeFont) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(top = dateAreaHeight, start = 2.dp, end = 2.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = if (animatedEntry.workedMinutes > 0) {
+                                    formatDurationCompact(animatedEntry.workedMinutes)
+                                } else {
+                                    ""
+                                },
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = 10.sp,
+                                    lineHeight = 11.sp,
+                                ),
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = if (
+                                    animatedTotalMicros != null &&
+                                    shouldShowDayAmount(animatedTotalMicros)
+                                ) {
+                                    formatWholeAmountMicros(animatedTotalMicros, locale)
+                                } else {
+                                    ""
+                                },
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 7.sp,
+                                    lineHeight = 8.sp,
+                                ),
+                                fontWeight = FontWeight.Medium,
+                                color = animatedAmountColor,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            Text(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 2.dp),
+                                text = if (animatedEntry.workedMinutes > 0) {
+                                    formatDurationCompact(animatedEntry.workedMinutes)
+                                } else {
+                                    ""
+                                },
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = 15.sp,
+                                    lineHeight = 18.sp,
+                                ),
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .padding(bottom = 3.dp)
+                                    .padding(horizontal = 2.dp),
+                                text = if (
+                                    animatedTotalMicros != null &&
+                                    shouldShowDayAmount(animatedTotalMicros)
+                                ) {
+                                    formatWholeAmountMicros(animatedTotalMicros, locale)
+                                } else {
+                                    ""
+                                },
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    lineHeight = 13.sp,
+                                ),
+                                fontWeight = FontWeight.Medium,
+                                color = animatedAmountColor,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
-            } else if (visibleEntry != null) {
-                Text(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 2.dp),
-                    text = if (visibleEntry.workedMinutes > 0) {
-                        formatDurationCompact(visibleEntry.workedMinutes)
-                    } else {
-                        ""
-                    },
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 15.sp,
-                        lineHeight = 18.sp,
-                    ),
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(bottom = 3.dp)
-                        .padding(horizontal = 2.dp),
-                    text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
-                        formatWholeAmountMicros(totalMicros, locale)
-                    } else {
-                        ""
-                    },
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        lineHeight = 13.sp,
-                    ),
-                    fontWeight = FontWeight.Medium,
-                    color = amountColor,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
         }
     }
 }
+
+private fun YearMonth.toMonthIndex(): Int = year * 12 + (monthValue - 1)
+
+private fun yearMonthFromIndex(index: Int): YearMonth = YearMonth.of(
+    Math.floorDiv(index, 12),
+    Math.floorMod(index, 12) + 1,
+)
 
 internal fun shouldShowDayAmount(totalMicros: Long?): Boolean = totalMicros != null && totalMicros != 0L
 
@@ -912,15 +1137,6 @@ internal fun shouldShowTodayEntryPrompt(
     entryDates: Set<LocalDate>,
     today: LocalDate,
 ): Boolean = visibleMonth == YearMonth.from(today) && today !in entryDates
-
-internal enum class MonthSwipe { NONE, TO_PREVIOUS, TO_NEXT }
-
-internal fun resolveMonthSwipe(deltaX: Float, deltaY: Float, thresholdPx: Float): MonthSwipe = when {
-    abs(deltaY) >= abs(deltaX) -> MonthSwipe.NONE
-    deltaX <= -thresholdPx -> MonthSwipe.TO_NEXT
-    deltaX >= thresholdPx -> MonthSwipe.TO_PREVIOUS
-    else -> MonthSwipe.NONE
-}
 
 internal fun buildDayCellDescription(
     dateLabel: String,
