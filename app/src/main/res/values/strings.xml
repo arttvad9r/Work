@@ -45,6 +45,16 @@
     <string name="section_data">DATA</string>
     <string name="export_data">Export data</string>
     <string name="import_data">Import data</string>
+    <string name="privacy_and_data">Privacy &amp; data</string>
+    <string name="privacy_local_subtitle">Stored locally; no account or sync</string>
+    <string name="privacy_stored_data_title">Stored data</string>
+    <string name="privacy_stored_data_text">Work entries (worked minutes, saved hourly-rate snapshot, bonus and penalty) and app settings are stored locally on this device using Room and DataStore.</string>
+    <string name="privacy_network_title">Network and sharing</string>
+    <string name="privacy_network_text">WorkTime does not require an account or internet connection for core use. It has no analytics or advertising SDKs, does not automatically transmit work or earnings data, and requests no internet, location, contacts, microphone or camera permission.</string>
+    <string name="privacy_backup_title">Backup and export</string>
+    <string name="privacy_backup_text">Android cloud backup and device-to-device transfer are disabled for app data. JSON/CSV export writes only to the location you choose in the system picker; import reads only the file you choose.</string>
+    <string name="privacy_deletion_title">Deletion</string>
+    <string name="privacy_deletion_text">Individual entries can be deleted in WorkTime. Uninstalling the app removes its local app data subject to Android platform behavior. Exported files are outside the app and must be removed separately from their storage location.</string>
     <string name="back">Back</string>
 
     <string name="rate_for_period">Rate for period</string>
