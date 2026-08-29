@@ -54,8 +54,8 @@ import com.worktime.app.ui.format.formatDurationCompact
 import java.time.Month
 import java.time.format.TextStyle
 
-private const val YearMotionMillis = 220
-private const val YearFadeMillis = 150
+private const val YearMotionMillis = 130
+private const val YearFadeMillis = 90
 
 @Composable
 fun YearSummaryScreen(
@@ -107,8 +107,8 @@ fun YearSummaryScreen(
                         modifier = Modifier.padding(horizontal = 12.dp),
                         transitionSpec = {
                             val forward = (targetState ?: Int.MIN_VALUE) > (initialState ?: Int.MIN_VALUE)
-                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 2 else -width / 2 }
-                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 2 else width / 2 }
+                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 8 else -width / 8 }
+                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 8 else width / 8 }
                             (slideInHorizontally(
                                 animationSpec = tween(YearMotionMillis),
                                 initialOffsetX = enterOffset,
@@ -158,8 +158,8 @@ fun YearSummaryScreen(
                                 fadeOut(animationSpec = tween(YearFadeMillis))
                         } else {
                             val forward = targetState.year > initialState.year
-                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 5 else -width / 5 }
-                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 5 else width / 5 }
+                            val enterOffset: (Int) -> Int = { width -> if (forward) width / 12 else -width / 12 }
+                            val exitOffset: (Int) -> Int = { width -> if (forward) -width / 12 else width / 12 }
                             (slideInHorizontally(
                                 animationSpec = tween(YearMotionMillis),
                                 initialOffsetX = enterOffset,
