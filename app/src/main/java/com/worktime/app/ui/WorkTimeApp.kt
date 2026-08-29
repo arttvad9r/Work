@@ -190,9 +190,9 @@ fun WorkTimeApp(
                 )
             }
 
-            // Full-screen destinations stay fully opaque, but now travel far enough to read
-            // as navigation rather than a near-instant replacement. Critically damped motion
-            // remains interruptible and avoids the frame-counted feel visible in device QA.
+            // Full-screen destinations stay fully opaque. Entry remains a restrained depth cue,
+            // while exit travels completely off-screen before composition removes the destination;
+            // partial-width exits visibly snapped away on device recordings.
             AnimatedVisibility(
                 visible = state.isSettingsOpen,
                 enter = slideInHorizontally(
@@ -207,7 +207,7 @@ fun WorkTimeApp(
                         dampingRatio = AppMotion.NoBounceDampingRatio,
                         stiffness = AppMotion.NavigationStiffness,
                     ),
-                    targetOffsetX = { width -> width / 5 },
+                    targetOffsetX = { width -> width },
                 ),
             ) {
                 val operationErrorMessage = when (state.operationError) {
@@ -254,7 +254,7 @@ fun WorkTimeApp(
                         dampingRatio = AppMotion.NoBounceDampingRatio,
                         stiffness = AppMotion.NavigationStiffness,
                     ),
-                    targetOffsetX = { width -> width / 5 },
+                    targetOffsetX = { width -> width },
                 ),
             ) {
                 YearSummaryScreen(
