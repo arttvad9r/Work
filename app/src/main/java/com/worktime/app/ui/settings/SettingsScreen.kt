@@ -44,6 +44,7 @@ import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppFieldValueSlot
 import com.worktime.app.ui.components.AppModalBottomSheet
+import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppNavigationRow
 import com.worktime.app.ui.components.AppSegmentedControl
 import com.worktime.app.ui.components.AppSectionHeader
@@ -51,6 +52,7 @@ import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.CompactMoneyField
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
+import kotlinx.coroutines.delay
 
 private const val InlineEditorFadeMillis = 90
 
@@ -69,12 +71,29 @@ fun SettingsScreen(
 ) {
     var rateEditing by rememberSaveable { mutableStateOf(false) }
     var exportFormatOpen by rememberSaveable { mutableStateOf(false) }
+    var presentedThemeMode by remember { mutableStateOf(themeMode) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     BackHandler(onBack = onDismiss)
 
+    // The video QA showed the global palette switching while the selected capsule was still
+    // travelling. Let the local control finish its direct feedback first, then commit the
+    // global theme atomically. A newer tap cancels this effect automatically.
+    LaunchedEffect(presentedThemeMode) {
+        if (presentedThemeMode != themeMode) {
+            delay(AppMotion.FastMillis.toLong())
+            onThemeChange(presentedThemeMode)
+        }
+    }
+    LaunchedEffect(themeMode) {
+        if (themeMode != presentedThemeMode) {
+            presentedThemeMode = themeMode
+        }
+    }
+
     LaunchedEffect(operationErrorMessage) {
         if (!operationErrorMessage.isNullOrBlank()) {
+            presentedThemeMode = themeMode
             snackbarHostState.showSnackbar(operationErrorMessage)
         }
     }
@@ -118,8 +137,8 @@ fun SettingsScreen(
                 AppSectionHeader(stringResource(R.string.section_appearance))
                 AppSegmentedControl(
                     options = ThemeMode.entries.map { themeLabel(it) },
-                    selectedIndex = ThemeMode.entries.indexOf(themeMode),
-                    onSelect = { index -> onThemeChange(ThemeMode.entries[index]) },
+                    selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
+                    onSelect = { index -> presentedThemeMode = ThemeMode.entries[index] },
                     modifier = Modifier.padding(vertical = AppDimens.rowGap),
                 )
 
