@@ -39,9 +39,9 @@ Do not substitute an arbitrary system Gradle version when recording verification
 
 ## Host environment
 
-The project does not require NixOS or Nix to build. A normal Linux/macOS/Windows Android development environment is valid as long as Java/Android SDK requirements are met.
+Primary development is on Arch Linux with a system JDK 17 and Android SDK. The project has no distribution-specific build layer: any compatible Linux/macOS/Windows Android development environment is valid when the Java/Android SDK requirements are met.
 
-The repository keeps an optional Nix/FHS environment for reproducibility and for hosts where Android SDK binaries need compatibility wrapping. See `NIX.md` when using that path. Avoid mixing incompatible `adb` installations during physical-device testing.
+Use the checked-in Gradle Wrapper for project builds and keep one compatible `adb` installation active during physical-device testing.
 
 ## CI
 
