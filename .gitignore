@@ -9,8 +9,7 @@ build/
 **/build/
 .kotlin/
 
-# direnv
-.direnv/
+# Local worktrees
 .worktrees/
 
 # opencode
