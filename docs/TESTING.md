@@ -8,7 +8,7 @@
 python3 scripts/static_audit.py
 ```
 
-Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback, pinned CI actions, wrapper checksum, release signing safety, release optimization and required release-build CI tasks.
+Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback, pinned CI actions, wrapper checksum, release signing safety, release optimization, required release-build CI tasks and the GitHub tag-release workflow invariants.
 
 ### JVM tests
 
@@ -26,10 +26,16 @@ Coverage includes work-entry invariants, salary rounding/aggregation, month grid
   :app:lintRelease \
   :app:assembleDebug \
   :app:assembleDebugAndroidTest \
-  :app:bundleRelease
+  :app:assembleRelease
 ```
 
-`./scripts/verify.sh` runs the static audit and all commands above through the repository Gradle Wrapper. `bundleRelease` exercises the same optimized release variant that will later be signed for distribution.
+`./scripts/verify.sh` runs the static audit and all commands above through the repository Gradle Wrapper. `assembleRelease` exercises the optimized APK variant that is signed for GitHub distribution.
+
+### Signing smoke
+
+Normal CI creates a disposable signing key and runs `./scripts/build_release_candidate.sh`. This verifies `assembleRelease`, Android `apksigner`, SHA-256 generation, signer-certificate extraction and release metadata without exposing or using the permanent WorkTime signing key.
+
+The disposable signed APK is never a release artifact.
 
 ### Managed-device tests
 
@@ -40,11 +46,13 @@ CI executes the Android instrumentation suite after the build gate:
   -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
 ```
 
-The managed device is a Pixel 2 API 30 AOSP ATD image. Current coverage includes database/repository integration, smoke/UI consistency, large-font behavior and full-screen motion regressions.
+The managed device is a Pixel 2 API 30 AOSP ATD image. Current coverage includes database/repository integration, smoke/UI consistency, privacy disclosure, large-font behavior and full-screen motion regressions.
 
 ### Physical-device tests
 
-A managed emulator does not replace the manual interaction checklist in `ANDROID_QA.md`, especially for IME visibility, haptics, widget presentation, launcher behavior, document picker flows and bottom-sheet gestures. The final pass must use the exact signed optimized release candidate.
+A managed emulator does not replace the manual interaction checklist in `ANDROID_QA.md`, especially for IME visibility, haptics, widget presentation, launcher behavior, document picker flows and bottom-sheet gestures. The final pass must use the exact signed optimized APK downloaded from the draft GitHub Release.
+
+For updates, install the candidate over the previous public APK without uninstalling. This simultaneously checks version/signing continuity and local data/widget preservation.
 
 ## Required regression cases
 
@@ -76,9 +84,10 @@ A managed emulator does not replace the manual interaction checklist in `ANDROID
 - portrait orientation remains enforced.
 - Settings and Year Summary exits travel beyond the old partial-width target before composition removes them.
 - LTR/RTL full-screen navigation direction stays mirrored while predictive back follows the actual swipe edge.
+- the in-app privacy disclosure opens and remains scrollable on a compact viewport.
+- a release APK is rejected if its signer differs from the permanent WorkTime certificate.
+- a later release installs over the previous public APK while preserving Room/DataStore state and widget behavior.
 
-## Current evidence
+## Release evidence
 
-`main` CI #713 passed static audit, JVM tests, lint/debug compilation and the complete 17-test managed-device instrumentation suite after the predictive-back, motion-regression and RTL changes were merged.
-
-The application has previously been exercised on physical hardware, but exact device/build details were not recorded. Do not expand that into unsupported device-specific claims. The final signed optimized release candidate still requires one fresh documented physical-device pass before release.
+Each public release records evidence for the exact tagged commit and distributed APK: green CI, managed-device result, physical device/Android version, APK SHA-256 and signer SHA-256. Evidence from an earlier commit is supporting context only and does not replace the release-candidate gate.
