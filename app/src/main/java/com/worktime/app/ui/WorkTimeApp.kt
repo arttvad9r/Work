@@ -1,15 +1,13 @@
 package com.worktime.app.ui
 
-import androidx.activity.BackEventCompat
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -23,13 +21,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -39,6 +33,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
 import com.worktime.app.AppContainer
 import com.worktime.app.R
 import com.worktime.app.ui.calendar.CalendarOperationError
@@ -47,13 +44,12 @@ import com.worktime.app.ui.calendar.CalendarScreen
 import com.worktime.app.ui.calendar.CalendarViewModel
 import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.dayeditor.DayEditorSheet
+import com.worktime.app.ui.navigation.AppDestination
 import com.worktime.app.ui.settings.ChangeRateSheet
 import com.worktime.app.ui.settings.SettingsScreen
 import com.worktime.app.ui.settings.YearSummaryScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
 import java.time.LocalDate
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
 
 @Composable
 fun WorkTimeApp(
@@ -67,15 +63,29 @@ fun WorkTimeApp(
         ),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val backStack = rememberNavBackStack(AppDestination.Calendar)
     val snackbarHostState = remember { SnackbarHostState() }
     val haptics = LocalHapticFeedback.current
 
+    fun dismissCurrentDestination() {
+        when (backStack.lastOrNull()) {
+            AppDestination.Settings -> viewModel.dismissSettings()
+            AppDestination.YearSummary -> viewModel.dismissYearSummary()
+            else -> Unit
+        }
+        if (backStack.size > 1) {
+            backStack.removeLastOrNull()
+        }
+    }
+
     LaunchedEffect(viewModel, openTodayRequest) {
         if (openTodayRequest > 0L) {
-            // The widget add action is explicit navigation, not a passive app reopen.
-            // Clear transient overlays so the requested editor is actually visible.
-            viewModel.dismissChangeRateSheet()
+            while (backStack.size > 1) {
+                backStack.removeLastOrNull()
+            }
+            viewModel.dismissSettings()
             viewModel.dismissYearSummary()
+            viewModel.dismissChangeRateSheet()
             viewModel.cancelImport()
             viewModel.selectDate(LocalDate.now())
         }
@@ -89,8 +99,6 @@ fun WorkTimeApp(
     val backupExportedMessage = stringResource(R.string.backup_exported)
     val backupImportedMessage = stringResource(R.string.backup_imported)
     val defaultRateAdoptionFailedMessage = stringResource(R.string.default_rate_adoption_failed)
-    // Channel has no replay, so restarting this collector (e.g. on locale change)
-    // cannot redisplay an already-consumed event.
     LaunchedEffect(
         viewModel,
         haptics,
@@ -121,8 +129,6 @@ fun WorkTimeApp(
                     snackbarHostState.showSnackbar(backupExportedMessage)
                 CalendarOperationEvent.Success.BACKUP_IMPORTED ->
                     snackbarHostState.showSnackbar(backupImportedMessage)
-                // Undo and default-rate adoption can surface after their originating sheet
-                // has closed, so root feedback owns those errors.
                 is CalendarOperationEvent.Error ->
                     when (event.kind) {
                         CalendarOperationError.UNDO ->
@@ -172,25 +178,110 @@ fun WorkTimeApp(
     }
     val fullScreenDirection = fullScreenNavigationDirection(LocalLayoutDirection.current)
 
-    var settingsPredictiveExit by remember { mutableStateOf(false) }
-    var yearSummaryPredictiveExit by remember { mutableStateOf(false) }
-    LaunchedEffect(state.isSettingsOpen) {
-        if (state.isSettingsOpen) settingsPredictiveExit = false
-    }
-    LaunchedEffect(state.isYearSummaryOpen) {
-        if (state.isYearSummaryOpen) yearSummaryPredictiveExit = false
-    }
-
     WorkTimeTheme(themeMode = state.themeMode) {
         Box(modifier = Modifier.fillMaxSize()) {
-            CalendarScreen(
-                state = state,
-                onPreviousMonth = viewModel::previousMonth,
-                onNextMonth = viewModel::nextMonth,
-                onSelectMonth = viewModel::showMonth,
-                onDayClick = viewModel::selectDate,
-                onSettingsClick = viewModel::openSettings,
-                onOpenYearSummary = viewModel::openYearSummary,
+            NavDisplay(
+                backStack = backStack,
+                modifier = Modifier.fillMaxSize(),
+                onBack = ::dismissCurrentDestination,
+                transitionSpec = {
+                    slideInHorizontally(
+                        animationSpec = spring(
+                            dampingRatio = AppMotion.NoBounceDampingRatio,
+                            stiffness = AppMotion.NavigationStiffness,
+                        ),
+                        initialOffsetX = { width -> fullScreenDirection * width / 5 },
+                    ) togetherWith ExitTransition.KeepUntilTransitionsFinished
+                },
+                popTransitionSpec = {
+                    EnterTransition.None togetherWith slideOutHorizontally(
+                        animationSpec = spring(
+                            dampingRatio = AppMotion.NoBounceDampingRatio,
+                            stiffness = AppMotion.NavigationStiffness,
+                        ),
+                        targetOffsetX = { width -> fullScreenDirection * width },
+                    )
+                },
+                predictivePopTransitionSpec = { _ ->
+                    EnterTransition.None togetherWith slideOutHorizontally(
+                        animationSpec = spring(
+                            dampingRatio = AppMotion.NoBounceDampingRatio,
+                            stiffness = AppMotion.NavigationStiffness,
+                        ),
+                        targetOffsetX = { width -> fullScreenDirection * width },
+                    )
+                },
+                entryProvider = entryProvider {
+                    entry<AppDestination.Calendar> {
+                        CalendarScreen(
+                            state = state,
+                            onPreviousMonth = viewModel::previousMonth,
+                            onNextMonth = viewModel::nextMonth,
+                            onSelectMonth = viewModel::showMonth,
+                            onDayClick = viewModel::selectDate,
+                            onSettingsClick = {
+                                viewModel.openSettings()
+                                if (backStack.lastOrNull() != AppDestination.Settings) {
+                                    backStack.add(AppDestination.Settings)
+                                }
+                            },
+                            onOpenYearSummary = {
+                                viewModel.openYearSummary()
+                                if (backStack.lastOrNull() != AppDestination.YearSummary) {
+                                    backStack.add(AppDestination.YearSummary)
+                                }
+                            },
+                        )
+                    }
+                    entry<AppDestination.Settings> {
+                        LaunchedEffect(Unit) {
+                            if (!viewModel.state.value.isSettingsOpen) {
+                                viewModel.openSettings()
+                            }
+                        }
+                        val operationErrorMessage = when (state.operationError) {
+                            CalendarOperationError.SAVE_SETTINGS -> stringResource(R.string.save_settings_failed)
+                            CalendarOperationError.BACKUP_EXPORT -> stringResource(R.string.backup_export_failed)
+                            CalendarOperationError.BACKUP_IMPORT -> stringResource(R.string.backup_import_failed)
+                            CalendarOperationError.BACKUP_IMPORT_ROLLBACK ->
+                                stringResource(R.string.backup_import_rollback_failed)
+                            else -> null
+                        }
+                        SettingsScreen(
+                            defaultHourlyRateMicros = state.defaultHourlyRateMicros,
+                            themeMode = state.themeMode,
+                            operationErrorMessage = operationErrorMessage,
+                            onDismiss = ::dismissCurrentDestination,
+                            onThemeChange = viewModel::updateThemeMode,
+                            onRateChange = viewModel::updateDefaultRate,
+                            onOpenChangeRate = { viewModel.openChangeRate(null) },
+                            onExportData = {
+                                exportLauncher.launch("worktime-backup-" + LocalDate.now() + ".json")
+                            },
+                            onExportCsv = {
+                                csvExportLauncher.launch("worktime-" + LocalDate.now() + ".csv")
+                            },
+                            onImportData = {
+                                importLauncher.launch(
+                                    arrayOf("application/json", "application/octet-stream", "text/plain"),
+                                )
+                            },
+                        )
+                    }
+                    entry<AppDestination.YearSummary> {
+                        LaunchedEffect(Unit) {
+                            if (!viewModel.state.value.isYearSummaryOpen) {
+                                viewModel.openYearSummary()
+                            }
+                        }
+                        YearSummaryScreen(
+                            summary = state.yearSummary,
+                            onDismiss = ::dismissCurrentDestination,
+                            onPreviousYear = viewModel::showPreviousYear,
+                            onNextYear = viewModel::showNextYear,
+                        )
+                    }
+                },
             )
 
             state.selectedDate?.let { date ->
@@ -210,101 +301,6 @@ fun WorkTimeApp(
                     onSave = viewModel::saveEntry,
                     onDelete = viewModel::deleteEntry,
                 )
-            }
-
-            // Full-screen destinations stay fully opaque. Entry remains a restrained depth cue,
-            // while exit travels completely off-screen toward the logical end edge before
-            // composition removes the destination; partial-width exits visibly snapped away.
-            AnimatedVisibility(
-                visible = state.isSettingsOpen,
-                enter = slideInHorizontally(
-                    animationSpec = spring(
-                        dampingRatio = AppMotion.NoBounceDampingRatio,
-                        stiffness = AppMotion.NavigationStiffness,
-                    ),
-                    initialOffsetX = { width -> fullScreenDirection * width / 5 },
-                ),
-                exit = if (settingsPredictiveExit) {
-                    ExitTransition.None
-                } else {
-                    slideOutHorizontally(
-                        animationSpec = spring(
-                            dampingRatio = AppMotion.NoBounceDampingRatio,
-                            stiffness = AppMotion.NavigationStiffness,
-                        ),
-                        targetOffsetX = { width -> fullScreenDirection * width },
-                    )
-                },
-            ) {
-                val operationErrorMessage = when (state.operationError) {
-                    CalendarOperationError.SAVE_SETTINGS -> stringResource(R.string.save_settings_failed)
-                    CalendarOperationError.BACKUP_EXPORT -> stringResource(R.string.backup_export_failed)
-                    CalendarOperationError.BACKUP_IMPORT -> stringResource(R.string.backup_import_failed)
-                    CalendarOperationError.BACKUP_IMPORT_ROLLBACK ->
-                        stringResource(R.string.backup_import_rollback_failed)
-                    else -> null
-                }
-                PredictiveBackLayer(
-                    enabled = state.isSettingsOpen,
-                    onPredictiveCommit = { settingsPredictiveExit = true },
-                    onDismiss = viewModel::dismissSettings,
-                ) {
-                    SettingsScreen(
-                        defaultHourlyRateMicros = state.defaultHourlyRateMicros,
-                        themeMode = state.themeMode,
-                        operationErrorMessage = operationErrorMessage,
-                        onDismiss = viewModel::dismissSettings,
-                        onThemeChange = viewModel::updateThemeMode,
-                        onRateChange = viewModel::updateDefaultRate,
-                        onOpenChangeRate = { viewModel.openChangeRate(null) },
-                        onExportData = {
-                            exportLauncher.launch("worktime-backup-" + LocalDate.now() + ".json")
-                        },
-                        onExportCsv = {
-                            csvExportLauncher.launch("worktime-" + LocalDate.now() + ".csv")
-                        },
-                        onImportData = {
-                            importLauncher.launch(
-                                arrayOf("application/json", "application/octet-stream", "text/plain"),
-                            )
-                        },
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = state.isYearSummaryOpen,
-                enter = slideInHorizontally(
-                    animationSpec = spring(
-                        dampingRatio = AppMotion.NoBounceDampingRatio,
-                        stiffness = AppMotion.NavigationStiffness,
-                    ),
-                    initialOffsetX = { width -> fullScreenDirection * width / 5 },
-                ),
-                exit = if (yearSummaryPredictiveExit) {
-                    ExitTransition.None
-                } else {
-                    slideOutHorizontally(
-                        animationSpec = spring(
-                            dampingRatio = AppMotion.NoBounceDampingRatio,
-                            stiffness = AppMotion.NavigationStiffness,
-                        ),
-                        targetOffsetX = { width -> fullScreenDirection * width },
-                    )
-                },
-            ) {
-                PredictiveBackLayer(
-                    enabled = state.isYearSummaryOpen,
-                    onPredictiveCommit = { yearSummaryPredictiveExit = true },
-                    onDismiss = viewModel::dismissYearSummary,
-                ) {
-                    YearSummaryScreen(
-                        summary = state.yearSummary,
-                        onDismiss = viewModel::dismissYearSummary,
-                        onPreviousYear = viewModel::showPreviousYear,
-                        onNextYear = viewModel::showNextYear,
-                    )
-                }
             }
 
             if (state.isChangeRateSheetOpen) {
@@ -341,79 +337,6 @@ fun WorkTimeApp(
 
 internal fun fullScreenNavigationDirection(layoutDirection: LayoutDirection): Int =
     if (layoutDirection == LayoutDirection.Ltr) 1 else -1
-
-@Composable
-private fun PredictiveBackLayer(
-    enabled: Boolean,
-    onPredictiveCommit: () -> Unit,
-    onDismiss: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    val backOffsetFraction = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(enabled) {
-        if (enabled && backOffsetFraction.value != 0f) {
-            backOffsetFraction.snapTo(0f)
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                translationX = size.width * backOffsetFraction.value
-            },
-    ) {
-        content()
-    }
-
-    // Composed after the destination's legacy BackHandler so this callback owns system back.
-    // Three-button/hardware back keeps the existing spring exit; only an edge gesture seeks
-    // the destination directly with progress and finishes the remaining travel on commit.
-    PredictiveBackHandler(enabled = enabled) { progress ->
-        var hasEdgeGesture = false
-        var edgeDirection = 1f
-        try {
-            progress.collect { backEvent ->
-                val direction = when (backEvent.swipeEdge) {
-                    BackEventCompat.EDGE_LEFT -> 1f
-                    BackEventCompat.EDGE_RIGHT -> -1f
-                    else -> 0f
-                }
-                if (direction != 0f) {
-                    hasEdgeGesture = true
-                    edgeDirection = direction
-                    backOffsetFraction.snapTo(backEvent.progress * direction)
-                }
-            }
-            if (hasEdgeGesture) {
-                backOffsetFraction.animateTo(
-                    targetValue = edgeDirection,
-                    animationSpec = spring(
-                        dampingRatio = AppMotion.NoBounceDampingRatio,
-                        stiffness = AppMotion.NavigationStiffness,
-                    ),
-                )
-                onPredictiveCommit()
-            }
-            onDismiss()
-        } catch (cancellation: CancellationException) {
-            if (hasEdgeGesture) {
-                scope.launch {
-                    backOffsetFraction.animateTo(
-                        targetValue = 0f,
-                        animationSpec = spring(
-                            dampingRatio = AppMotion.NoBounceDampingRatio,
-                            stiffness = AppMotion.NavigationStiffness,
-                        ),
-                    )
-                }
-            }
-            throw cancellation
-        }
-    }
-}
 
 private suspend fun showUndoSnackbar(
     snackbarHostState: SnackbarHostState,
