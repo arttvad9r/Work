@@ -21,9 +21,9 @@ import com.worktime.app.domain.model.MonthSummary
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.ui.calendar.CalendarScreen
 import com.worktime.app.ui.calendar.CalendarUiState
-import com.worktime.app.ui.calendar.YearSummary
 import com.worktime.app.ui.settings.SettingsScreen
-import com.worktime.app.ui.settings.YearSummaryScreen
+import com.worktime.app.ui.yearsummary.YearSummary
+import com.worktime.app.ui.yearsummary.YearSummaryScreen
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.LocalDate
 import java.time.Month
