@@ -20,7 +20,7 @@ open month -> tap a day -> enter duration and hourly rate -> save
 - optional home-screen month-summary widget;
 - controlled light/dark Material 3 palettes and portrait-only layout.
 
-There is no currency selector or conversion model; presentation uses fixed `₽` labels. Notes and quick-duration presets are intentionally not part of the product. A fractional part is shown only when it is non-zero. Durations are displayed compactly (`0`, `15`, `15:30`).
+There is no currency selector or conversion model; presentation uses fixed `₽` labels. Notes and quick-duration presets are intentionally not part of the product. Detailed monetary values show a fractional part only when it is non-zero; dense calendar cells and the compact summary strip round to whole rubles to preserve fixed geometry. Durations are displayed compactly (`0`, `15`, `15:30`).
 
 The interface follows one shared component/dimension contract ([UI system](docs/UI_SYSTEM.md)): navigation, value, editable, segmented and action controls use the same semantics and sizing across screens and sheets.
 
