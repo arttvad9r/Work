@@ -10,7 +10,7 @@ No account, no cloud sync, no analytics and no ads. Data stays on the device unl
 
 <p align="center">
   <img src="docs/screenshots/calendar.jpg" width="42%" alt="WorkTime monthly calendar">
-  <img src="docs/screenshots/year-summary.jpg" width="42%" alt="WorkTime yearly summary">
+  <img src="docs/screenshots/year-summary.svg" width="42%" alt="WorkTime yearly summary">
 </p>
 
 <p align="center"><sub>Monthly calendar · Year summary</sub></p>
