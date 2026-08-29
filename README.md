@@ -53,7 +53,7 @@ Amounts use integer micros in domain/data code. `Float` and `Double` are not use
 - Room 2.8.4
 - DataStore 1.2.1
 - coroutines and `StateFlow`
-- JUnit 5 and AndroidX Test
+- JUnit 6 and AndroidX Test
 
 ## Verification
 
