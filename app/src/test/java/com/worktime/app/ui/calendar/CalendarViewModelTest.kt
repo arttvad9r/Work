@@ -241,7 +241,10 @@ class CalendarViewModelTest {
         viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.confirmImport()
-        advanceUntilIdle()
+        assertEquals(
+            CalendarOperationEvent.Error(CalendarOperationError.BACKUP_IMPORT),
+            viewModel.operationEvents.first(),
+        )
 
         assertEquals(listOf(oldEntry), repository.entries.value)
         assertEquals(1, viewModel.state.value.pendingImportCount)
@@ -265,7 +268,14 @@ class CalendarViewModelTest {
         )
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.confirmImport()
-        advanceUntilIdle()
+        assertEquals(
+            Unit,
+            withTimeoutOrNull(1_000) {
+                while (repository.entries.value != listOf(oldEntry) || preferences.updates.isEmpty()) {
+                    kotlinx.coroutines.yield()
+                }
+            },
+        )
 
         assertEquals(listOf(oldEntry), repository.entries.value)
         assertEquals(UserPreferences(), preferences.preferences.first())
