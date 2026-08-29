@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
 
     private fun consumeLaunchIntent(intent: Intent) {
         if (intent.getBooleanExtra(EXTRA_OPEN_TODAY, false)) {
+            intent.removeExtra(EXTRA_OPEN_TODAY)
             openTodayRequest++
         }
     }
