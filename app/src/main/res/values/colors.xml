@@ -3,23 +3,23 @@
     <!-- Launcher icon background stays neutral so the blue time/earnings mark reads under any launcher mask. -->
     <color name="ic_launcher_background">#F8FAFC</color>
 
-    <!-- System-following widget resources retained for XML previews/fallback rendering. -->
-    <color name="widget_surface">#FFFFFF</color>
-    <color name="widget_text">#1D1F23</color>
-    <color name="widget_text_secondary">#676C76</color>
+    <!-- System-following widget palette mirrors the app's secondary-container summary strip. -->
+    <color name="widget_surface">#E8EFFB</color>
+    <color name="widget_text">#1D2B45</color>
+    <color name="widget_text_secondary">#5E6A7F</color>
     <color name="widget_accent">#3568B5</color>
-    <color name="widget_accent_container">#E8EFFB</color>
+    <color name="widget_accent_container">#D8E5F8</color>
 
     <!-- Fixed palettes let RemoteViews follow WorkTime's explicit Light/Dark setting. -->
-    <color name="widget_surface_light">#FFFFFF</color>
-    <color name="widget_text_light">#1D1F23</color>
-    <color name="widget_text_secondary_light">#676C76</color>
+    <color name="widget_surface_light">#E8EFFB</color>
+    <color name="widget_text_light">#1D2B45</color>
+    <color name="widget_text_secondary_light">#5E6A7F</color>
     <color name="widget_accent_light">#3568B5</color>
-    <color name="widget_accent_container_light">#E8EFFB</color>
+    <color name="widget_accent_container_light">#D8E5F8</color>
 
-    <color name="widget_surface_dark">#191C22</color>
-    <color name="widget_text_dark">#F0F1F7</color>
-    <color name="widget_text_secondary_dark">#B8BCC6</color>
+    <color name="widget_surface_dark">#354054</color>
+    <color name="widget_text_dark">#E0E7F5</color>
+    <color name="widget_text_secondary_dark">#B0B8C8</color>
     <color name="widget_accent_dark">#B8CCFF</color>
-    <color name="widget_accent_container_dark">#354054</color>
+    <color name="widget_accent_container_dark">#2C4670</color>
 </resources>
