@@ -25,7 +25,7 @@ This enables R8 code optimization and optimized resource shrinking together. Pro
 
 Release signing is opt-in through `releaseStoreFile`, `releaseStorePassword`, `releaseKeyAlias` and `releaseKeyPassword` Gradle properties or their `RELEASE_*` environment-variable equivalents. Without all four values the project intentionally produces an unsigned optimized release APK for verification; it never falls back to debug signing.
 
-The permanent app-signing-key procedure is documented in `docs/RELEASE_SIGNING.md`. Keep the keystore and passwords outside source control. `scripts/build_release_candidate.sh` builds and verifies the exact signed APK candidate without writing signing secrets to the project.
+The permanent app-signing-key procedure is documented in `docs/RELEASE_SIGNING.md`. Keep the keystore and passwords outside source control and GitHub Actions. `scripts/build_release_candidate.sh` builds and verifies the exact signed APK candidate without writing signing secrets to the project.
 
 ## Local verification
 
@@ -55,7 +55,7 @@ app/build/outputs/mapping/release/
 
 The release APK produced without signing inputs is verification-only and must not be distributed.
 
-For an actual signed candidate, configure the `RELEASE_*` inputs and run:
+For an actual signed candidate, configure the `RELEASE_*` inputs locally and run:
 
 ```bash
 ./scripts/build_release_candidate.sh
@@ -80,22 +80,30 @@ After `verify` succeeds, two independent jobs run:
 - `signing-smoke` creates a disposable CI-only keystore, builds the optimized release APK through the normal `RELEASE_*` signing inputs and verifies it with Android `apksigner`. The disposable signed APK is not uploaded or distributed.
 - `instrumented-tests` executes the instrumentation suite on a Pixel 2 API 30 AOSP ATD Gradle Managed Device. KVM access and Android SDK licenses are configured explicitly on the hosted Linux runner.
 
-The permanent WorkTime signing key is not used by normal PR/main CI.
+The permanent WorkTime signing key is never used by GitHub Actions.
 
-## GitHub release workflow
+## GitHub release creation
 
-`.github/workflows/release.yml` runs only for tags matching `v[0-9]*`. It requires the four repository Actions secrets described in `docs/RELEASE_SIGNING.md`.
+Release publication is intentionally local so the permanent signing key remains offline.
 
-The workflow verifies that the tag matches `versionName` and points to a commit contained in `main`, restores the release keystore only in the runner temp directory, builds the signed optimized APK and creates a **draft GitHub Release** containing:
+After the exact `main` commit is green and `build_release_candidate.sh` has produced the signed candidate:
+
+1. create and push the tag `v<versionName>` on that same commit;
+2. run `./scripts/create_github_release.sh` from the same clean checkout;
+3. the helper verifies the metadata/checksum and local/remote tag, then creates a **draft GitHub Release** with the existing candidate files;
+4. download the APK back from GitHub and complete physical-device QA;
+5. publish the same draft release without rebuilding or replacing the APK.
+
+The draft contains:
 
 - `WorkTime-<version>.apk`;
 - `SHA256SUMS.txt`;
 - release metadata including commit/version/signer fingerprint;
 - matching R8 mapping.
 
-A draft is deliberate: the exact downloaded APK must pass physical-device install/update QA before the release is published.
+`create_github_release.sh` uses an authenticated local GitHub CLI session. It never reads the private signing key because signing is already complete before upload.
 
-Third-party actions are pinned to immutable commit SHAs and use Node 24-native releases. Release creation itself uses the GitHub CLI already present on the hosted runner and the workflow-scoped `GITHUB_TOKEN`.
+Third-party Actions used by CI are pinned to immutable commit SHAs and use Node 24-native releases.
 
 A red CI run must be classified from its actual logs rather than assumed to be infrastructure. Test synchronization should wait for observable operation completion instead of relying on `advanceUntilIdle()` when production work runs in `viewModelScope` outside the coroutine-test scheduler.
 
