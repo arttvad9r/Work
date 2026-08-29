@@ -1,6 +1,5 @@
 package com.worktime.app.ui.settings
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -133,8 +132,6 @@ fun YearSummaryScreen(
             }
         }
     }
-
-    BackHandler(onBack = onDismiss)
 
     Surface(
         modifier = Modifier.fillMaxSize(),
