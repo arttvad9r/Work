@@ -897,8 +897,8 @@ private class FakeUserPreferencesRepository : UserPreferencesRepository {
         }
         val value = UserPreferences(defaultHourlyRateMicros, themeMode)
         updates += value
-        _preferences.value = value
         initialized = defaultRateInitialized
+        _preferences.value = value
     }
 
     override suspend fun updateThemeMode(themeMode: ThemeMode) {
@@ -910,8 +910,8 @@ private class FakeUserPreferencesRepository : UserPreferencesRepository {
     override suspend fun updateDefaultHourlyRate(defaultHourlyRateMicros: Long) {
         val value = _preferences.value.copy(defaultHourlyRateMicros = defaultHourlyRateMicros)
         updates += value
-        _preferences.value = value
         initialized = true
+        _preferences.value = value
     }
 
     override suspend fun adoptDefaultHourlyRateIfUninitialized(defaultHourlyRateMicros: Long): Boolean {
