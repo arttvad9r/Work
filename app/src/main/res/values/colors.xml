@@ -3,11 +3,26 @@
     <!-- Launcher icon background stays neutral so the blue time/earnings mark reads under any launcher mask. -->
     <color name="ic_launcher_background">#F8FAFC</color>
 
-    <!-- Compact 4×1 month widget, aligned with the app's light Material palette. -->
+    <!-- System-following widget resources retained for XML previews/fallback rendering. -->
     <color name="widget_surface">#FFFFFF</color>
     <color name="widget_text">#1D1F23</color>
     <color name="widget_text_secondary">#676C76</color>
     <color name="widget_accent">#3568B5</color>
     <color name="widget_accent_container">#E8EFFB</color>
     <color name="widget_separator">#B9CAE8</color>
+
+    <!-- Fixed palettes let RemoteViews follow WorkTime's explicit Light/Dark setting. -->
+    <color name="widget_surface_light">#FFFFFF</color>
+    <color name="widget_text_light">#1D1F23</color>
+    <color name="widget_text_secondary_light">#676C76</color>
+    <color name="widget_accent_light">#3568B5</color>
+    <color name="widget_accent_container_light">#E8EFFB</color>
+    <color name="widget_separator_light">#B9CAE8</color>
+
+    <color name="widget_surface_dark">#191C22</color>
+    <color name="widget_text_dark">#F0F1F7</color>
+    <color name="widget_text_secondary_dark">#B8BCC6</color>
+    <color name="widget_accent_dark">#B8CCFF</color>
+    <color name="widget_accent_container_dark">#354054</color>
+    <color name="widget_separator_dark">#5D6C86</color>
 </resources>
