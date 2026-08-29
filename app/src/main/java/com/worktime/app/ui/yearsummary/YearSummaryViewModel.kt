@@ -1,7 +1,9 @@
 package com.worktime.app.ui.yearsummary
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -10,14 +12,12 @@ import com.worktime.app.ui.calendar.YearSummary
 import com.worktime.app.ui.calendar.buildYearSummary
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 
 internal data class YearSummaryUiState(
     val summary: YearSummary? = null,
@@ -26,9 +26,10 @@ internal data class YearSummaryUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class YearSummaryViewModel(
     private val workEntryRepository: WorkEntryRepository,
+    private val savedStateHandle: SavedStateHandle,
     initialYear: Int,
 ) : ViewModel() {
-    private val year = MutableStateFlow(initialYear)
+    private val year = savedStateHandle.getStateFlow(KEY_YEAR, initialYear)
 
     val state: StateFlow<YearSummaryUiState> = year
         .flatMapLatest { selectedYear ->
@@ -49,11 +50,17 @@ internal class YearSummaryViewModel(
             initialValue = YearSummaryUiState(),
         )
 
-    fun showPreviousYear() = year.update { it - 1 }
+    fun showPreviousYear() {
+        savedStateHandle[KEY_YEAR] = year.value - 1
+    }
 
-    fun showNextYear() = year.update { it + 1 }
+    fun showNextYear() {
+        savedStateHandle[KEY_YEAR] = year.value + 1
+    }
 
     companion object {
+        private const val KEY_YEAR = "year"
+
         fun factory(
             workEntryRepository: WorkEntryRepository,
             initialYear: Int,
@@ -61,6 +68,7 @@ internal class YearSummaryViewModel(
             initializer {
                 YearSummaryViewModel(
                     workEntryRepository = workEntryRepository,
+                    savedStateHandle = createSavedStateHandle(),
                     initialYear = initialYear,
                 )
             }
