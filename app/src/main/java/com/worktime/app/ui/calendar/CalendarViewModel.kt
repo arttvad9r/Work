@@ -13,6 +13,7 @@ import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
+import com.worktime.app.ui.yearsummary.YearSummary
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDate
