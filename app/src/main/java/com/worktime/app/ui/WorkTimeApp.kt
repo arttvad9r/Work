@@ -50,7 +50,10 @@ private const val ScreenExitMillis = 220
 private const val ScreenFadeMillis = 180
 
 @Composable
-fun WorkTimeApp(container: AppContainer) {
+fun WorkTimeApp(
+    container: AppContainer,
+    openTodayOnStart: Boolean = false,
+) {
     val viewModel: CalendarViewModel = viewModel(
         factory = CalendarViewModel.factory(
             workEntryRepository = container.workEntryRepository,
@@ -60,6 +63,12 @@ fun WorkTimeApp(container: AppContainer) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val haptics = LocalHapticFeedback.current
+
+    LaunchedEffect(viewModel, openTodayOnStart) {
+        if (openTodayOnStart) {
+            viewModel.selectDate(LocalDate.now())
+        }
+    }
 
     val entryDeletedMessage = stringResource(R.string.entry_deleted)
     val rateChangedMessage = stringResource(R.string.rate_changed)
