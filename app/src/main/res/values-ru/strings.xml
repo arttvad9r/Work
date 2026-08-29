@@ -75,6 +75,7 @@
 
     <string name="entry_deleted">Запись удалена</string>
     <string name="rate_changed">Ставка за период изменена</string>
+    <string name="no_entries_in_period">В выбранном периоде нет записей</string>
     <string name="undo">Отменить</string>
 
     <string name="save_entry_failed">Не удалось сохранить запись. Введённые данные остались открыты.</string>
