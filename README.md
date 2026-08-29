@@ -63,13 +63,21 @@ Preferred local command:
 ./scripts/verify.sh
 ```
 
-It uses the repository Gradle Wrapper and runs the static audit, JVM tests, debug/release lint, debug APK and instrumentation APK assembly, plus an optimized unsigned release AAB build. GitHub Actions runs the same build gate and then executes the Android instrumentation suite on a Gradle Managed Device for pull requests and pushes to `main`.
+It uses the repository Gradle Wrapper and runs the static audit, JVM tests, debug/release lint, debug APK and instrumentation APK assembly, plus an optimized unsigned release APK build. GitHub Actions runs the same build gate and then executes the Android instrumentation suite on a Gradle Managed Device for pull requests and pushes to `main`.
 
-The unsigned CI AAB is a verification artifact only. Production signing remains external to source control and must be applied to the exact release candidate before distribution.
+The unsigned CI release APK is verification-only. Normal CI also signs a candidate with a disposable key to exercise the real signing path; that disposable APK is never distributed.
 
 Physical-device interaction testing remains a separate release gate, especially for persistent IME behavior, haptics, modal-sheet behavior, calendar gestures and launcher/widget integration.
 
-See the [Android QA checklist](docs/ANDROID_QA.md) and [release checklist](docs/RELEASE_CHECKLIST.md).
+## Distribution
+
+Public builds are distributed only through GitHub Releases as signed optimized APKs.
+
+The permanent WorkTime signing key stays outside GitHub. A tested clean `main` commit is signed locally with `./scripts/build_release_candidate.sh`. After the matching `v<versionName>` tag is pushed, `./scripts/create_github_release.sh` uploads those already-signed files into a **draft GitHub Release** without rebuilding or resigning the APK.
+
+The exact APK downloaded back from that draft is tested on a physical device before publication. The permanent app-signing key must remain unchanged across releases so Android can install newer APKs over existing WorkTime installations.
+
+See [release signing](docs/RELEASE_SIGNING.md) and the [release checklist](docs/RELEASE_CHECKLIST.md).
 
 ## Documentation
 

@@ -227,6 +227,7 @@ catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
 wrapper_file = (ROOT / "gradle/wrapper/gradle-wrapper.properties").read_text(encoding="utf-8")
 workflow_file = (ROOT / ".github/workflows/android.yml").read_text(encoding="utf-8")
 verify_script_file = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
+release_script_file = (ROOT / "scripts/create_github_release.sh").read_text(encoding="utf-8")
 if "distributionSha256Sum=" not in wrapper_file:
     fail("Gradle wrapper distributionSha256Sum is missing")
 if re.search(r"release\s*\{[^}]*signingConfig\s*=\s*signingConfigs\.getByName\(\"debug\"\)", build_file, re.DOTALL):
@@ -237,11 +238,20 @@ if re.search(
     re.DOTALL,
 ) is None:
     fail("Release build must enable AGP optimization (R8 + resource shrinking)")
-for required_task in (":app:lintRelease", ":app:bundleRelease"):
+for required_task in (":app:lintRelease", ":app:assembleRelease"):
     if required_task not in workflow_file:
         fail(f"CI release gate is missing task: {required_task}")
     if required_task not in verify_script_file:
         fail(f"Local verification gate is missing task: {required_task}")
+for required_release_token in (
+    "gh release create",
+    "--verify-tag",
+    "--draft",
+    "SHA256SUMS.txt",
+    "git ls-remote",
+):
+    if required_release_token not in release_script_file:
+        fail(f"GitHub release helper is missing: {required_release_token}")
 action_ref_pattern = re.compile(r"^\s*(?:-\s*)?uses:\s*([^@\s]+)@([^\s#]+)", re.MULTILINE)
 for action, ref in action_ref_pattern.findall(workflow_file):
     if action.startswith("./"):

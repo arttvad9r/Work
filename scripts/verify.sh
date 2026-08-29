@@ -14,5 +14,5 @@ fi
   :app:lintRelease \
   :app:assembleDebug \
   :app:assembleDebugAndroidTest \
-  :app:bundleRelease \
+  :app:assembleRelease \
   --stacktrace

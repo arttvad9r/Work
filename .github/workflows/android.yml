@@ -35,7 +35,7 @@ jobs:
             :app:lintRelease \
             :app:assembleDebug \
             :app:assembleDebugAndroidTest \
-            :app:bundleRelease \
+            :app:assembleRelease \
             --stacktrace
       - name: Upload verification reports
         if: always()
@@ -58,12 +58,12 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
-      - name: Upload unsigned release AAB
+      - name: Upload unsigned release APK
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: worktime-release-aab-unsigned
-          path: app/build/outputs/bundle/release/app-release.aab
+          name: worktime-release-apk-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 14
       - name: Upload R8 mapping
@@ -81,7 +81,7 @@ jobs:
     timeout-minutes: 15
     env:
       RELEASE_STORE_PASSWORD: worktime-ci-signing-only
-      RELEASE_KEY_ALIAS: worktime-ci-upload
+      RELEASE_KEY_ALIAS: worktime-ci-signing
       RELEASE_KEY_PASSWORD: worktime-ci-signing-only
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,8 +91,8 @@ jobs:
           java-version: "17"
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - name: Set disposable keystore path
-        run: echo "RELEASE_STORE_FILE=$RUNNER_TEMP/worktime-ci-upload.jks" >> "$GITHUB_ENV"
-      - name: Create disposable CI upload keystore
+        run: echo "RELEASE_STORE_FILE=$RUNNER_TEMP/worktime-ci-signing.jks" >> "$GITHUB_ENV"
+      - name: Create disposable CI signing keystore
         run: |
           keytool -genkeypair -noprompt \
             -keystore "$RELEASE_STORE_FILE" \
@@ -106,8 +106,11 @@ jobs:
             -dname "CN=WorkTime CI Signing Smoke"
       - name: Build and verify signed release candidate
         run: ./scripts/build_release_candidate.sh
-      - name: Verify release metadata exists
-        run: test -s app/build/outputs/release-candidate/metadata.txt
+      - name: Verify release candidate outputs
+        run: |
+          test -s app/build/outputs/release-candidate/metadata.txt
+          test -s app/build/outputs/release-candidate/SHA256SUMS.txt
+          test -s app/build/outputs/release-candidate/WorkTime-*.apk
 
   instrumented-tests:
     needs: verify
