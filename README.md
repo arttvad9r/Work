@@ -1,28 +1,58 @@
 # WorkTime
 
-WorkTime is a compact offline Android timesheet for recording worked time by date and calculating expected income.
+**WorkTime is a compact, offline Android timesheet for tracking shifts, worked hours and expected income from a calendar.**
 
-The core flow is intentionally short:
+No account, no cloud sync, no analytics and no ads. Data stays on the device unless you explicitly export it.
 
-```text
-open month -> tap a day -> enter duration and hourly rate -> save
-```
+[**Download the latest APK**](https://github.com/arttvad9r/Work/releases/latest) · [Changelog](CHANGELOG.md) · [Privacy](docs/PRIVACY.md) · [Documentation](docs/README.md)
 
-## Current interface
+## Screenshots
 
-- fixed Monday-first 6 × 7 calendar with direct month navigation and a month picker;
-- worked days show date, worked duration and daily income with a restrained visual hierarchy;
-- contextual `Fill today` action appears only when today belongs to the visible month and has no entry;
-- compact monthly summary strip opens a draggable detailed month report;
-- day editor is a modal sheet with duration, hourly rate and optional bonus/penalty inline fields;
-- settings contain the default rate, bulk rate change, theme selection and JSON/CSV data operations;
-- year summary is a full-screen, view-only yearly report opened from the monthly report;
-- optional home-screen month-summary widget;
-- controlled light/dark Material 3 palettes and portrait-only layout.
+<p align="center">
+  <img src="docs/screenshots/calendar.jpg" width="42%" alt="WorkTime monthly calendar">
+  <img src="docs/screenshots/year-summary.jpg" width="42%" alt="WorkTime yearly summary">
+</p>
 
-There is no currency selector or conversion model; presentation uses fixed `₽` labels. Notes and quick-duration presets are intentionally not part of the product. Detailed monetary values show a fractional part only when it is non-zero; dense calendar cells and the compact summary strip round to whole rubles to preserve fixed geometry. Durations are displayed compactly (`0`, `15`, `15:30`).
+<p align="center"><sub>Monthly calendar · Year summary</sub></p>
 
-The interface follows one shared component/dimension contract ([UI system](docs/UI_SYSTEM.md)): navigation, value, editable, segmented and action controls use the same semantics and sizing across screens and sheets.
+## What it does
+
+- Calendar-first shift entry: tap a day, enter duration and hourly rate, save.
+- Shows worked duration and income directly in calendar cells.
+- Monthly summary with work days, total hours, income, bonuses and averages.
+- Read-only yearly summary with per-month totals.
+- Optional bonus and penalty amounts for individual entries.
+- Default hourly rate plus bulk rate changes for a selected period.
+- JSON export/import and CSV export through the Android system file picker.
+- System, light and dark themes.
+- Optional home-screen widget with the current month summary.
+- Local-first operation with no account or network requirement.
+
+WorkTime is intentionally ruble-focused: monetary values are displayed in `₽`; currency conversion and multi-currency accounting are outside the current scope.
+
+## Install
+
+WorkTime is distributed directly through **GitHub Releases** as a signed, optimized APK.
+
+1. Open the [latest release](https://github.com/arttvad9r/Work/releases/latest).
+2. Download `WorkTime-<version>.apk`.
+3. If Android asks, allow your browser or file manager to install apps from that source.
+4. Install the APK. Future releases signed with the same WorkTime certificate can be installed over the existing app without removing its data.
+
+The project currently targets Android 8.0+ (`minSdk 26`). Every release also includes `SHA256SUMS.txt`; the pinned production signing-certificate fingerprint is stored in [`release/production-signing-cert-sha256.txt`](release/production-signing-cert-sha256.txt).
+
+## Privacy and data
+
+WorkTime is designed to work entirely on-device:
+
+- entries are stored locally with Room;
+- preferences are stored locally with DataStore;
+- the app does not request the Android `INTERNET` permission;
+- there are no analytics or advertising SDKs;
+- automatic Android backup/device transfer is disabled;
+- data leaves the app only through user-directed JSON/CSV export.
+
+See [`docs/PRIVACY.md`](docs/PRIVACY.md) for the full data-handling description.
 
 ## Product rules
 
@@ -30,11 +60,11 @@ The interface follows one shared component/dimension contract ([UI system](docs/
 - Worked time is limited to `0..24:00`.
 - Worked time requires a positive hourly rate.
 - Bonus/penalty-only entries are valid but do not count as work days.
-- The first saved shift can initialize the default hourly rate when no default exists.
-- Once initialized, the default rate is not overwritten by a different rate entered for an individual day.
 - A saved entry keeps its hourly-rate snapshot; changing the default rate does not rewrite history.
 - Bulk rate changes affect only entries inside the selected period and leave the default rate unchanged.
-- Core functionality is local and requires neither an account nor network access.
+
+<details>
+<summary>Calculation model</summary>
 
 ```text
 ratePayMicros = roundHalfUp(workedMinutes × hourlyRateMicros / 60)
@@ -43,7 +73,9 @@ monthTotalMicros = sum(entryTotalMicros)
 workDays = count(entries where workedMinutes > 0)
 ```
 
-Amounts use integer micros in domain/data code. `Float` and `Double` are not used for persisted calculations.
+Amounts use integer micros in domain/data code. Persisted monetary calculations do not use `Float` or `Double`.
+
+</details>
 
 ## Stack
 
@@ -55,33 +87,20 @@ Amounts use integer micros in domain/data code. `Float` and `Double` are not use
 - coroutines and `StateFlow`
 - JUnit 6 and AndroidX Test
 
-## Verification
+## Build and verify
 
-Preferred local command:
+Use the repository Gradle Wrapper. The preferred local verification command is:
 
 ```bash
 ./scripts/verify.sh
 ```
 
-It uses the repository Gradle Wrapper and runs the static audit, JVM tests, debug/release lint, debug APK and instrumentation APK assembly, plus an optimized unsigned release APK build. GitHub Actions runs the same build gate and then executes the Android instrumentation suite on a Gradle Managed Device for pull requests and pushes to `main`.
+It runs the repository static audit, JVM tests, debug/release lint and Android build verification. GitHub Actions also runs managed-device instrumentation tests and exercises the release-signing path with a disposable CI-only key.
 
-The unsigned CI release APK is verification-only. Normal CI also signs a candidate with a disposable key to exercise the real signing path; that disposable APK is never distributed.
-
-Physical-device interaction testing remains a separate release gate, especially for persistent IME behavior, haptics, modal-sheet behavior, calendar gestures and launcher/widget integration.
-
-## Distribution
-
-Public builds are distributed only through GitHub Releases as signed optimized APKs.
-
-The permanent WorkTime signing key stays outside GitHub. A tested clean `main` commit is signed locally with `./scripts/build_release_candidate.sh`. After the matching `v<versionName>` tag is pushed, `./scripts/create_github_release.sh` uploads those already-signed files into a **draft GitHub Release** without rebuilding or resigning the APK.
-
-The exact APK downloaded back from that draft is tested on a physical device before publication. The permanent app-signing key must remain unchanged across releases so Android can install newer APKs over existing WorkTime installations.
-
-See [release signing](docs/RELEASE_SIGNING.md) and the [release checklist](docs/RELEASE_CHECKLIST.md).
+For release signing and the GitHub Releases workflow, see [`docs/RELEASE_SIGNING.md`](docs/RELEASE_SIGNING.md) and [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 
 ## Documentation
 
-- [Documentation index](docs/README.md)
 - [Product](docs/PRODUCT.md)
 - [UX](docs/UX.md)
 - [UI system](docs/UI_SYSTEM.md)
@@ -92,8 +111,7 @@ See [release signing](docs/RELEASE_SIGNING.md) and the [release checklist](docs/
 - [Roadmap](docs/ROADMAP.md)
 - [Backlog](docs/BACKLOG.md)
 - [Privacy](docs/PRIVACY.md)
-- [Changelog](CHANGELOG.md)
 
 ## License
 
-No open-source license has been selected. The repository is all rights reserved until a license is added.
+No open-source license has been selected. The repository is **all rights reserved** until a license is added.
