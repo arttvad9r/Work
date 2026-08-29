@@ -338,8 +338,17 @@ class CalendarViewModel(
                 val data = BackupData(
                     entries = workEntryRepository.getAll(),
                     preferences = userPreferencesRepository.preferences.first(),
+                    defaultRateInitialized = userPreferencesRepository.defaultRateInitialized.first(),
                 )
-                stream.use { it.write(BackupCodec.encode(data.entries, data.preferences).toByteArray()) }
+                stream.use {
+                    it.write(
+                        BackupCodec.encode(
+                            data.entries,
+                            data.preferences,
+                            data.defaultRateInitialized,
+                        ).toByteArray(),
+                    )
+                }
             }
         }, onSuccess = {
             _operationEvents.send(CalendarOperationEvent.Success.BACKUP_EXPORTED)
@@ -380,6 +389,7 @@ class CalendarViewModel(
                 userPreferencesRepository.update(
                     defaultHourlyRateMicros = data.preferences.defaultHourlyRateMicros,
                     themeMode = data.preferences.themeMode,
+                    defaultRateInitialized = data.defaultRateInitialized,
                 )
             } catch (error: Exception) {
                 if (!replaced) throw error
