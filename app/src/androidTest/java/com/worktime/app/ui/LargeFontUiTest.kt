@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
@@ -40,7 +41,7 @@ class LargeFontUiTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun yearSummaryKeepsEssentialActionsAtLargeFontInNarrowLayout() {
+    fun yearSummaryKeepsEssentialActionsAndMakesMonthsReachableAtLargeFontInNarrowLayout() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         composeRule.setContent {
             val deviceDensity = LocalDensity.current.density
@@ -61,7 +62,9 @@ class LargeFontUiTest {
         composeRule.onNodeWithText("2026").assertIsDisplayed()
         composeRule.onNodeWithText(context.getString(R.string.by_month)).assertIsDisplayed()
         composeRule.onNodeWithText(monthLabel(Month.JANUARY, context)).assertIsDisplayed()
-        composeRule.onNodeWithText(monthLabel(Month.DECEMBER, context)).assertIsDisplayed()
+        composeRule.onNodeWithText(monthLabel(Month.DECEMBER, context))
+            .performScrollTo()
+            .assertIsDisplayed()
         composeRule.onNodeWithContentDescription(
             context.getString(R.string.previous_year),
         ).assertIsDisplayed()
