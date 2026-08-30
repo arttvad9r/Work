@@ -19,8 +19,8 @@
 
 ## P1 — release packaging and hardening
 
-- Run the manual Baseline Profile generator, review and land the generated profile, then measure its effect with Macrobenchmark on a physical device before treating it as a performance improvement.
-- Capture final release screenshots and add automated screenshot-regression coverage for the highest-value Compose states before treating visual regression testing as complete.
+- Measure the checked-in Baseline Profile with Macrobenchmark on a representative physical device before treating it as a demonstrated performance improvement.
+- Capture final release/store screenshots; update committed screenshot goldens only after intentional visual changes have been reviewed.
 - Review signing, launcher/store assets and Play pre-launch results before public distribution.
 - Keep the exact release candidate green through `./scripts/verify.sh` and GitHub Actions before tagging or distributing it.
 
