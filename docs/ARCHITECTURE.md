@@ -3,15 +3,19 @@
 ## Layers
 
 ```text
-Compose UI -> screen/destination state holders -> domain repository interfaces -> Room / DataStore
-                                      `-------> domain calculations / mutation coordination
+Compose UI -> screen/destination state holders -> domain contracts -> data implementations
+                                      |                |-> Room / DataStore
+                                      |                `-> JSON / CSV document codecs
+                                      `-> domain calculations / mutation coordination
 ```
 
-- `domain` owns work-entry invariants, exact calculations, repository contracts and cross-store mutation coordination.
-- `data` implements Room and DataStore repositories.
+- `domain` owns work-entry invariants, exact calculations, repository contracts, backup-document contracts and cross-store mutation coordination.
+- `data` implements Room/DataStore repositories and concrete JSON/CSV document serialization.
 - `ui` renders immutable state and sends explicit user actions back to the owning state holder.
-- `WorkTimeApp` is the composition root: it wires repository implementations to ViewModel factories and owns app navigation/overlay composition.
+- `WorkTimeApp` is the composition root: it wires domain-facing contracts from `AppContainer` to ViewModel factories and owns app navigation/overlay composition.
 - Reusable composables receive state and callbacks instead of resolving repositories or ViewModels themselves.
+
+`BackupViewModel` depends on the domain-facing `BackupDocumentSerializer` port. `DefaultBackupDocumentSerializer` and the concrete `BackupCodec`/`WorkEntryCsv` formats remain in `data`; `AppContainer` is the only composition boundary that knows the implementation. Repository/static audit checks prevent production `ui` from importing `data`, `domain` from importing `ui`/`data`, and `data` from importing `ui`.
 
 The project intentionally stays a small single app module. A separate domain module or DI framework would add structure without reducing current complexity.
 
@@ -66,6 +70,10 @@ Current preferences:
 - whether the first-entry default-rate adoption has already been decided.
 
 An old stored currency key may remain on upgraded installations but is not read or written.
+
+### Backup documents
+
+The JSON backup and CSV export formats are infrastructure details in `data`. The UI layer sees only `BackupDocumentSerializer` plus domain models. Import bytes are bounded before decode, decoded data is validated before confirmation, and replacement remains coordinated with repository rollback behavior.
 
 ## Amount model
 
