@@ -55,15 +55,13 @@ The managed device is a Pixel 2 API 30 AOSP ATD image. Current coverage includes
 
 The `:macrobenchmark` module contains the cold-start Macrobenchmark foundation. The manual `Macrobenchmark Manual` GitHub Actions workflow runs it on a Pixel 6 API 34 Gradle-managed device and uploads benchmark reports/traces. Hosted-emulator timing is diagnostic evidence only; it is not a performance regression threshold and does not replace physical-device measurements.
 
-The `:baselineprofile` module is the official AndroidX Baseline Profile producer for `:app`. The manual `Generate Baseline Profile` workflow runs:
+The `:baselineprofile` module is the official AndroidX Baseline Profile producer for `:app`. Both local/manual generation and the `Generate Baseline Profile` GitHub Actions workflow use the checked-in helper:
 
 ```bash
-./gradlew :app:generateBaselineProfile \
-  -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile \
-  -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+./scripts/generate_baseline_profile.sh
 ```
 
-The workflow verifies that a non-empty generated `baseline-prof.txt` exists and uploads the profile plus managed-device reports. Emulator use is acceptable for profile collection because this step is not a timing comparison.
+The helper runs the official `:app:generateBaselineProfile` task with the BaselineProfile-only instrumentation filter, then fails if no non-empty generated `baseline-prof.txt` is copied into the app source tree. The workflow uploads that profile plus managed-device reports. Emulator use is acceptable for profile collection because this step is not a timing comparison.
 
 A generated profile is not currently committed to `main`. Do not claim Baseline Profile startup improvement until the manual generator has been run, the generated profile has been reviewed and landed, and its effect has been compared with Macrobenchmark on a physical device. Numerical performance conclusions must come from representative physical hardware.
 
