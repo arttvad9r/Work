@@ -271,6 +271,21 @@ for required_task in (
         fail(f"CI release gate is missing task: {required_task}")
     if required_task not in verify_script_file:
         fail(f"Local verification gate is missing task: {required_task}")
+for required_token in (
+    'create("pixel6Api37")',
+    "apiLevel = 37",
+    'systemImageSource = "google"',
+    'testedAbi = "x86_64"',
+):
+    if required_token not in build_file:
+        fail(f"API 37 managed-device configuration is missing: {required_token}")
+for required_token in (
+    ":app:pixel6Api37DebugAndroidTest",
+    "android.testInstrumentationRunnerArguments.class=com.worktime.app.ui.WorkTimeSmokeTest",
+    "target-platform-smoke:",
+):
+    if required_token not in workflow_file:
+        fail(f"API 37 target-platform smoke gate is missing: {required_token}")
 if "./scripts/generate_baseline_profile.sh" not in baseline_profile_workflow_file:
     fail("Baseline Profile workflow must delegate generation to scripts/generate_baseline_profile.sh")
 if ":app:generateBaselineProfile" in baseline_profile_workflow_file:
