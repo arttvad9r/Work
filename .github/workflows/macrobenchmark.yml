@@ -34,7 +34,7 @@ jobs:
           ./gradlew --no-daemon \
             :macrobenchmark:pixel6Api34BenchmarkAndroidTest \
             -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR \
-            -Pandroid.testInstrumentationRunnerArguments.listener=androidx.benchmark.junit4.SideEffectRunListener \
+            -Pandroid.testInstrumentationRunnerArguments.listener=androidx.benchmark.macro.junit4.SideEffectRunListener \
             -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect \
             --stacktrace
       - name: Upload benchmark reports and traces
