@@ -1,6 +1,7 @@
 package com.worktime.app.ui.backup
 
-import com.worktime.app.data.backup.BackupCodec
+import com.worktime.app.domain.backup.BackupDocumentSerializer
+import com.worktime.app.domain.backup.BackupPayload
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.preferences.UserPreferences
@@ -25,30 +26,56 @@ import org.junit.jupiter.api.Test
 
 class BackupViewModelTest {
     @Test
-    fun `export backup writes entries and preferences and emits success`() = runTest {
+    fun `export backup delegates domain payload to serializer and emits success`() = runTest {
         val entries = listOf(
             WorkEntry(LocalDate.of(2026, 7, 30), 300, 9_000_000L),
             WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000L),
         )
         val workRepository = FakeWorkEntryRepository(entries)
+        val preferences = UserPreferences(12_500_000L, ThemeMode.DARK)
         val preferencesRepository = FakeUserPreferencesRepository(
-            initial = UserPreferences(12_500_000L, ThemeMode.DARK),
+            initial = preferences,
             initialized = true,
         )
-        val viewModel = BackupViewModel(workRepository, preferencesRepository)
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(workRepository, preferencesRepository, serializer)
         val output = ByteArrayOutputStream()
 
         viewModel.exportBackup(output)
         assertEquals(BackupOperationEvent.Success.EXPORTED, viewModel.events.first())
 
-        val restored = BackupCodec.decode(output.toString("UTF-8"))
-        assertEquals(entries, restored.entries)
-        assertEquals(UserPreferences(12_500_000L, ThemeMode.DARK), restored.preferences)
+        assertEquals("backup", output.toString("UTF-8"))
+        assertEquals(
+            BackupPayload(entries, preferences, defaultRateInitialized = true),
+            serializer.lastEncodedBackup,
+        )
+    }
+
+    @Test
+    fun `export csv delegates entries to serializer and emits success`() = runTest {
+        val entries = listOf(WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000L))
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(
+            FakeWorkEntryRepository(entries),
+            FakeUserPreferencesRepository(),
+            serializer,
+        )
+        val output = ByteArrayOutputStream()
+
+        viewModel.exportCsv(output)
+        assertEquals(BackupOperationEvent.Success.EXPORTED, viewModel.events.first())
+
+        assertEquals("csv", output.toString("UTF-8"))
+        assertEquals(entries, serializer.lastCsvEntries)
     }
 
     @Test
     fun `failed export reports export error`() = runTest {
-        val viewModel = BackupViewModel(FakeWorkEntryRepository(emptyList()), FakeUserPreferencesRepository())
+        val viewModel = BackupViewModel(
+            FakeWorkEntryRepository(emptyList()),
+            FakeUserPreferencesRepository(),
+            FakeBackupDocumentSerializer(),
+        )
         val failingOutput = object : OutputStream() {
             override fun write(b: Int) = error("io failure")
         }
@@ -68,14 +95,15 @@ class BackupViewModelTest {
         val importedEntry = WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000L)
         val workRepository = FakeWorkEntryRepository(listOf(oldEntry))
         val preferencesRepository = FakeUserPreferencesRepository()
-        val viewModel = BackupViewModel(workRepository, preferencesRepository)
-        val payload = BackupCodec.encode(
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(workRepository, preferencesRepository, serializer)
+        val payload = BackupPayload(
             entries = listOf(importedEntry),
             preferences = UserPreferences(7_000_000L, ThemeMode.LIGHT),
             defaultRateInitialized = true,
         )
 
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.importBackup(serializer.inputFor(payload))
         assertEquals(1, viewModel.state.first { it.pendingImportCount != null }.pendingImportCount)
         assertEquals(0, workRepository.replaceAllCalls)
 
@@ -91,14 +119,19 @@ class BackupViewModelTest {
     fun `zero imported default rate keeps initialization flag`() = runTest {
         val importedEntry = WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000L)
         val preferencesRepository = FakeUserPreferencesRepository()
-        val viewModel = BackupViewModel(FakeWorkEntryRepository(emptyList()), preferencesRepository)
-        val payload = BackupCodec.encode(
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(
+            FakeWorkEntryRepository(emptyList()),
+            preferencesRepository,
+            serializer,
+        )
+        val payload = BackupPayload(
             entries = listOf(importedEntry),
             preferences = UserPreferences(),
             defaultRateInitialized = true,
         )
 
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.importBackup(serializer.inputFor(payload))
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.confirmImport()
 
@@ -110,13 +143,15 @@ class BackupViewModelTest {
     @Test
     fun `cancel import clears pending without replacing data`() = runTest {
         val workRepository = FakeWorkEntryRepository(emptyList())
-        val viewModel = BackupViewModel(workRepository, FakeUserPreferencesRepository())
-        val payload = BackupCodec.encode(
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(workRepository, FakeUserPreferencesRepository(), serializer)
+        val payload = BackupPayload(
             entries = listOf(WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000L)),
             preferences = UserPreferences(),
+            defaultRateInitialized = true,
         )
 
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.importBackup(serializer.inputFor(payload))
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.cancelImport()
 
@@ -129,13 +164,15 @@ class BackupViewModelTest {
         val workRepository = FakeWorkEntryRepository(emptyList()).apply {
             replaceAllFailuresRemaining = 1
         }
-        val viewModel = BackupViewModel(workRepository, FakeUserPreferencesRepository())
-        val payload = BackupCodec.encode(
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(workRepository, FakeUserPreferencesRepository(), serializer)
+        val payload = BackupPayload(
             entries = listOf(WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000L)),
             preferences = UserPreferences(),
+            defaultRateInitialized = true,
         )
 
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.importBackup(serializer.inputFor(payload))
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.confirmImport()
 
@@ -154,10 +191,11 @@ class BackupViewModelTest {
         val preferencesRepository = FakeUserPreferencesRepository().apply {
             updateFailuresRemaining = 1
         }
-        val viewModel = BackupViewModel(workRepository, preferencesRepository)
-        val payload = BackupCodec.encode(listOf(importedEntry), UserPreferences())
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(workRepository, preferencesRepository, serializer)
+        val payload = BackupPayload(listOf(importedEntry), UserPreferences(), true)
 
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.importBackup(serializer.inputFor(payload))
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.confirmImport()
 
@@ -177,10 +215,11 @@ class BackupViewModelTest {
         val preferencesRepository = FakeUserPreferencesRepository().apply {
             cancelUpdatesRemaining = 1
         }
-        val viewModel = BackupViewModel(workRepository, preferencesRepository)
-        val payload = BackupCodec.encode(listOf(importedEntry), UserPreferences())
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(workRepository, preferencesRepository, serializer)
+        val payload = BackupPayload(listOf(importedEntry), UserPreferences(), true)
 
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.importBackup(serializer.inputFor(payload))
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.confirmImport()
         assertEquals(
@@ -207,13 +246,15 @@ class BackupViewModelTest {
         val preferencesRepository = FakeUserPreferencesRepository().apply {
             cancelUpdatesRemaining = 2
         }
-        val viewModel = BackupViewModel(workRepository, preferencesRepository)
-        val payload = BackupCodec.encode(
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(workRepository, preferencesRepository, serializer)
+        val payload = BackupPayload(
             entries = listOf(WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000L)),
             preferences = UserPreferences(),
+            defaultRateInitialized = true,
         )
 
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.importBackup(serializer.inputFor(payload))
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.confirmImport()
 
@@ -233,10 +274,11 @@ class BackupViewModelTest {
         val preferencesRepository = FakeUserPreferencesRepository().apply {
             updateFailuresRemaining = 2
         }
-        val viewModel = BackupViewModel(workRepository, preferencesRepository)
-        val payload = BackupCodec.encode(listOf(importedEntry), UserPreferences())
+        val serializer = FakeBackupDocumentSerializer()
+        val viewModel = BackupViewModel(workRepository, preferencesRepository, serializer)
+        val payload = BackupPayload(listOf(importedEntry), UserPreferences(), true)
 
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
+        viewModel.importBackup(serializer.inputFor(payload))
         viewModel.state.first { it.pendingImportCount != null }
         viewModel.confirmImport()
 
@@ -252,9 +294,12 @@ class BackupViewModelTest {
     fun `malformed import reports import error without replacing data`() = runTest {
         val oldEntry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000L)
         val workRepository = FakeWorkEntryRepository(listOf(oldEntry))
-        val viewModel = BackupViewModel(workRepository, FakeUserPreferencesRepository())
+        val serializer = FakeBackupDocumentSerializer().apply {
+            decodeFailure = IllegalArgumentException("malformed")
+        }
+        val viewModel = BackupViewModel(workRepository, FakeUserPreferencesRepository(), serializer)
 
-        viewModel.importBackup(ByteArrayInputStream("garbage".toByteArray()))
+        viewModel.importBackup(ByteArrayInputStream("garbage".encodeToByteArray()))
 
         assertEquals(
             BackupOperationEvent.Error(BackupOperationError.IMPORT),
@@ -262,6 +307,61 @@ class BackupViewModelTest {
         )
         assertEquals(0, workRepository.replaceAllCalls)
         assertNull(viewModel.state.value.pendingImportCount)
+    }
+
+    @Test
+    fun `oversized import is rejected before serializer decode`() = runTest {
+        val serializer = FakeBackupDocumentSerializer().apply {
+            maxBackupSizeBytes = 4
+            decodedPayload = BackupPayload(emptyList(), UserPreferences(), true)
+        }
+        val viewModel = BackupViewModel(
+            FakeWorkEntryRepository(emptyList()),
+            FakeUserPreferencesRepository(),
+            serializer,
+        )
+
+        viewModel.importBackup(ByteArrayInputStream("12345".encodeToByteArray()))
+
+        assertEquals(
+            BackupOperationEvent.Error(BackupOperationError.IMPORT),
+            viewModel.events.first(),
+        )
+        assertEquals(0, serializer.decodeCalls)
+    }
+}
+
+private class FakeBackupDocumentSerializer : BackupDocumentSerializer {
+    override var maxBackupSizeBytes: Int = 1024
+    var decodedPayload: BackupPayload? = null
+    var decodeFailure: RuntimeException? = null
+    var decodeCalls = 0
+    var lastEncodedBackup: BackupPayload? = null
+    var lastCsvEntries: List<WorkEntry>? = null
+
+    override fun encodeBackup(
+        entries: List<WorkEntry>,
+        preferences: UserPreferences,
+        defaultRateInitialized: Boolean,
+    ): String {
+        lastEncodedBackup = BackupPayload(entries, preferences, defaultRateInitialized)
+        return "backup"
+    }
+
+    override fun decodeBackup(text: String): BackupPayload {
+        decodeCalls += 1
+        decodeFailure?.let { throw it }
+        return requireNotNull(decodedPayload)
+    }
+
+    override fun encodeCsv(entries: List<WorkEntry>): String {
+        lastCsvEntries = entries
+        return "csv"
+    }
+
+    fun inputFor(payload: BackupPayload): ByteArrayInputStream {
+        decodedPayload = payload
+        return ByteArrayInputStream("backup".encodeToByteArray())
     }
 }
 
