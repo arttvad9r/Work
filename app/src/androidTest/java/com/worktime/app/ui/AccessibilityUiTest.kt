@@ -5,12 +5,16 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.worktime.app.ui.calendar.CalendarHeader
 import com.worktime.app.ui.components.AppSegmentedControl
 import com.worktime.app.ui.components.PlainDragHandle
 import com.worktime.app.ui.theme.WorkTimeTheme
+import java.time.YearMonth
+import java.util.Locale
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,6 +54,27 @@ class AccessibilityUiTest {
         }
 
         composeRule.onNodeWithText("Dark")
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun calendarMonthTitleReservesMinimumInteractiveHeight() {
+        composeRule.setContent {
+            WorkTimeTheme {
+                CalendarHeader(
+                    visibleMonth = YearMonth.of(2026, 8),
+                    isReady = true,
+                    locale = Locale.US,
+                    onPreviousMonth = {},
+                    onNextMonth = {},
+                    onSelectMonth = {},
+                    onSettingsClick = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("calendar-month-title")
             .assertHasClickAction()
             .assertHeightIsAtLeast(48.dp)
     }
