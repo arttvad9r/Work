@@ -1,5 +1,6 @@
 package com.worktime.app.macrobenchmark
 
+import androidx.benchmark.macro.BaselineProfileMode
 import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.StartupTimingMetric
@@ -19,10 +20,22 @@ class StartupBenchmark {
     val benchmarkRule = MacrobenchmarkRule()
 
     @Test
-    fun coldStartupNoCompilation() = benchmarkRule.measureRepeated(
+    fun coldStartupNoCompilation() = coldStartup(
+        compilationMode = CompilationMode.None(),
+    )
+
+    @Test
+    fun coldStartupWithBaselineProfile() = coldStartup(
+        compilationMode = CompilationMode.Partial(
+            baselineProfileMode = BaselineProfileMode.Require,
+            warmupIterations = 0,
+        ),
+    )
+
+    private fun coldStartup(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
         packageName = TargetPackage,
         metrics = listOf(StartupTimingMetric()),
-        compilationMode = CompilationMode.None(),
+        compilationMode = compilationMode,
         startupMode = StartupMode.COLD,
         iterations = 10,
         setupBlock = {
