@@ -2,7 +2,7 @@
 
 ## P0 — physical release verification
 
-1. Build and install the exact `main` candidate on the target portrait phone; record device model, Android version and commit SHA.
+1. Build and install the exact `main` candidate on the primary compact phone; record device model, Android version and commit SHA.
 2. Create/edit/delete entries, relaunch the app and verify Room/DataStore persistence.
 3. Move through duration/rate/bonus/penalty with the numeric IME open; confirm no keyboard close/reopen flash or sheet jump.
 4. Verify the intentionally sparse haptic feedback set and confirm ordinary navigation remains silent.
@@ -14,13 +14,13 @@
 10. Export JSON and CSV; import the JSON backup and confirm entries/settings/initialization state restore correctly. Confirm malformed import writes nothing.
 11. Open Year summary from the monthly report, switch years and verify totals plus month-column alignment; verify an empty year remains compact.
 12. Add the home-screen widget, change an entry and confirm refresh, theme behavior, compact presentation, body tap-through and `+` opening today's editor.
-13. Check Russian and English locales, narrow portrait width, increased supported font scale and TalkBack.
+13. Check Russian and English locales, narrow compact width, rotation/window resize, increased supported font scale and TalkBack; on a large-screen/API 37 environment confirm the adaptive supporting-pane layout remains usable.
 14. Complete the remaining items in `ANDROID_QA.md` and `RELEASE_CHECKLIST.md`.
 
 ## P1 — release packaging and hardening
 
 - Run the manual Baseline Profile generator, review and land the generated profile, then measure its effect with Macrobenchmark on a physical device before treating it as a performance improvement.
-- Capture final release screenshots.
+- Capture final release screenshots and add automated screenshot-regression coverage for the highest-value Compose states before treating visual regression testing as complete.
 - Review signing, launcher/store assets and Play pre-launch results before public distribution.
 - Keep the exact release candidate green through `./scripts/verify.sh` and GitHub Actions before tagging or distributing it.
 
@@ -29,4 +29,4 @@
 - multiple work profiles/jobs;
 - overtime/pay-period configuration.
 
-Do not reintroduce currency selection, notes, quick-duration presets, validation helper text, landscape support, cloud accounts or timers without an explicit product decision.
+Do not reintroduce currency selection, notes, quick-duration presets, validation helper text, cloud accounts or timers without an explicit product decision. Do not add a separate landscape-only product mode; adaptive rotation/window resizing remains part of the Android quality contract.

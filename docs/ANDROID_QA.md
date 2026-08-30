@@ -2,7 +2,7 @@
 
 Run this checklist against a clean build from the branch/commit being evaluated. Record device model, Android version, app version/commit and result.
 
-WorkTime is portrait-only by product decision. Landscape support is out of scope.
+WorkTime is phone-first, not orientation-locked. The compact portrait layout remains the primary visual target, but rotation, split-screen and resizable/expanded windows are part of the supported adaptive contract.
 
 ## Install and startup
 
@@ -10,12 +10,12 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] APK installs cleanly.
 - [ ] First launch does not crash or flash an editor before preferences load.
 - [ ] Relaunch preserves entries and theme.
-- [ ] App remains locked to portrait orientation.
+- [ ] Rotate/resize the app: it remains usable, does not restart into inconsistent feature state and does not rely on a manifest orientation lock.
 
 ## Calendar
 
-- [ ] Calendar does not scroll vertically.
-- [ ] Grid position and size stay identical in empty, partially filled and full months.
+- [ ] Calendar does not scroll vertically in the normal compact-height state.
+- [ ] Grid position and size stay identical in empty, partially filled and full months for the same window size.
 - [ ] Calendar card keeps only the intended ~1 dp horizontal safety margin.
 - [ ] Neighboring day cells have the intended very small ~0.5 dp visual gap.
 - [ ] Every month shows six rows and faint adjacent-month dates.
@@ -24,14 +24,15 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] Worked duration is geometrically centered and visibly larger than the previous `labelMedium` presentation.
 - [ ] Daily income is anchored near the bottom-left corner with the intended small left inset and is displayed as a whole rounded number only.
 - [ ] Bonus/penalty markers occupy the free top-left corner and do not overlap the date.
-- [ ] Previous/next arrows switch the month title and date grid immediately; there is no crossfade, delayed old month, or old/new date flash.
-- [ ] Rows from the previous Room month are never shown under the newly requested month.
+- [ ] Previous/next arrows and horizontal swipes move through the same pager model without old/new date flashes or showing stale Room data under the new month.
+- [ ] Wider windows show the monthly report as a supporting pane instead of stretching the compact footer across the entire width.
+- [ ] Compact-height windows preserve access to the calendar controls/summary without clipping.
 
 ## Fixed summary and monthly report
 
-- [ ] Fixed card always shows work days, `Отработано часов`, monthly income.
-- [ ] Card height/position does not change with data.
-- [ ] Exactly one handle is visible below the fixed card.
+- [ ] Compact layout summary always shows work days, `Отработано часов`, monthly income.
+- [ ] Card height/position does not change with data for the same compact window state.
+- [ ] Exactly one handle is visible below the fixed card in compact layout.
 - [ ] Handle opens the report by tap.
 - [ ] Handle/sheet opens by upward drag and collapses by downward drag.
 - [ ] Repeated tap/drag cycles do not change the sheet anchors or break the peek height.
@@ -39,6 +40,7 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] TalkBack exposes one monthly-report action for the custom handle without duplicate drag-handle speech.
 - [ ] Report has one title and one total; no duplicated income row/handle.
 - [ ] Bonus and penalty rows appear only when non-zero.
+- [ ] Supporting-pane layout shows the same report content persistently and does not expose a redundant bottom sheet/drag handle.
 
 ## Day editor
 
@@ -88,7 +90,8 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 
 - [ ] Light and dark themes have readable contrast.
 - [ ] 200% font scale does not hide essential actions.
-- [ ] Narrow portrait phone does not produce overlapping text.
+- [ ] Narrow compact window does not produce overlapping text.
+- [ ] Rotate to landscape / use a wide resizable window: content reflows into the adaptive layout without clipping, unreachable actions or an oversized stretched compact footer.
 - [ ] TalkBack announces dates, selected/today state, duration and adjustments.
 - [ ] Fixed `₽` and `₽/h` labels are readable and do not overlap at narrow width or 200% font scale.
 - [ ] Settings exposes `Change rate for period`; no recorded-entry rate history is shown.

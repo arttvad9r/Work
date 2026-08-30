@@ -1,6 +1,5 @@
 package com.worktime.app.ui.calendar
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetScaffold
@@ -35,15 +33,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -56,13 +50,7 @@ import com.worktime.app.ui.components.AppSheetShape
 import com.worktime.app.ui.components.PlainDragHandle
 import java.time.LocalDate
 import java.time.YearMonth
-import kotlin.math.abs
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-
-private const val PagerPageCount = 24_001
-private const val PagerAnchorPage = PagerPageCount / 2
-private const val PagerPositionResyncTolerance = 0.08f
 
 internal enum class CalendarLayoutMode {
     Compact,
@@ -92,7 +80,6 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalLocale.current.platformLocale
-    val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val adaptiveInfo = currentWindowAdaptiveInfoV2()
     val paneDirective = calculatePaneScaffoldDirective(adaptiveInfo)
@@ -106,28 +93,21 @@ fun CalendarScreen(
     val supportingPaneScrollState = rememberScrollState()
     var monthPickerOpen by rememberSaveable { mutableStateOf(false) }
 
-    val originMonthIndex = rememberSaveable { state.visibleMonth.toMonthIndex() }
-    val pagerState = rememberPagerState(
-        initialPage = PagerAnchorPage,
-        pageCount = { PagerPageCount },
-    )
+    val pager = rememberCalendarPagerState(state.visibleMonth)
     val pagerFlingBehavior = PagerDefaults.flingBehavior(
-        state = pagerState,
+        state = pager.pagerState,
         snapAnimationSpec = spring(
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.PagerStiffness,
         ),
         snapPositionalThreshold = 0.35f,
     )
-    val programmaticPosition = remember { Animatable(PagerAnchorPage.toFloat()) }
-    var programmaticPage by remember { mutableStateOf<Int?>(null) }
-    var programmaticScrollJob by remember { mutableStateOf<Job?>(null) }
-
-    fun monthForPage(page: Int): YearMonth =
-        yearMonthFromIndex(originMonthIndex + page - PagerAnchorPage)
-
-    fun pageForMonth(month: YearMonth): Int =
-        PagerAnchorPage + month.toMonthIndex() - originMonthIndex
+    CalendarPagerEffects(
+        pager = pager,
+        visibleMonth = state.visibleMonth,
+        scope = scope,
+        onSelectMonth = onSelectMonth,
+    )
 
     val summarySheetState = rememberStandardBottomSheetState(
         initialValue = SheetValue.Hidden,
@@ -171,96 +151,6 @@ fun CalendarScreen(
         }
     }
 
-    // Arrow presses drive one virtual page position rather than starting independent fixed-time
-    // animations. Re-targeting keeps the current spring velocity, so repeated taps accumulate
-    // naturally instead of being dropped or restarting from rest at every intermediate month.
-    val animateToPage: (Int) -> Unit = { requestedPage ->
-        val targetPage = requestedPage.coerceIn(0, PagerPageCount - 1)
-        if (programmaticScrollJob?.isActive != true || programmaticPage != targetPage) {
-            val wasRunning = programmaticScrollJob?.isActive == true
-            val carriedVelocity = if (wasRunning) programmaticPosition.velocity else 0f
-            programmaticPage = targetPage
-            programmaticScrollJob?.cancel()
-            programmaticScrollJob = scope.launch {
-                val actualPosition =
-                    pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction
-                if (
-                    !wasRunning ||
-                    abs(programmaticPosition.value - actualPosition) > PagerPositionResyncTolerance
-                ) {
-                    programmaticPosition.snapTo(actualPosition)
-                }
-
-                val pageSizePx = pagerState.layoutInfo.pageSize.toFloat()
-                if (pageSizePx <= 0f) {
-                    pagerState.scrollToPage(targetPage)
-                    programmaticPosition.snapTo(targetPage.toFloat())
-                    return@launch
-                }
-
-                pagerState.scroll {
-                    val scrollScope = this
-                    var consumedPosition = programmaticPosition.value
-                    programmaticPosition.animateTo(
-                        targetValue = targetPage.toFloat(),
-                        animationSpec = spring(
-                            dampingRatio = AppMotion.NoBounceDampingRatio,
-                            stiffness = AppMotion.PagerStiffness,
-                        ),
-                        initialVelocity = carriedVelocity,
-                    ) {
-                        val deltaPages = value - consumedPosition
-                        val consumedPx = scrollScope.scrollBy(deltaPages * pageSizePx)
-                        consumedPosition += consumedPx / pageSizePx
-                    }
-                }
-
-                programmaticPosition.snapTo(
-                    pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction,
-                )
-            }
-        }
-    }
-
-    // External month changes (month picker, restored state) move the pager to the same month.
-    // Adjacent changes use the same interruptible spring as the arrows; large jumps stay immediate.
-    LaunchedEffect(state.visibleMonth) {
-        val targetPage = pageForMonth(state.visibleMonth)
-        if (targetPage !in 0 until PagerPageCount || targetPage == pagerState.settledPage) {
-            return@LaunchedEffect
-        }
-        if (abs(targetPage - pagerState.currentPage) <= 1) {
-            animateToPage(targetPage)
-        } else {
-            programmaticPage = targetPage
-            programmaticScrollJob?.cancel()
-            pagerState.scrollToPage(targetPage)
-            programmaticPosition.snapTo(targetPage.toFloat())
-        }
-    }
-
-    // A drag follows the finger through HorizontalPager. Commit business state only once
-    // the page has settled; user-driven snaps get one restrained tactile tick.
-    LaunchedEffect(pagerState, state.visibleMonth) {
-        var previousSettledPage = pagerState.settledPage
-        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
-            if (settledPage == previousSettledPage) return@collect
-
-            val expectedProgrammaticPage = programmaticPage
-            val userDriven = expectedProgrammaticPage == null || expectedProgrammaticPage != settledPage
-            if (userDriven) {
-                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-            }
-            programmaticPage = null
-
-            val settledMonth = monthForPage(settledPage)
-            if (settledMonth != state.visibleMonth) {
-                onSelectMonth(settledMonth)
-            }
-            previousSettledPage = settledPage
-        }
-    }
-
     BottomSheetScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
@@ -296,7 +186,7 @@ fun CalendarScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        val displayedMonth = monthForPage(pagerState.currentPage)
+        val displayedMonth = pager.displayedMonth
         val displayedEntries = state.monthEntries[displayedMonth]
             ?: if (displayedMonth == state.visibleMonth) state.entries else emptyMap()
         val displayedState = state.copy(
@@ -320,16 +210,12 @@ fun CalendarScreen(
                     locale = locale,
                     onPreviousMonth = {
                         closeSummaryBehind {
-                            val basePage = programmaticPage ?: pagerState.currentPage
-                            val target = basePage - 1
-                            if (target >= 0) animateToPage(target) else onPreviousMonth()
+                            if (!pager.navigatePrevious(scope)) onPreviousMonth()
                         }
                     },
                     onNextMonth = {
                         closeSummaryBehind {
-                            val basePage = programmaticPage ?: pagerState.currentPage
-                            val target = basePage + 1
-                            if (target < PagerPageCount) animateToPage(target) else onNextMonth()
+                            if (!pager.navigateNext(scope)) onNextMonth()
                         }
                     },
                     onSelectMonth = { monthPickerOpen = true },
@@ -346,16 +232,16 @@ fun CalendarScreen(
                     }
                 } else {
                     HorizontalPager(
-                        state = pagerState,
+                        state = pager.pagerState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(calendarGridHeight())
                             .testTag("calendar-pager"),
                         beyondViewportPageCount = 1,
                         flingBehavior = pagerFlingBehavior,
-                        key = { page -> monthForPage(page).toString() },
+                        key = { page -> pager.monthForPage(page).toString() },
                     ) { page ->
-                        val month = monthForPage(page)
+                        val month = pager.monthForPage(page)
                         val entries = state.monthEntries[month]
                             ?: if (month == state.visibleMonth) state.entries else emptyMap()
                         CalendarGrid(
@@ -494,10 +380,3 @@ fun CalendarScreen(
         )
     }
 }
-
-private fun YearMonth.toMonthIndex(): Int = year * 12 + (monthValue - 1)
-
-private fun yearMonthFromIndex(index: Int): YearMonth = YearMonth.of(
-    Math.floorDiv(index, 12),
-    Math.floorMod(index, 12) + 1,
-)

@@ -8,7 +8,7 @@
 python3 scripts/static_audit.py
 ```
 
-Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback, pinned CI actions, wrapper checksum, release signing safety, release optimization, required release-build CI tasks and the GitHub tag-release workflow invariants.
+Checks XML/resources, EN/RU key parity, privacy controls, adaptive/orientation and IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback, pinned CI actions, wrapper checksum, release signing safety, release optimization, required release-build CI tasks and the GitHub tag-release workflow invariants.
 
 ### JVM tests
 
@@ -42,14 +42,24 @@ The disposable signed APK is never a release artifact.
 
 ### Managed-device tests
 
-CI executes the Android instrumentation suite after the build gate:
+CI executes the full Android instrumentation suite on the fast API 30 AOSP ATD device:
 
 ```bash
 ./gradlew :app:pixel2Api30DebugAndroidTest \
   -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
 ```
 
-The managed device is a Pixel 2 API 30 AOSP ATD image. Current coverage includes database/repository integration, smoke/UI consistency, privacy disclosure, large-font behavior, full-screen motion regressions, persistent numeric-editor focus continuity and the monthly-summary drag activation threshold.
+Current coverage includes database/repository integration, smoke/UI consistency, privacy disclosure, large-font behavior, full-screen motion regressions, persistent numeric-editor focus continuity and the monthly-summary drag activation threshold.
+
+A second target-platform smoke runs the app's basic startup/UI path on the target API level using the available Google x86_64 API 37 image:
+
+```bash
+./gradlew :app:pixel6Api37DebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.worktime.app.ui.WorkTimeSmokeTest \
+  -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+```
+
+The API 37 smoke is deliberately narrow: it catches target-platform startup/runtime incompatibilities without duplicating the full instrumentation suite.
 
 ### Performance tooling
 
@@ -103,7 +113,7 @@ For updates, install the candidate over the previous public APK without uninstal
 - sparse same-rate entries are labelled as recorded-entry groups, not continuous effective periods.
 - concurrent theme and default-rate updates preserve both independent preference values.
 - Undo is available only while the owning `CalendarViewModel` remains alive; recreating it does not restore an old Undo snapshot.
-- portrait orientation remains enforced.
+- `MainActivity` does not lock orientation; rotation/window resize continues to use the adaptive layout contract.
 - Settings and Year Summary exits travel beyond the old partial-width target before composition removes them.
 - LTR/RTL full-screen navigation direction stays mirrored while predictive back follows the actual swipe edge.
 - the in-app privacy disclosure opens and remains scrollable on a compact viewport.

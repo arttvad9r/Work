@@ -8,8 +8,9 @@ Run this checklist against the exact commit and APK that will be published. Prio
 - [ ] `:app:testDebugUnitTest` passes with no failed or skipped regression tests.
 - [ ] `:app:lintDebug` and `:app:lintRelease` pass; remaining hints are reviewed and understood.
 - [ ] `:app:assembleDebug`, `:app:assembleDebugAndroidTest` and `:app:assembleRelease` pass through the checked-in Gradle Wrapper.
+- [ ] `:app:assembleBenchmark`, `:macrobenchmark:assembleBenchmark` and `:baselineprofile:assemble` pass through the same local/CI verification gate.
 - [ ] Release optimization remains enabled through AGP `optimization { enable = true }`.
-- [ ] The matching GitHub Actions run is green, including `signing-smoke` and managed-device instrumentation.
+- [ ] The matching GitHub Actions run is green, including `signing-smoke`, API 30 managed-device instrumentation and the API 37 target-platform smoke.
 - [ ] CI retains the unsigned optimized release APK and R8 mapping for inspection; the unsigned APK is never distributed.
 - [ ] Normal PR/main CI uses only its disposable signing key.
 - [ ] Release signing never falls back to debug signing.
@@ -57,17 +58,19 @@ Run this checklist against the exact commit and APK that will be published. Prio
 - [ ] Historical rate snapshots are verified.
 - [ ] Empty, populated, bonus and penalty months are verified.
 - [ ] Worked time with zero rate is rejected; adjustment-only zero-rate entries remain valid.
-- [ ] Report sheet opens by both tap and drag.
+- [ ] Report sheet opens by both tap and drag in compact layout.
 - [ ] Repeated report open/collapse cycles keep the same peek height and anchors.
 - [ ] Holding the report handle never shows Material's drag-handle tooltip.
+- [ ] Wider adaptive layout shows the monthly report in the supporting pane without duplicating the compact report sheet.
 - [ ] Persistence failure path retains the draft/settings surface and shows transient feedback.
 - [ ] JSON export/import is verified through the system document picker.
 - [ ] JSON import rollback preserves the previous Room/DataStore state when preference restore is forced to fail.
 
 ## UI/accessibility
 
-- [ ] App remains portrait-only.
-- [ ] Calendar never vertically scrolls or jumps; horizontal month swipes track the finger and settle on the expected month.
+- [ ] Compact portrait phone remains the primary layout and does not regress.
+- [ ] Rotation/window resizing preserves a usable UI and state; on a large-screen/API 37 environment, verify compact/short/supporting-pane modes behave according to available window space rather than an orientation lock.
+- [ ] Calendar grid remains spatially stable for a given window size; horizontal month swipes track the finger and settle on the expected month.
 - [ ] Russian labels fit, including `Системная` and `Отработано часов`.
 - [ ] Invalid numeric input uses red outline only; no validation helper text appears.
 - [ ] Numeric IME stays visible while moving between duration/rate/bonus/penalty.
@@ -75,7 +78,7 @@ Run this checklist against the exact commit and APK that will be published. Prio
 - [ ] Intended haptics occur only on the documented interaction set; ordinary navigation remains silent.
 - [ ] Settings initial `0` is selected on focus without changing sheet height.
 - [ ] Save is reachable after keyboard dismissal.
-- [ ] Narrow portrait screen and 200% font-scale checks pass.
+- [ ] Narrow compact screen and 200% font-scale checks pass.
 - [ ] Light/dark contrast and TalkBack checks pass.
 - [ ] Fixed `₽` and `₽/h` labels are readable in supported locales.
 - [ ] Home-screen widget theme, layout, body tap, `+` action and refresh after data changes are verified on the target launcher.

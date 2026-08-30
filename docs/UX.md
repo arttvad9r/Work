@@ -13,11 +13,11 @@ Calendar
    `- Year summary -> full-screen YearSummaryScreen
 ```
 
-The application is portrait-only. Day editing, rate changing and export-format selection use modal sheets. Settings and year summary are full-screen surfaces.
+The compact phone layout is the primary interaction target, but the application is not orientation-locked. Layout responds to the available app window: day editing, rate changing and export-format selection use modal sheets; Settings and Year Summary are full-screen surfaces; the calendar can expose the monthly report as a supporting pane when enough horizontal space is available.
 
 ## Calendar
 
-- Fixed Monday-first 6 × 7 grid; no vertical scrolling and no geometry changes based on entries.
+- Fixed Monday-first 6 × 7 grid; its geometry does not change based on entries.
 - Header contains previous month, tappable localized month/year, next month and Settings.
 - Tapping month/year opens the month picker.
 - Horizontal month navigation uses a real `HorizontalPager`: the neighbouring calendar follows the finger during the drag and snaps with Compose pager physics instead of changing only after release.
@@ -31,6 +31,9 @@ The application is portrait-only. Day editing, rate changing and export-format s
 - New or changed entry content fades/scales in subtly after a successful save so the edited cell visibly receives the result of the action.
 - Grid/divider lines are deliberately quiet so data reads before table chrome.
 - In the current month only, when today has no entry, a lightweight `Fill today` TextButton appears below the calendar. Its appearance/disappearance uses a short fade + vertical reveal/collapse.
+- Compact-height windows may scroll the primary pane to preserve reachability instead of clipping controls.
+- Wider windows keep the calendar as the primary pane and show the month report in a supporting pane rather than stretching the compact footer across the whole width.
+- Rotation, split-screen and freeform resizing are treated as window-size changes, not as separate device-specific layouts.
 
 ## Monthly summary and report
 
@@ -53,7 +56,7 @@ The detailed report sheet contains:
 - average income per shift;
 - a normal navigation row to `Year summary`.
 
-Headline and compact summary values fade through when their underlying data changes. The report is view-only. The handle remains tooltip-free and tap/drag behavior must keep stable anchors. Sheet opening/closing keeps Material drag physics.
+Headline and compact summary values fade through when their underlying data changes. The report is view-only. The handle remains tooltip-free and tap/drag behavior must keep stable anchors. Sheet opening/closing keeps Material drag physics. On a wide supporting-pane layout the same report content is persistent and does not open another sheet.
 
 ## Day editor
 
