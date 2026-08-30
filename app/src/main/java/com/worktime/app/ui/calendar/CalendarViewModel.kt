@@ -5,35 +5,26 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.worktime.app.data.backup.BackupCodec
-import com.worktime.app.data.backup.BackupData
-import com.worktime.app.data.backup.WorkEntryCsv
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.operation.DataMutationCoordinator
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
-import java.io.InputStream
-import java.io.OutputStream
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarViewModel(
@@ -47,7 +38,6 @@ class CalendarViewModel(
     private val changeRateInitialRange = MutableStateFlow<ClosedRange<LocalDate>?>(null)
     private val operationError = MutableStateFlow<CalendarOperationError?>(null)
     private val undoSnapshot = MutableStateFlow<UndoSnapshot?>(null)
-    private val pendingImport = MutableStateFlow<BackupData?>(null)
     private var operationGeneration = 0L
     private val _operationEvents = Channel<CalendarOperationEvent>(Channel.BUFFERED)
     val operationEvents: Flow<CalendarOperationEvent> = _operationEvents.receiveAsFlow()
@@ -109,13 +99,11 @@ class CalendarViewModel(
     private val overlayState = combine(
         changeRateUi,
         undoSnapshot,
-        pendingImport,
-    ) { changeRate, snapshot, import ->
+    ) { changeRate, snapshot ->
         OverlayState(
             isChangeRateSheetOpen = changeRate.open,
             changeRateInitialRange = changeRate.initialRange,
             canUndo = snapshot != null,
-            pendingImportCount = import?.entries?.size,
         )
     }
 
@@ -123,7 +111,6 @@ class CalendarViewModel(
         val isChangeRateSheetOpen: Boolean,
         val changeRateInitialRange: ClosedRange<LocalDate>?,
         val canUndo: Boolean,
-        val pendingImportCount: Int?,
     )
 
     val state: StateFlow<CalendarUiState> = combine(
@@ -134,7 +121,6 @@ class CalendarViewModel(
             isChangeRateSheetOpen = overlay.isChangeRateSheetOpen,
             changeRateInitialRange = overlay.changeRateInitialRange,
             canUndo = overlay.canUndo,
-            pendingImportCount = overlay.pendingImportCount,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -244,88 +230,6 @@ class CalendarViewModel(
         supersedeOperation()
     }
 
-    fun exportBackup(stream: OutputStream) {
-        runOperation(CalendarOperationError.BACKUP_EXPORT, body = {
-            withContext(Dispatchers.IO) {
-                val data = BackupData(
-                    entries = workEntryRepository.getAll(),
-                    preferences = userPreferencesRepository.preferences.first(),
-                    defaultRateInitialized = userPreferencesRepository.defaultRateInitialized.first(),
-                )
-                stream.use {
-                    it.write(
-                        BackupCodec.encode(
-                            data.entries,
-                            data.preferences,
-                            data.defaultRateInitialized,
-                        ).toByteArray(),
-                    )
-                }
-            }
-        }, onSuccess = {
-            _operationEvents.send(CalendarOperationEvent.Success.BACKUP_EXPORTED)
-        }, invalidateUndo = false)
-    }
-
-    fun exportCsv(stream: OutputStream) {
-        runOperation(CalendarOperationError.BACKUP_EXPORT, body = {
-            withContext(Dispatchers.IO) {
-                stream.use { it.write(WorkEntryCsv.encode(workEntryRepository.getAll()).toByteArray()) }
-            }
-        }, onSuccess = {
-            _operationEvents.send(CalendarOperationEvent.Success.BACKUP_EXPORTED)
-        }, invalidateUndo = false)
-    }
-
-    fun importBackup(stream: InputStream) {
-        runOperation(CalendarOperationError.BACKUP_IMPORT, body = {
-            pendingImport.value = withContext(Dispatchers.IO) {
-                stream.use { input ->
-                    val bytes = input.readBounded(BackupCodec.MAX_BACKUP_SIZE_BYTES)
-                    BackupCodec.decode(bytes.decodeToString())
-                }
-            }
-        }, invalidateUndo = false)
-    }
-
-    fun confirmImport() {
-        val data = pendingImport.value ?: return
-        runOperation(CalendarOperationError.BACKUP_IMPORT, body = {
-            val oldEntries = workEntryRepository.getAll()
-            val oldPreferences = userPreferencesRepository.preferences.first()
-            val oldDefaultRateInitialized = userPreferencesRepository.defaultRateInitialized.first()
-            var replaced = false
-            try {
-                workEntryRepository.replaceAll(data.entries)
-                replaced = true
-                userPreferencesRepository.update(
-                    defaultHourlyRateMicros = data.preferences.defaultHourlyRateMicros,
-                    themeMode = data.preferences.themeMode,
-                    defaultRateInitialized = data.defaultRateInitialized,
-                )
-            } catch (error: Exception) {
-                if (!replaced) throw error
-                try {
-                    withContext(NonCancellable) {
-                        workEntryRepository.replaceAll(oldEntries)
-                        userPreferencesRepository.update(
-                            defaultHourlyRateMicros = oldPreferences.defaultHourlyRateMicros,
-                            themeMode = oldPreferences.themeMode,
-                            defaultRateInitialized = oldDefaultRateInitialized,
-                        )
-                    }
-                } catch (rollbackError: Throwable) {
-                    throw ImportRollbackException(rollbackError)
-                }
-                throw error
-            }
-        }, onSuccess = {
-            // Cleared only on success so a failed replace can be retried.
-            pendingImport.value = null
-            _operationEvents.send(CalendarOperationEvent.Success.BACKUP_IMPORTED)
-        })
-    }
-
     /**
      * Runs one repository operation: clears stale errors, invalidates prior undo state,
      * and reports failure as [errorKind] unless a newer operation superseded this one.
@@ -347,21 +251,11 @@ class CalendarViewModel(
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 if (generation == operationGeneration) {
-                    val actualError = if (error is ImportRollbackException) {
-                        CalendarOperationError.BACKUP_IMPORT_ROLLBACK
-                    } else {
-                        errorKind
-                    }
-                    operationError.value = actualError
-                    _operationEvents.send(CalendarOperationEvent.Error(actualError))
+                    operationError.value = errorKind
+                    _operationEvents.send(CalendarOperationEvent.Error(errorKind))
                 }
             }
         }
-    }
-
-    fun cancelImport() {
-        operationError.value = null
-        pendingImport.value = null
     }
 
     fun reportOperationError(error: CalendarOperationError) {
@@ -394,11 +288,6 @@ class CalendarViewModel(
         data class Deleted(val entry: WorkEntry) : UndoSnapshot
         data class Bulk(val entries: List<WorkEntry>) : UndoSnapshot
     }
-
-    private class ImportRollbackException(cause: Throwable) : RuntimeException(
-        "Import rollback failed",
-        cause,
-    )
 }
 
 private data class MonthWindow(
@@ -411,16 +300,3 @@ private data class MonthUi(
     val entries: Map<LocalDate, WorkEntry>,
     val entriesByMonth: Map<YearMonth, Map<LocalDate, WorkEntry>>,
 )
-
-private fun InputStream.readBounded(maxBytes: Int): ByteArray {
-    val output = java.io.ByteArrayOutputStream(minOf(maxBytes, 16 * 1024))
-    val buffer = ByteArray(16 * 1024)
-    var total = 0
-    while (true) {
-        val read = read(buffer)
-        if (read < 0) return output.toByteArray()
-        total += read
-        if (total > maxBytes) throw IllegalArgumentException("Backup file is too large")
-        output.write(buffer, 0, read)
-    }
-}

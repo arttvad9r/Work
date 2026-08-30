@@ -21,7 +21,6 @@ data class CalendarUiState(
     val isReady: Boolean = false,
     val operationError: CalendarOperationError? = null,
     val canUndo: Boolean = false,
-    val pendingImportCount: Int? = null,
 ) {
     val summary: MonthSummary
         get() = SalaryCalculator.monthSummary(entries.values)
@@ -32,9 +31,6 @@ enum class CalendarOperationError {
     DELETE_ENTRY,
     BULK_RATE,
     UNDO,
-    BACKUP_EXPORT,
-    BACKUP_IMPORT,
-    BACKUP_IMPORT_ROLLBACK,
     DEFAULT_RATE_ADOPTION,
 }
 
@@ -44,8 +40,6 @@ sealed interface CalendarOperationEvent {
         ENTRY_DELETED,
         RATE_UPDATED,
         OPERATION_UNDONE,
-        BACKUP_EXPORTED,
-        BACKUP_IMPORTED,
         NO_OP,
     }
 

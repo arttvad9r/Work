@@ -1,30 +1,23 @@
 package com.worktime.app.ui.calendar
 
-import com.worktime.app.data.backup.BackupCodec
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.preferences.UserPreferences
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.OutputStream
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -63,230 +56,6 @@ class CalendarViewModelTest {
     }
 
     @Test
-    fun `export backup writes all entries and preferences and reports success`() = runTest {
-        val entries = listOf(
-            WorkEntry(LocalDate.of(2026, 7, 30), 300, 9_000_000),
-            WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000),
-        )
-        val repository = FakeWorkEntryRepository(entries)
-        val preferencesRepository = FakeUserPreferencesRepository()
-        preferencesRepository.update(defaultHourlyRateMicros = 12_500_000L, themeMode = ThemeMode.DARK, defaultRateInitialized = true)
-        val viewModel = CalendarViewModel(repository, preferencesRepository)
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-
-        val stream = ByteArrayOutputStream()
-        viewModel.exportBackup(stream)
-        assertEquals(CalendarOperationEvent.Success.BACKUP_EXPORTED, viewModel.operationEvents.first())
-
-        val restored = BackupCodec.decode(stream.toString("UTF-8"))
-        assertEquals(entries, restored.entries)
-        assertEquals(UserPreferences(12_500_000L, ThemeMode.DARK), restored.preferences)
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `failed export reports error event`() = runTest {
-        val repository = FakeWorkEntryRepository(emptyList())
-        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-        val failingStream = object : OutputStream() {
-            override fun write(b: Int) = error("io failure")
-        }
-
-        viewModel.exportBackup(failingStream)
-        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BACKUP_EXPORT), viewModel.operationEvents.first())
-        viewModel.state.first { it.operationError == CalendarOperationError.BACKUP_EXPORT }
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `import awaits confirmation then replaceAll applies backup`() = runTest {
-        val repository = FakeWorkEntryRepository(listOf(WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)))
-        val preferencesRepository = FakeUserPreferencesRepository()
-        val viewModel = CalendarViewModel(repository, preferencesRepository)
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-        val backupEntries = listOf(WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000))
-        val payload = BackupCodec.encode(backupEntries, UserPreferences(7_000_000L, ThemeMode.LIGHT))
-
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
-        assertEquals(backupEntries.size, viewModel.state.first { it.pendingImportCount != null }.pendingImportCount)
-        assertEquals(0, repository.replaceAllCalls)
-
-        viewModel.confirmImport()
-        assertEquals(CalendarOperationEvent.Success.BACKUP_IMPORTED, viewModel.operationEvents.first())
-        assertEquals(backupEntries, repository.observeMonth(YearMonth.of(2026, 7)).first())
-        assertEquals(UserPreferences(7_000_000L, ThemeMode.LIGHT), preferencesRepository.updates.single())
-        assertEquals(null, viewModel.state.first { it.pendingImportCount == null }.pendingImportCount)
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `malformed import reports error without writing`() = runTest {
-        val repository = FakeWorkEntryRepository(emptyList())
-        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-
-        viewModel.importBackup(ByteArrayInputStream("garbage".toByteArray()))
-        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BACKUP_IMPORT), viewModel.operationEvents.first())
-        assertEquals(null, viewModel.state.value.pendingImportCount)
-        assertEquals(0, repository.replaceAllCalls)
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `cancel import clears pending without writing`() = runTest {
-        val repository = FakeWorkEntryRepository(emptyList())
-        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-        val payload = BackupCodec.encode(listOf(WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)), UserPreferences())
-
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
-        viewModel.state.first { it.pendingImportCount != null }
-        viewModel.cancelImport()
-        assertEquals(null, viewModel.state.first { it.pendingImportCount == null }.pendingImportCount)
-        assertEquals(0, repository.replaceAllCalls)
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `failed replaceAll keeps pending import for retry and reports error`() = runTest {
-        val repository = FakeWorkEntryRepository(emptyList()).apply { replaceAllError = IllegalStateException("db") }
-        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-        val backupEntries = listOf(WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000))
-        val payload = BackupCodec.encode(backupEntries, UserPreferences())
-
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
-        viewModel.state.first { it.pendingImportCount != null }
-        viewModel.confirmImport()
-        assertEquals(CalendarOperationEvent.Error(CalendarOperationError.BACKUP_IMPORT), viewModel.operationEvents.first())
-
-        assertEquals(backupEntries.size, viewModel.state.value.pendingImportCount)
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `import with zero default rate disables future auto adoption`() = runTest {
-        val repository = FakeWorkEntryRepository(emptyList())
-        val preferences = FakeUserPreferencesRepository()
-        val viewModel = CalendarViewModel(repository, preferences)
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-        val imported = WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)
-        val payload = BackupCodec.encode(listOf(imported), UserPreferences())
-
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
-        viewModel.state.first { it.pendingImportCount != null }
-        viewModel.confirmImport()
-        assertEquals(CalendarOperationEvent.Success.BACKUP_IMPORTED, viewModel.operationEvents.first())
-        assertEquals(0L, preferences.preferences.first().defaultHourlyRateMicros)
-        assertTrue(preferences.initialized)
-
-        val later = imported.copy(date = LocalDate.of(2026, 7, 2), hourlyRateMicros = 370_000_000L)
-        viewModel.saveEntry(later)
-        repository.observeDateRange(LocalDate.MIN, LocalDate.MAX).first { it.size == 2 }
-        assertEquals(0L, preferences.preferences.first().defaultHourlyRateMicros)
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `preference failure after replaceAll restores old entries`() = runTest {
-        val oldEntry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
-        val importedEntry = WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)
-        val repository = FakeWorkEntryRepository(listOf(oldEntry))
-        val preferences = FakeUserPreferencesRepository().apply {
-            updateFailuresRemaining = 1
-        }
-        val viewModel = CalendarViewModel(repository, preferences)
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-        val payload = BackupCodec.encode(listOf(importedEntry), UserPreferences())
-
-        viewModel.importBackup(ByteArrayInputStream(payload.toByteArray()))
-        viewModel.state.first { it.pendingImportCount != null }
-        viewModel.confirmImport()
-        assertEquals(
-            CalendarOperationEvent.Error(CalendarOperationError.BACKUP_IMPORT),
-            viewModel.operationEvents.first(),
-        )
-
-        assertEquals(listOf(oldEntry), repository.entries.value)
-        assertEquals(1, viewModel.state.value.pendingImportCount)
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `cancellation after replaceAll restores old state and stays cancellation`() = runTest {
-        val oldEntry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
-        val importedEntry = WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)
-        val repository = FakeWorkEntryRepository(listOf(oldEntry))
-        val preferences = FakeUserPreferencesRepository().apply {
-            cancelUpdatesRemaining = 1
-        }
-        val viewModel = CalendarViewModel(repository, preferences)
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-
-        viewModel.importBackup(
-            ByteArrayInputStream(BackupCodec.encode(listOf(importedEntry), UserPreferences()).toByteArray()),
-        )
-        viewModel.state.first { it.pendingImportCount != null }
-        viewModel.confirmImport()
-        assertEquals(
-            Unit,
-            withTimeoutOrNull(1_000) {
-                while (repository.entries.value != listOf(oldEntry) || preferences.updates.isEmpty()) {
-                    kotlinx.coroutines.yield()
-                }
-            },
-        )
-
-        assertEquals(listOf(oldEntry), repository.entries.value)
-        assertEquals(UserPreferences(), preferences.preferences.first())
-        assertFalse(preferences.initialized)
-        assertEquals(1, viewModel.state.value.pendingImportCount)
-        assertEquals(null, viewModel.state.value.operationError)
-        assertEquals(null, withTimeoutOrNull(50) { viewModel.operationEvents.first() })
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `cancellation during import rollback reports rollback error`() = runTest {
-        val oldEntry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
-        val repository = FakeWorkEntryRepository(listOf(oldEntry))
-        val preferences = FakeUserPreferencesRepository().apply {
-            cancelUpdatesRemaining = 2
-        }
-        val viewModel = CalendarViewModel(repository, preferences)
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-
-        viewModel.importBackup(
-            ByteArrayInputStream(
-                BackupCodec.encode(
-                    listOf(WorkEntry(LocalDate.of(2026, 7, 1), 240, 8_000_000)),
-                    UserPreferences(),
-                ).toByteArray(),
-            ),
-        )
-        viewModel.state.first { it.pendingImportCount != null }
-        viewModel.confirmImport()
-
-        assertEquals(
-            CalendarOperationEvent.Error(CalendarOperationError.BACKUP_IMPORT_ROLLBACK),
-            viewModel.operationEvents.first(),
-        )
-        assertEquals(1, viewModel.state.value.pendingImportCount)
-        stateJob.cancel()
-    }
-
-    @Test
     fun `deleting an existing entry stores exact entry and undo restores it`() = runTest {
         val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000, note = "original")
         val repository = FakeWorkEntryRepository(listOf(entry))
@@ -308,7 +77,7 @@ class CalendarViewModelTest {
     }
 
     @Test
-    fun `export does not invalidate a pending delete undo`() = runTest {
+    fun `external data replacement invalidates pending undo`() = runTest {
         val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
         val repository = FakeWorkEntryRepository(listOf(entry))
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
@@ -317,13 +86,12 @@ class CalendarViewModelTest {
 
         viewModel.deleteEntry(entry.date)
         assertEquals(CalendarOperationEvent.Success.ENTRY_DELETED, viewModel.operationEvents.first())
-        viewModel.exportBackup(ByteArrayOutputStream())
-        assertEquals(CalendarOperationEvent.Success.BACKUP_EXPORTED, viewModel.operationEvents.first())
         assertTrue(viewModel.state.first { it.canUndo }.canUndo)
 
+        viewModel.prepareForExternalDataReplacement()
+        assertFalse(viewModel.state.first { !it.canUndo }.canUndo)
         viewModel.undoLastOperation()
-        assertEquals(CalendarOperationEvent.Success.OPERATION_UNDONE, viewModel.operationEvents.first())
-        assertEquals(listOf(entry), repository.entries.value)
+        assertEquals(null, withTimeoutOrNull(50) { viewModel.operationEvents.first() })
         stateJob.cancel()
     }
 
@@ -472,7 +240,6 @@ class CalendarViewModelTest {
 
         viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 10), 720, 370_000_000L))
 
-        // viewModelScope does not run on the test scheduler, so await the outcome.
         assertEquals(
             UserPreferences(370_000_000L, ThemeMode.SYSTEM),
             preferencesRepository.preferences.first { it.defaultHourlyRateMicros > 0L },
@@ -508,16 +275,18 @@ class CalendarViewModelTest {
     fun `saving an entry keeps an existing default rate untouched`() = runTest {
         val repository = FakeWorkEntryRepository(emptyList())
         val preferencesRepository = FakeUserPreferencesRepository()
-        preferencesRepository.update(defaultHourlyRateMicros = 300_000_000L, themeMode = ThemeMode.DARK, defaultRateInitialized = true)
+        preferencesRepository.update(
+            defaultHourlyRateMicros = 300_000_000L,
+            themeMode = ThemeMode.DARK,
+            defaultRateInitialized = true,
+        )
         val viewModel = CalendarViewModel(repository, preferencesRepository)
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
 
         viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 10), 720, 370_000_000L))
-        // Wait for the entry itself; the rate guard runs right after it in the same job.
         repository.observeMonth(YearMonth.now()).first { it.isNotEmpty() }
 
-        // Only the setup update exists; the entry's different rate must not replace it.
         assertEquals(
             listOf(UserPreferences(300_000_000L, ThemeMode.DARK)),
             preferencesRepository.updates,
@@ -577,7 +346,10 @@ class CalendarViewModelTest {
         viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 11), 60, 420_000_000L))
 
         repository.observeMonth(YearMonth.now()).first { it.size == 2 }
-        assertEquals(370_000_000L, preferences.preferences.first { it.defaultHourlyRateMicros > 0L }.defaultHourlyRateMicros)
+        assertEquals(
+            370_000_000L,
+            preferences.preferences.first { it.defaultHourlyRateMicros > 0L }.defaultHourlyRateMicros,
+        )
         stateJob.cancel()
     }
 
@@ -627,7 +399,10 @@ class CalendarViewModelTest {
         assertEquals(CalendarOperationEvent.Success.RATE_UPDATED, viewModel.operationEvents.first())
         viewModel.undoLastOperation()
         assertEquals(CalendarOperationEvent.Error(CalendarOperationError.UNDO), viewModel.operationEvents.first())
-        assertEquals(CalendarOperationError.UNDO, viewModel.state.first { it.operationError == CalendarOperationError.UNDO }.operationError)
+        assertEquals(
+            CalendarOperationError.UNDO,
+            viewModel.state.first { it.operationError == CalendarOperationError.UNDO }.operationError,
+        )
         assertEquals(null, viewModel.state.value.selectedDate)
         stateJob.cancel()
     }
@@ -737,12 +512,12 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
         list.filter { it.date in startDate..endDate }.sortedBy(WorkEntry::date)
     }
 
-    fun replaceEntries(updated: List<WorkEntry>) { entries.value = updated }
-    var getAllError: Exception? = null
-    override suspend fun getAll(): List<WorkEntry> {
-        getAllError?.let { throw it }
-        return entries.value.sortedBy(WorkEntry::date)
+    fun replaceEntries(updated: List<WorkEntry>) {
+        entries.value = updated
     }
+
+    override suspend fun getAll(): List<WorkEntry> = entries.value.sortedBy(WorkEntry::date)
+
     override suspend fun save(entry: WorkEntry) {
         saveCalls++
         if (saveCalls == 1) {
@@ -752,10 +527,12 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
         savedEntries += entry
         entries.value = entries.value.filterNot { it.date == entry.date } + entry
     }
+
     override suspend fun delete(date: LocalDate) {
         deleteError?.let { throw it }
         entries.value = entries.value.filterNot { it.date == date }
     }
+
     override suspend fun restore(entries: List<WorkEntry>) {
         restoreError?.let { throw it }
         restoreStarted?.complete(Unit)
@@ -763,13 +540,11 @@ private class FakeWorkEntryRepository(initialEntries: List<WorkEntry>) : WorkEnt
         restoredEntries = entries
         entries.forEach { entry -> save(entry) }
     }
-    var replaceAllCalls = 0
-    var replaceAllError: Exception? = null
+
     override suspend fun replaceAll(entries: List<WorkEntry>) {
-        replaceAllCalls++
-        replaceAllError?.let { throw it }
         this.entries.value = entries
     }
+
     override suspend fun updateHourlyRate(
         startDate: LocalDate,
         endDate: LocalDate,
@@ -793,24 +568,13 @@ private class FakeUserPreferencesRepository : UserPreferencesRepository {
         get() = flowOf(initialized)
     val updates = mutableListOf<UserPreferences>()
     var initialized = false
-    var updateError: Exception? = null
-    var updateFailuresRemaining = 0
-    var cancelUpdatesRemaining = 0
     var adoptionError: Exception? = null
+
     override suspend fun update(
         defaultHourlyRateMicros: Long,
         themeMode: ThemeMode,
         defaultRateInitialized: Boolean,
     ) {
-        updateError?.let { throw it }
-        if (cancelUpdatesRemaining > 0) {
-            cancelUpdatesRemaining--
-            throw kotlinx.coroutines.CancellationException("cancelled")
-        }
-        if (updateFailuresRemaining > 0) {
-            updateFailuresRemaining--
-            throw IllegalStateException("datastore")
-        }
         val value = UserPreferences(defaultHourlyRateMicros, themeMode)
         updates += value
         initialized = defaultRateInitialized
