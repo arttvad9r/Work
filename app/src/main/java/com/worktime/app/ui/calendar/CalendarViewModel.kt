@@ -12,12 +12,9 @@ import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
-import com.worktime.app.ui.yearsummary.YearSummary
-import com.worktime.app.ui.yearsummary.buildYearSummary
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDate
-import java.time.Year
 import java.time.YearMonth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -31,9 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -51,8 +46,6 @@ class CalendarViewModel(
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
     private val changeRateSheetOpen = MutableStateFlow(false)
     private val changeRateInitialRange = MutableStateFlow<ClosedRange<LocalDate>?>(null)
-    private val yearSummaryOpen = MutableStateFlow(false)
-    private val yearSummaryYear = MutableStateFlow(Year.now().value)
     private val operationError = MutableStateFlow<CalendarOperationError?>(null)
     private val undoSnapshot = MutableStateFlow<UndoSnapshot?>(null)
     private val pendingImport = MutableStateFlow<BackupData?>(null)
@@ -108,20 +101,6 @@ class CalendarViewModel(
         )
     }
 
-    private val yearSummaryData = combine(yearSummaryOpen, yearSummaryYear) { open, year ->
-        if (open) year else null
-    }.flatMapLatest { year ->
-        when (year) {
-            null -> flowOf(YearSummaryUi(isOpen = false, summary = null))
-            else -> workEntryRepository.observeDateRange(
-                LocalDate.of(year, 1, 1),
-                LocalDate.of(year, 12, 31),
-            )
-                .map { entries -> YearSummaryUi(isOpen = true, summary = buildYearSummary(year, entries)) }
-                .onStart { emit(YearSummaryUi(isOpen = true, summary = null)) }
-        }
-    }
-
     private data class ChangeRateUi(
         val open: Boolean,
         val initialRange: ClosedRange<LocalDate>?,
@@ -136,15 +115,12 @@ class CalendarViewModel(
         changeRateUi,
         undoSnapshot,
         pendingImport,
-        yearSummaryData,
-    ) { changeRate, snapshot, import, yearUi ->
+    ) { changeRate, snapshot, import ->
         OverlayState(
             isChangeRateSheetOpen = changeRate.open,
             changeRateInitialRange = changeRate.initialRange,
             canUndo = snapshot != null,
             pendingImportCount = import?.entries?.size,
-            isYearSummaryOpen = yearUi.isOpen,
-            yearSummary = yearUi.summary,
         )
     }
 
@@ -153,8 +129,6 @@ class CalendarViewModel(
         val changeRateInitialRange: ClosedRange<LocalDate>?,
         val canUndo: Boolean,
         val pendingImportCount: Int?,
-        val isYearSummaryOpen: Boolean,
-        val yearSummary: YearSummary?,
     )
 
     val state: StateFlow<CalendarUiState> = combine(
@@ -166,8 +140,6 @@ class CalendarViewModel(
             changeRateInitialRange = overlay.changeRateInitialRange,
             canUndo = overlay.canUndo,
             pendingImportCount = overlay.pendingImportCount,
-            isYearSummaryOpen = overlay.isYearSummaryOpen,
-            yearSummary = overlay.yearSummary,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -203,22 +175,6 @@ class CalendarViewModel(
         changeRateSheetOpen.value = false
         changeRateInitialRange.value = null
     }
-
-    fun openYearSummary() {
-        operationError.value = null
-        selectedDate.value = null
-        yearSummaryYear.value = visibleMonth.value.year
-        yearSummaryOpen.value = true
-    }
-
-    fun dismissYearSummary() {
-        operationError.value = null
-        yearSummaryOpen.value = false
-    }
-
-    fun showPreviousYear() = yearSummaryYear.update { it - 1 }
-
-    fun showNextYear() = yearSummaryYear.update { it + 1 }
 
     fun saveEntry(entry: WorkEntry) {
         runOperation(CalendarOperationError.SAVE_ENTRY, body = {
@@ -490,8 +446,3 @@ private fun InputStream.readBounded(maxBytes: Int): ByteArray {
         output.write(buffer, 0, read)
     }
 }
-
-private data class YearSummaryUi(
-    val isOpen: Boolean,
-    val summary: YearSummary?,
-)

@@ -4,7 +4,6 @@ import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.MonthSummary
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
-import com.worktime.app.ui.yearsummary.YearSummary
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -22,8 +21,6 @@ data class CalendarUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isChangeRateSheetOpen: Boolean = false,
     val changeRateInitialRange: ClosedRange<LocalDate>? = null,
-    val isYearSummaryOpen: Boolean = false,
-    val yearSummary: YearSummary? = null,
     val isReady: Boolean = false,
     val operationError: CalendarOperationError? = null,
     val canUndo: Boolean = false,

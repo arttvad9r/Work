@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import java.time.Month
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -60,35 +59,6 @@ class CalendarViewModelTest {
             repository.entries.value
         }
         assertEquals(listOf(second), finalState)
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `year summary keeps a zero net bonus and penalty month as populated`() {
-        val entry = WorkEntry(
-            date = LocalDate.of(2026, 8, 10),
-            workedMinutes = 0,
-            hourlyRateMicros = 0,
-            bonusMicros = 100_000_000,
-            penaltyMicros = 100_000_000,
-        )
-
-        val summary = buildYearSummary(2026, listOf(entry))
-
-        assertEquals(1, summary.monthsWithData)
-        assertTrue(summary.monthHasData[7])
-    }
-
-    @Test
-    fun `year summary opens on the visible month year`() = runTest {
-        val viewModel = CalendarViewModel(FakeWorkEntryRepository(emptyList()), FakeUserPreferencesRepository())
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-
-        viewModel.showMonth(YearMonth.of(2024, 3))
-        viewModel.openYearSummary()
-
-        assertEquals(2024, viewModel.state.first { it.yearSummary?.year == 2024 }.yearSummary?.year)
         stateJob.cancel()
     }
 
@@ -625,40 +595,6 @@ class CalendarViewModelTest {
             UserPreferences(123_000_000L, ThemeMode.DARK),
             preferences.preferences.first { it == UserPreferences(123_000_000L, ThemeMode.DARK) },
         )
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `year summary aggregates totals and keeps all twelve month slots`() = runTest {
-        val repository = FakeWorkEntryRepository(
-            listOf(
-                WorkEntry(LocalDate.of(2026, 1, 10), 480, 350_000_000L),
-                WorkEntry(LocalDate.of(2026, 2, 5), 840, 370_000_000L, bonusMicros = 1_500_000_000L),
-                WorkEntry(LocalDate.of(2025, 6, 20), 600, 300_000_000L),
-            ),
-        )
-        val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-
-        viewModel.openYearSummary()
-        val summary = viewModel.state.first { it.isYearSummaryOpen && it.yearSummary != null }.yearSummary!!
-
-        assertEquals(2026, summary.year)
-        assertEquals(12, summary.months.size)
-        // Only the two 2026 entries count; the 2025 one stays out.
-        assertEquals(2, summary.total.shiftCount)
-        assertEquals(1320, summary.total.workedMinutes)
-        assertEquals(
-            480 * 350_000_000L / 60 + 840 * 370_000_000L / 60 + 1_500_000_000L,
-            summary.total.totalPayMicros,
-        )
-        assertEquals(1, summary.months[Month.JANUARY.value - 1].shiftCount)
-        assertEquals(0, summary.months[Month.MARCH.value - 1].shiftCount)
-        assertEquals(2, summary.monthsWithData)
-
-        viewModel.dismissYearSummary()
-        assertFalse(viewModel.state.first { !it.isYearSummaryOpen }.isYearSummaryOpen)
         stateJob.cancel()
     }
 
