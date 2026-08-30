@@ -4,9 +4,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.metadata
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
@@ -267,7 +273,23 @@ fun WorkTimeApp(
                             },
                         )
                     }
-                    entry<AppDestination.YearSummary> { destination ->
+                    entry<AppDestination.YearSummary>(
+                        metadata = metadata {
+                            put(NavDisplay.TransitionKey) {
+                                yearSummaryEnterTransition() togetherWith
+                                    ExitTransition.KeepUntilTransitionsFinished
+                            }
+                            put(NavDisplay.PopTransitionKey) {
+                                EnterTransition.None togetherWith yearSummaryExitTransition()
+                            }
+                            put(
+                                NavDisplay.PredictivePopTransitionKey,
+                                { _: Int ->
+                                    EnterTransition.None togetherWith yearSummaryExitTransition()
+                                },
+                            )
+                        },
+                    ) { destination ->
                         val yearSummaryViewModel: YearSummaryViewModel = viewModel(
                             factory = YearSummaryViewModel.factory(
                                 workEntryRepository = container.workEntryRepository,
@@ -276,10 +298,10 @@ fun WorkTimeApp(
                         )
                         val yearSummaryState by yearSummaryViewModel.state.collectAsStateWithLifecycle()
                         YearSummaryScreen(
-                            summary = yearSummaryState.summary,
+                            selectedYear = yearSummaryState.selectedYear,
+                            summaries = yearSummaryState.summaries,
                             onDismiss = ::dismissCurrentDestination,
-                            onPreviousYear = yearSummaryViewModel::showPreviousYear,
-                            onNextYear = yearSummaryViewModel::showNextYear,
+                            onSelectYear = yearSummaryViewModel::showYear,
                         )
                     }
                 },
@@ -335,6 +357,34 @@ fun WorkTimeApp(
         }
     }
 }
+
+private fun yearSummaryEnterTransition(): EnterTransition =
+    slideInVertically(
+        animationSpec = spring(
+            dampingRatio = AppMotion.NoBounceDampingRatio,
+            stiffness = AppMotion.NavigationStiffness,
+        ),
+        initialOffsetY = { height -> height / 8 },
+    ) + fadeIn(
+        animationSpec = tween(
+            durationMillis = AppMotion.FastMillis,
+            easing = AppMotion.StandardEasing,
+        ),
+    )
+
+private fun yearSummaryExitTransition(): ExitTransition =
+    slideOutVertically(
+        animationSpec = spring(
+            dampingRatio = AppMotion.NoBounceDampingRatio,
+            stiffness = AppMotion.NavigationStiffness,
+        ),
+        targetOffsetY = { height -> height / 8 },
+    ) + fadeOut(
+        animationSpec = tween(
+            durationMillis = AppMotion.FastMillis,
+            easing = AppMotion.StandardEasing,
+        ),
+    )
 
 internal fun fullScreenNavigationDirection(layoutDirection: LayoutDirection): Int =
     if (layoutDirection == LayoutDirection.Ltr) 1 else -1
