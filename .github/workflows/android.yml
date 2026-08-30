@@ -27,10 +27,11 @@ jobs:
         run: ./gradlew --version
       - name: Repository static audit
         run: python3 scripts/static_audit.py
-      - name: Unit tests, lint and Android target compilation
+      - name: Unit tests, screenshot validation, lint and Android target compilation
         run: |
           ./gradlew --no-daemon \
             :app:testDebugUnitTest \
+            :app:validateDebugScreenshotTest \
             :app:lintDebug \
             :app:lintRelease \
             :app:assembleDebug \
@@ -47,6 +48,7 @@ jobs:
           name: worktime-verification-reports
           path: |
             app/build/reports/tests/testDebugUnitTest/
+            app/build/reports/screenshotTest/preview/debug/
             app/build/reports/lint-results-debug.html
             app/build/reports/lint-results-debug.xml
             app/build/reports/lint-results-release.html

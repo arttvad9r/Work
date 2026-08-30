@@ -10,6 +10,7 @@ fi
 
 ./gradlew --no-daemon \
   :app:testDebugUnitTest \
+  :app:validateDebugScreenshotTest \
   :app:lintDebug \
   :app:lintRelease \
   :app:assembleDebug \

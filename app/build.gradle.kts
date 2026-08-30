@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
+    id("com.android.compose.screenshot")
 }
 
 android {
@@ -24,6 +25,8 @@ android {
     buildFeatures {
         compose = true
     }
+
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
 
     val releaseStoreFile = providers.gradleProperty("releaseStoreFile").orNull
         ?: System.getenv("RELEASE_STORE_FILE")
@@ -106,6 +109,7 @@ dependencies {
 
     implementation(composeBom)
     androidTestImplementation(composeBom)
+    screenshotTestImplementation(composeBom)
 
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.viewmodel.compose)
@@ -134,6 +138,9 @@ dependencies {
 
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
+
+    screenshotTestImplementation(libs.compose.screenshot.validation.api)
+    screenshotTestImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
