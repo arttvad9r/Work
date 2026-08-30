@@ -33,19 +33,7 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
 
       - name: Generate Baseline Profile
-        run: |
-          ./gradlew --no-daemon \
-            :app:generateBaselineProfile \
-            -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile \
-            -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect \
-            --stacktrace
-
-      - name: Verify generated profile
-        run: |
-          profile="$(find app/src -type f -path '*/generated/baselineProfiles/baseline-prof.txt' -size +0c -print -quit)"
-          test -n "$profile"
-          echo "Generated profile: $profile"
-          wc -l "$profile"
+        run: ./scripts/generate_baseline_profile.sh
 
       - name: Upload generated profile
         if: success()
