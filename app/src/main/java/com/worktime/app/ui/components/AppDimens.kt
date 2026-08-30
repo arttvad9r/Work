@@ -23,8 +23,8 @@ object AppDimens {
     /** Rows carrying a secondary explanatory line get a little more breathing room. */
     val rowWithSubtitleMinHeight: Dp = 56.dp
 
-    /** Shared compact control height for segmented controls and inline editors. */
-    val compactControlHeight: Dp = 44.dp
+    /** Minimum interactive height for segmented controls and compact inline editors. */
+    val compactControlHeight: Dp = 48.dp
 
     /** Compact inline numeric editor slot (fits inside a [rowMinHeight] row). */
     val compactFieldWidth: Dp = 120.dp
