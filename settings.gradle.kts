@@ -16,5 +16,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "WorkTime"
 include(":app")
+include(":benchmark-shared")
 include(":macrobenchmark")
 include(":baselineprofile")

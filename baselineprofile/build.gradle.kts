@@ -40,6 +40,7 @@ baselineProfile {
 }
 
 dependencies {
+    implementation(project(":benchmark-shared"))
     implementation(libs.androidx.test.ext.junit)
     implementation(libs.androidx.test.runner)
     implementation(libs.androidx.benchmark.macro.junit4.baselineprofile)
