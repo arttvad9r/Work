@@ -3,7 +3,6 @@ package com.worktime.app.ui.calendar
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.MonthSummary
 import com.worktime.app.domain.model.WorkEntry
-import com.worktime.app.domain.preferences.ThemeMode
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -17,8 +16,6 @@ data class CalendarUiState(
      */
     val monthEntries: Map<YearMonth, Map<LocalDate, WorkEntry>> = emptyMap(),
     val selectedDate: LocalDate? = null,
-    val defaultHourlyRateMicros: Long = 0L,
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val isChangeRateSheetOpen: Boolean = false,
     val changeRateInitialRange: ClosedRange<LocalDate>? = null,
     val isReady: Boolean = false,
