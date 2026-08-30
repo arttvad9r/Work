@@ -35,9 +35,10 @@ android {
                 create("pixel6Api34") {
                     device = "Pixel 6"
                     apiLevel = 34
-                    systemImageSource = "aosp-atd"
-                    // Keep the current ATD image ABI explicit; AGP 10 changes the implicit
-                    // default to arm64-v8a, which this x86_64 image cannot translate.
+                    // Use the full AOSP image for performance traces. The ATD image can omit
+                    // FrameTimeline expected/actual slices required by FrameTimingMetric on 31+.
+                    systemImageSource = "aosp"
+                    // Keep the current x86_64 tested-APK path explicit across AGP upgrades.
                     testedAbi = "x86_64"
                 }
             }
