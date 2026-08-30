@@ -85,17 +85,14 @@ class CalendarViewModel(
 
     private val baseState = combine(
         visibleMonthEntries,
-        userPreferencesRepository.preferences,
         selectedDate,
         operationError,
-    ) { monthUi, preferences, selected, error ->
+    ) { monthUi, selected, error ->
         CalendarUiState(
             visibleMonth = monthUi.requestedMonth,
             entries = monthUi.entries,
             monthEntries = monthUi.entriesByMonth,
             selectedDate = selected,
-            defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
-            themeMode = preferences.themeMode,
             isReady = true,
             operationError = error,
         )
