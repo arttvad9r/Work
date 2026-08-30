@@ -2,9 +2,11 @@ package com.worktime.app
 
 import android.content.Context
 import androidx.room.Room
+import com.worktime.app.data.backup.DefaultBackupDocumentSerializer
 import com.worktime.app.data.db.WorkTimeDatabase
 import com.worktime.app.data.preferences.DataStoreUserPreferencesRepository
 import com.worktime.app.data.repository.RoomWorkEntryRepository
+import com.worktime.app.domain.backup.BackupDocumentSerializer
 import com.worktime.app.domain.operation.DataMutationCoordinator
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
@@ -20,4 +22,5 @@ class AppContainer(context: Context) {
     val workEntryRepository: WorkEntryRepository = RoomWorkEntryRepository(database.workEntryDao())
     val userPreferencesRepository: UserPreferencesRepository =
         DataStoreUserPreferencesRepository(context.applicationContext)
+    val backupDocumentSerializer: BackupDocumentSerializer = DefaultBackupDocumentSerializer()
 }
