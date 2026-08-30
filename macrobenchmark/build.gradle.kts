@@ -26,6 +26,18 @@ android {
         }
     }
 
+    testOptions {
+        managedDevices {
+            localDevices {
+                create("pixel6Api34") {
+                    device = "Pixel 6"
+                    apiLevel = 34
+                    systemImageSource = "aosp-atd"
+                }
+            }
+        }
+    }
+
     // Macrobenchmark must run outside the target app process so it can stop, compile and
     // relaunch WorkTime between iterations.
     experimentalProperties["android.experimental.self-instrumenting"] = true
