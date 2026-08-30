@@ -53,6 +53,7 @@ import com.worktime.app.ui.calendar.CalendarViewModel
 import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.dayeditor.DayEditorSheet
 import com.worktime.app.ui.navigation.AppDestination
+import com.worktime.app.ui.preferences.PreferencesViewModel
 import com.worktime.app.ui.settings.ChangeRateSheet
 import com.worktime.app.ui.settings.SettingsScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
@@ -71,7 +72,11 @@ fun WorkTimeApp(
             userPreferencesRepository = container.userPreferencesRepository,
         ),
     )
+    val preferencesViewModel: PreferencesViewModel = viewModel(
+        factory = PreferencesViewModel.factory(container.userPreferencesRepository),
+    )
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val preferencesState by preferencesViewModel.state.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(AppDestination.Calendar)
     val snackbarHostState = remember { SnackbarHostState() }
     val haptics = LocalHapticFeedback.current
@@ -180,7 +185,7 @@ fun WorkTimeApp(
     }
     val fullScreenDirection = fullScreenNavigationDirection(LocalLayoutDirection.current)
 
-    WorkTimeTheme(themeMode = state.themeMode) {
+    WorkTimeTheme(themeMode = preferencesState.themeMode) {
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
                 backStack = backStack,
@@ -244,21 +249,23 @@ fun WorkTimeApp(
                         )
                     }
                     entry<AppDestination.Settings> {
-                        val operationErrorMessage = when (state.operationError) {
-                            CalendarOperationError.SAVE_SETTINGS -> stringResource(R.string.save_settings_failed)
-                            CalendarOperationError.BACKUP_EXPORT -> stringResource(R.string.backup_export_failed)
-                            CalendarOperationError.BACKUP_IMPORT -> stringResource(R.string.backup_import_failed)
-                            CalendarOperationError.BACKUP_IMPORT_ROLLBACK ->
+                        val operationErrorMessage = when {
+                            preferencesState.saveFailed -> stringResource(R.string.save_settings_failed)
+                            state.operationError == CalendarOperationError.BACKUP_EXPORT ->
+                                stringResource(R.string.backup_export_failed)
+                            state.operationError == CalendarOperationError.BACKUP_IMPORT ->
+                                stringResource(R.string.backup_import_failed)
+                            state.operationError == CalendarOperationError.BACKUP_IMPORT_ROLLBACK ->
                                 stringResource(R.string.backup_import_rollback_failed)
                             else -> null
                         }
                         SettingsScreen(
-                            defaultHourlyRateMicros = state.defaultHourlyRateMicros,
-                            themeMode = state.themeMode,
+                            defaultHourlyRateMicros = preferencesState.defaultHourlyRateMicros,
+                            themeMode = preferencesState.themeMode,
                             operationErrorMessage = operationErrorMessage,
                             onDismiss = ::dismissCurrentDestination,
-                            onThemeChange = viewModel::updateThemeMode,
-                            onRateChange = viewModel::updateDefaultRate,
+                            onThemeChange = preferencesViewModel::updateThemeMode,
+                            onRateChange = preferencesViewModel::updateDefaultRate,
                             onOpenChangeRate = { viewModel.openChangeRate(null) },
                             onExportData = {
                                 exportLauncher.launch("worktime-backup-" + LocalDate.now() + ".json")
@@ -318,7 +325,7 @@ fun WorkTimeApp(
                 DayEditorSheet(
                     date = date,
                     existing = state.entries[date],
-                    defaultHourlyRateMicros = state.defaultHourlyRateMicros,
+                    defaultHourlyRateMicros = preferencesState.defaultHourlyRateMicros,
                     operationErrorMessage = operationErrorMessage,
                     onDismiss = viewModel::dismissEditor,
                     onSave = viewModel::saveEntry,
