@@ -46,10 +46,10 @@ class LargeFontUiTest {
             CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
                 Box(Modifier.size(240.dp, 800.dp)) {
                     YearSummaryScreen(
-                        summary = summary(),
+                        selectedYear = 2026,
+                        summaries = mapOf(2026 to summary()),
                         onDismiss = {},
-                        onPreviousYear = {},
-                        onNextYear = {},
+                        onSelectYear = {},
                     )
                 }
             }
@@ -70,10 +70,10 @@ class LargeFontUiTest {
         composeRule.setContent {
             Box(Modifier.size(320.dp, 800.dp)) {
                 YearSummaryScreen(
-                    summary = emptySummary(),
+                    selectedYear = 2026,
+                    summaries = mapOf(2026 to emptySummary()),
                     onDismiss = {},
-                    onPreviousYear = {},
-                    onNextYear = {},
+                    onSelectYear = {},
                 )
             }
         }
