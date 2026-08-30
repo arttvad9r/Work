@@ -1,6 +1,5 @@
 package com.worktime.app.ui
 
-import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
@@ -11,21 +10,20 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.ui.unit.LayoutDirection
 import com.worktime.app.ui.components.AppMotion
 
-internal fun fullScreenForwardTransition(direction: Int): ContentTransform =
+internal fun fullScreenEnterTransition(direction: Int): EnterTransition =
     slideInHorizontally(
         animationSpec = spring(
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
         ),
         initialOffsetX = { width -> direction * width / 5 },
-    ) togetherWith ExitTransition.KeepUntilTransitionsFinished
+    )
 
-internal fun fullScreenPopTransition(direction: Int): ContentTransform =
-    EnterTransition.None togetherWith slideOutHorizontally(
+internal fun fullScreenExitTransition(direction: Int): ExitTransition =
+    slideOutHorizontally(
         animationSpec = spring(
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
@@ -33,13 +31,7 @@ internal fun fullScreenPopTransition(direction: Int): ContentTransform =
         targetOffsetX = { width -> direction * width },
     )
 
-internal fun yearSummaryForwardTransition(): ContentTransform =
-    yearSummaryEnterTransition() togetherWith ExitTransition.KeepUntilTransitionsFinished
-
-internal fun yearSummaryPopTransition(): ContentTransform =
-    EnterTransition.None togetherWith yearSummaryExitTransition()
-
-private fun yearSummaryEnterTransition(): EnterTransition =
+internal fun yearSummaryEnterTransition(): EnterTransition =
     slideInVertically(
         animationSpec = spring(
             dampingRatio = AppMotion.NoBounceDampingRatio,
@@ -53,7 +45,7 @@ private fun yearSummaryEnterTransition(): EnterTransition =
         ),
     )
 
-private fun yearSummaryExitTransition(): ExitTransition =
+internal fun yearSummaryExitTransition(): ExitTransition =
     slideOutVertically(
         animationSpec = spring(
             dampingRatio = AppMotion.NoBounceDampingRatio,
