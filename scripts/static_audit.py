@@ -192,6 +192,23 @@ for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
             + ", ".join(missing_plural_keys)
         )
 
+layer_import_guards = {
+    "ui": ("com.worktime.app.data",),
+    "domain": ("com.worktime.app.data", "com.worktime.app.ui"),
+    "data": ("com.worktime.app.ui",),
+}
+import_pattern = re.compile(r"^\s*import\s+([A-Za-z0-9_.]+)", re.MULTILINE)
+for layer, forbidden_prefixes in layer_import_guards.items():
+    layer_root = APP / f"src/main/java/com/worktime/app/{layer}"
+    for kotlin_file in layer_root.rglob("*.kt"):
+        imports = import_pattern.findall(kotlin_file.read_text(encoding="utf-8"))
+        for imported in imports:
+            if any(imported == prefix or imported.startswith(prefix + ".") for prefix in forbidden_prefixes):
+                fail(
+                    f"Forbidden production layer dependency in {kotlin_file.relative_to(ROOT)}: "
+                    f"{layer} imports {imported}"
+                )
+
 expected_domains = {
     "root",
     "file",
