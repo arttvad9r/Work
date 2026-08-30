@@ -236,8 +236,11 @@ for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
 build_file = (APP / "build.gradle.kts").read_text(encoding="utf-8")
 catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
 wrapper_file = (ROOT / "gradle/wrapper/gradle-wrapper.properties").read_text(encoding="utf-8")
-workflow_file = (ROOT / ".github/workflows/android.yml").read_text(encoding="utf-8")
+workflows_dir = ROOT / ".github/workflows"
+workflow_file = (workflows_dir / "android.yml").read_text(encoding="utf-8")
+baseline_profile_workflow_file = (workflows_dir / "baseline-profile.yml").read_text(encoding="utf-8")
 verify_script_file = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
+baseline_profile_helper_file = (ROOT / "scripts/generate_baseline_profile.sh").read_text(encoding="utf-8")
 release_builder_file = (ROOT / "scripts/build_release_candidate.sh").read_text(encoding="utf-8")
 release_script_file = (ROOT / "scripts/create_github_release.sh").read_text(encoding="utf-8")
 signer_fingerprint_path = ROOT / "release/production-signing-cert-sha256.txt"
@@ -268,6 +271,17 @@ for required_task in (
         fail(f"CI release gate is missing task: {required_task}")
     if required_task not in verify_script_file:
         fail(f"Local verification gate is missing task: {required_task}")
+if "./scripts/generate_baseline_profile.sh" not in baseline_profile_workflow_file:
+    fail("Baseline Profile workflow must delegate generation to scripts/generate_baseline_profile.sh")
+if ":app:generateBaselineProfile" in baseline_profile_workflow_file:
+    fail("Baseline Profile workflow must not duplicate the Gradle generation command inline")
+for required_token in (
+    ":app:generateBaselineProfile",
+    "androidx.benchmark.enabledRules=BaselineProfile",
+    "baseline-prof.txt",
+):
+    if required_token not in baseline_profile_helper_file:
+        fail(f"Baseline Profile helper is missing required generation control: {required_token}")
 for required_builder_token in (
     "production-signing-cert-sha256.txt",
     "WORKTIME_SIGNING_SMOKE",
@@ -289,11 +303,16 @@ for required_release_token in (
 if 'WORKTIME_SIGNING_SMOKE: "1"' not in workflow_file:
     fail("CI disposable signing job must explicitly opt into signing-smoke mode")
 action_ref_pattern = re.compile(r"^\s*(?:-\s*)?uses:\s*([^@\s]+)@([^\s#]+)", re.MULTILINE)
-for action, ref in action_ref_pattern.findall(workflow_file):
-    if action.startswith("./"):
-        continue
-    if re.fullmatch(r"[0-9a-fA-F]{40}", ref) is None:
-        fail(f"GitHub Action is not pinned to a full commit SHA: {action}@{ref}")
+for workflow_path in sorted(workflows_dir.glob("*.yml")):
+    workflow_text = workflow_path.read_text(encoding="utf-8")
+    for action, ref in action_ref_pattern.findall(workflow_text):
+        if action.startswith("./"):
+            continue
+        if re.fullmatch(r"[0-9a-fA-F]{40}", ref) is None:
+            fail(
+                "GitHub Action is not pinned to a full commit SHA in "
+                f"{workflow_path.relative_to(ROOT)}: {action}@{ref}"
+            )
 if 'testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"' not in build_file:
     fail("AndroidJUnitRunner is not configured")
 if 'androidx.test:runner' not in build_file and 'androidx.test:runner' not in catalog_file:
