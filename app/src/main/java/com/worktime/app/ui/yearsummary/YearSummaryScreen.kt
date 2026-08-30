@@ -304,6 +304,11 @@ private fun YearMetricRow(
 
 @Composable
 private fun MonthSectionHeader(compactText: Boolean) {
+    val primaryHeaderStyle = if (compactText) {
+        MaterialTheme.typography.labelSmall
+    } else {
+        MaterialTheme.typography.bodyMedium
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -314,13 +319,10 @@ private fun MonthSectionHeader(compactText: Boolean) {
         Text(
             text = stringResource(R.string.by_month),
             modifier = Modifier.weight(1f),
-            style = if (compactText) {
-                MaterialTheme.typography.bodySmall
-            } else {
-                MaterialTheme.typography.bodyMedium
-            },
+            style = primaryHeaderStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = stringResource(R.string.year_month_detail_header),
