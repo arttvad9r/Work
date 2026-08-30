@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 
 private const val YearPagerPageCount = 24_001
 private const val YearPagerAnchorPage = YearPagerPageCount / 2
+internal const val YearSummaryPagerStiffness = 950f
 
 /** Screen-local interaction state for the effectively unbounded year pager. */
 internal class YearSummaryPagerState(
@@ -88,7 +89,7 @@ internal class YearSummaryPagerState(
                 page = targetPage,
                 animationSpec = spring(
                     dampingRatio = AppMotion.NoBounceDampingRatio,
-                    stiffness = AppMotion.PagerStiffness,
+                    stiffness = YearSummaryPagerStiffness,
                 ),
             )
         }
