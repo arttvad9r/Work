@@ -29,6 +29,18 @@ manifest_path = APP / "src/main/AndroidManifest.xml"
 manifest_root = parse_xml(manifest_path)
 manifest_text = manifest_path.read_text(encoding="utf-8")
 android_name = "{http://schemas.android.com/apk/res/android}name"
+android_screen_orientation = "{http://schemas.android.com/apk/res/android}screenOrientation"
+main_activity = next(
+    (
+        node
+        for node in manifest_root.findall(".//activity")
+        if node.attrib.get(android_name) == ".MainActivity"
+    ),
+    None,
+)
+if main_activity is not None and android_screen_orientation in main_activity.attrib:
+    fail("MainActivity must not lock screen orientation; adaptive layout requires a resizable window")
+
 widget_receiver = next(
     (
         node
@@ -67,7 +79,6 @@ for expected in (
     'android:allowBackup="false"',
     'android:dataExtractionRules="@xml/data_extraction_rules"',
     'android:fullBackupContent="@xml/backup_rules"',
-    'android:screenOrientation="portrait"',
     'android:windowSoftInputMode="adjustResize"',
 ):
     if expected not in manifest_text:
