@@ -35,6 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
@@ -71,6 +73,18 @@ fun SettingsScreen(
     var privacyDataOpen by rememberSaveable { mutableStateOf(false) }
     var presentedThemeMode by remember { mutableStateOf(themeMode) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val finishRateEditing: () -> Unit = {
+        rateEditing = false
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+    }
+    val dismissSettings: () -> Unit = {
+        finishRateEditing()
+        onDismiss()
+    }
 
     // External preference changes (restore/system-driven state) remain authoritative.
     // Direct taps update both the visual selection and global palette immediately; the
@@ -107,7 +121,7 @@ fun SettingsScreen(
             ) {
                 AppTopBar(
                     title = stringResource(R.string.settings),
-                    onBack = onDismiss,
+                    onBack = dismissSettings,
                 )
                 AppSectionHeader(stringResource(R.string.section_calculation))
                 RateRow(
@@ -119,7 +133,10 @@ fun SettingsScreen(
                 )
                 AppNavigationRow(
                     label = stringResource(R.string.change_rate_for_period),
-                    onClick = onOpenChangeRate,
+                    onClick = {
+                        finishRateEditing()
+                        onOpenChangeRate()
+                    },
                 )
 
                 SectionDivider()
@@ -130,6 +147,7 @@ fun SettingsScreen(
                     selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
                     onSelect = { index ->
                         val selectedMode = ThemeMode.entries[index]
+                        finishRateEditing()
                         presentedThemeMode = selectedMode
                         if (selectedMode != themeMode) {
                             onThemeChange(selectedMode)
@@ -143,16 +161,25 @@ fun SettingsScreen(
                 AppSectionHeader(stringResource(R.string.section_data))
                 AppNavigationRow(
                     label = stringResource(R.string.export_data),
-                    onClick = { exportFormatOpen = true },
+                    onClick = {
+                        finishRateEditing()
+                        exportFormatOpen = true
+                    },
                 )
                 AppNavigationRow(
                     label = stringResource(R.string.import_data),
-                    onClick = onImportData,
+                    onClick = {
+                        finishRateEditing()
+                        onImportData()
+                    },
                 )
                 AppNavigationRow(
                     label = stringResource(R.string.privacy_and_data),
                     subtitle = stringResource(R.string.privacy_local_subtitle),
-                    onClick = { privacyDataOpen = true },
+                    onClick = {
+                        finishRateEditing()
+                        privacyDataOpen = true
+                    },
                 )
 
                 Box(modifier = Modifier.navigationBarsPadding().height(24.dp))
