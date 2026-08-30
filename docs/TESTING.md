@@ -16,7 +16,7 @@ Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest 
 ./gradlew :app:testDebugUnitTest
 ```
 
-Coverage includes work-entry invariants, salary rounding/aggregation, month grids, entity mapping, preferences, neutral/compact amount formatting, compact duration formatting, digit-to-duration input formatting and LTR/RTL full-screen navigation direction.
+Coverage includes work-entry invariants, salary rounding/aggregation, month grids, entity mapping, preferences, neutral/compact amount formatting, compact duration formatting, digit-to-duration input formatting, LTR/RTL full-screen navigation direction and the intentionally session-scoped Undo lifetime across `CalendarViewModel` recreation.
 
 ### Android build and lint
 
@@ -30,6 +30,17 @@ Coverage includes work-entry invariants, salary rounding/aggregation, month grid
 ```
 
 `./scripts/verify.sh` runs the static audit and all commands above through the repository Gradle Wrapper. `assembleRelease` exercises the optimized APK variant that is signed for GitHub distribution.
+
+Normal GitHub CI extends the compile/build gate with the release-like benchmark app, Macrobenchmark test APK and Baseline Profile generator module:
+
+```bash
+./gradlew \
+  :app:assembleBenchmark \
+  :macrobenchmark:assembleBenchmark \
+  :baselineprofile:assemble
+```
+
+These tasks verify that performance tooling remains buildable without turning hosted-emulator measurements into release thresholds.
 
 ### Signing smoke
 
@@ -46,7 +57,23 @@ CI executes the Android instrumentation suite after the build gate:
   -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
 ```
 
-The managed device is a Pixel 2 API 30 AOSP ATD image. Current coverage includes database/repository integration, smoke/UI consistency, privacy disclosure, large-font behavior and full-screen motion regressions.
+The managed device is a Pixel 2 API 30 AOSP ATD image. Current coverage includes database/repository integration, smoke/UI consistency, privacy disclosure, large-font behavior, full-screen motion regressions, persistent numeric-editor focus continuity and the monthly-summary drag activation threshold.
+
+### Performance tooling
+
+The `:macrobenchmark` module contains the cold-start Macrobenchmark foundation. The manual `Macrobenchmark Manual` GitHub Actions workflow runs it on a Pixel 6 API 34 Gradle-managed device and uploads benchmark reports/traces. Hosted-emulator timing is diagnostic evidence only; it is not a performance regression threshold and does not replace physical-device measurements.
+
+The `:baselineprofile` module is the official AndroidX Baseline Profile producer for `:app`. The manual `Generate Baseline Profile` workflow runs:
+
+```bash
+./gradlew :app:generateBaselineProfile \
+  -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile \
+  -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+```
+
+The workflow verifies that a non-empty generated `baseline-prof.txt` exists and uploads the profile plus managed-device reports. Emulator use is acceptable for profile collection because this step is not a timing comparison.
+
+A generated profile is not currently committed to `main`. Do not claim Baseline Profile startup improvement until the manual generator has been run, the generated profile has been reviewed and landed, and its effect has been compared with Macrobenchmark on a physical device. Numerical performance conclusions must come from representative physical hardware.
 
 ### Physical-device tests
 
@@ -68,10 +95,12 @@ For updates, install the candidate over the previous public APK without uninstal
 - numeric validation uses red outline only; obsolete helper-text resources stay removed.
 - adjacent-month dates cannot open the current-month editor.
 - monthly report opens by tap and drag and contains no duplicate total.
+- an upward drag below the summary threshold does not open the report; crossing the threshold activates it once.
 - long-pressing the monthly report handle does not show Material's drag-handle tooltip.
 - the report content remains measured while collapsed so sheet anchors stay stable.
 - all numeric labels (`Время`, rate, bonus, penalty) remain minimized on the outline even when empty/inactive; the duration `00:00` hint remains a separate centered placeholder.
 - the first tap on any visible numeric logical field activates/focuses the persistent editor without requiring a second tap.
+- IME Next and row-to-row switching keep focus on the same persistent numeric editor node.
 - repeated `Время -> Ставка` switching keeps Gboard continuously visible and does not move the sheet.
 - after expanding adjustments, repeated `Время -> Ставка -> Премия -> Штраф -> Время` switching uses the same persistent editor/input session and does not cause an IME hide/restart/show cycle.
 - values remain attached to their logical fields across repeated switches and survive save/reopen.
@@ -81,6 +110,7 @@ For updates, install the candidate over the previous public APK without uninstal
 - initial default-rate adoption runs once; manually clearing the rate to zero does not re-enable it.
 - sparse same-rate entries are labelled as recorded-entry groups, not continuous effective periods.
 - concurrent theme and default-rate updates preserve both independent preference values.
+- Undo is available only while the owning `CalendarViewModel` remains alive; recreating it does not restore an old Undo snapshot.
 - portrait orientation remains enforced.
 - Settings and Year Summary exits travel beyond the old partial-width target before composition removes them.
 - LTR/RTL full-screen navigation direction stays mirrored while predictive back follows the actual swipe edge.
