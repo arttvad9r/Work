@@ -12,6 +12,7 @@
 - [`DECISIONS.md`](DECISIONS.md) — product and architecture decisions.
 - [`BUILD.md`](BUILD.md) — toolchain, wrapper and CI behavior.
 - [`TESTING.md`](TESTING.md) — automated and device verification strategy.
+- [`MODERNIZATION_STATUS.md`](MODERNIZATION_STATUS.md) — final Android modernization audit and the boundary between completed repository work and pending physical release QA.
 
 ## Delivery
 
