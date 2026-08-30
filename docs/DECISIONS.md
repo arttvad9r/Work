@@ -26,6 +26,10 @@ Amounts are neutral numeric values. Currency preference, symbols and exchange-ra
 
 The default rate only initializes a new entry. Each saved entry stores its own rate so settings changes do not rewrite history.
 
+### Session-scoped Undo
+
+Undo snapshots for delete and bulk-rate operations live only in the active `CalendarViewModel`. They are intentionally not persisted to Room, DataStore or saved instance state. A process death therefore clears the available Undo action while already committed repository data remains authoritative. Undo is a short-lived convenience action, not durable user data.
+
 ### Integer micros
 
 Domain/data amounts use `Long` micros and checked arithmetic. Optional fractional digits are a presentation concern.
