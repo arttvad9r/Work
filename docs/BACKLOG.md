@@ -1,5 +1,7 @@
 # Prioritized backlog
 
+**Repository modernization is complete.** The audited application/code baseline is PR #95 (`49d5bfa71e3d49a713377548c5bcf0378796d9ca`) with green post-merge Android CI. The items below are physical release/device verification or future product work, not unfinished refactoring. See [`MODERNIZATION_STATUS.md`](MODERNIZATION_STATUS.md).
+
 ## P0 — physical release verification
 
 1. Build and install the exact `main` candidate on the primary compact phone; record device model, Android version and commit SHA.
@@ -20,8 +22,8 @@
 ## P1 — release packaging and hardening
 
 - Measure the checked-in Baseline Profile with Macrobenchmark on a representative physical device before treating it as a demonstrated performance improvement.
-- Capture final release/store screenshots; update committed screenshot goldens only after intentional visual changes have been reviewed.
-- Review signing, launcher/store assets and Play pre-launch results before public distribution.
+- Capture final release screenshots; update committed screenshot goldens only after intentional visual changes have been reviewed.
+- Review signing, launcher assets and GitHub Release presentation before public distribution.
 - Keep the exact release candidate green through `./scripts/verify.sh` and GitHub Actions before tagging or distributing it.
 
 ## P2 — future decisions
