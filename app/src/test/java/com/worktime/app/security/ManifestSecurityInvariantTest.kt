@@ -19,7 +19,7 @@ class ManifestSecurityInvariantTest {
             val name = component.androidAttribute("name")
             assertTrue(
                 component.hasAttributeNS(ANDROID_NAMESPACE, "exported"),
-                "$taggedName(component, name) must declare android:exported explicitly",
+                "${taggedName(component, name)} must declare android:exported explicitly",
             )
         }
 
