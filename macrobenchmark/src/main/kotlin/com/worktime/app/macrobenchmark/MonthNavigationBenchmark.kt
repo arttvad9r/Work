@@ -7,6 +7,7 @@ import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.textAsString
 import androidx.test.uiautomator.uiAutomator
 import java.time.YearMonth
@@ -67,16 +68,12 @@ class MonthNavigationBenchmark {
             killProcess()
             startActivityAndWait()
             uiAutomator {
-                onElement {
-                    contentDescription?.toString() == nextMonthDescription
-                }
+                nextMonthIcon().nearestClickableAncestor()
             }
         },
     ) {
         uiAutomator {
-            onElement {
-                contentDescription?.toString() == nextMonthDescription
-            }.click()
+            nextMonthIcon().nearestClickableAncestor().click()
 
             // CalendarViewModel commits the new business month only after the pager settles.
             // Waiting for the localized next-month title therefore keeps the full pager
@@ -85,5 +82,19 @@ class MonthNavigationBenchmark {
                 textAsString() == expectedNextMonthTitle
             }
         }
+    }
+
+    private fun androidx.test.uiautomator.UiAutomatorTestScope.nextMonthIcon(): UiObject2 =
+        onElement {
+            contentDescription?.toString() == nextMonthDescription
+        }
+
+    private fun UiObject2.nearestClickableAncestor(): UiObject2 {
+        var current: UiObject2? = this
+        while (current != null) {
+            if (current.isClickable) return current
+            current = current.parent
+        }
+        error("Next-month accessibility node has no clickable ancestor")
     }
 }
