@@ -73,15 +73,20 @@ fun WorkTimeApp(
         factory = CalendarViewModel.factory(
             workEntryRepository = container.workEntryRepository,
             userPreferencesRepository = container.userPreferencesRepository,
+            dataMutationCoordinator = container.dataMutationCoordinator,
         ),
     )
     val preferencesViewModel: PreferencesViewModel = viewModel(
-        factory = PreferencesViewModel.factory(container.userPreferencesRepository),
+        factory = PreferencesViewModel.factory(
+            userPreferencesRepository = container.userPreferencesRepository,
+            dataMutationCoordinator = container.dataMutationCoordinator,
+        ),
     )
     val backupViewModel: BackupViewModel = viewModel(
         factory = BackupViewModel.factory(
             workEntryRepository = container.workEntryRepository,
             userPreferencesRepository = container.userPreferencesRepository,
+            dataMutationCoordinator = container.dataMutationCoordinator,
         ),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -369,7 +374,10 @@ fun WorkTimeApp(
             backupState.pendingImportCount?.let { pendingCount ->
                 ImportConfirmationDialog(
                     pendingCount = pendingCount,
-                    onConfirm = backupViewModel::confirmImport,
+                    onConfirm = {
+                        viewModel.prepareForExternalDataReplacement()
+                        backupViewModel.confirmImport()
+                    },
                     onDismiss = backupViewModel::cancelImport,
                 )
             }
