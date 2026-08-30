@@ -46,6 +46,9 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.worktime.app.AppContainer
 import com.worktime.app.R
+import com.worktime.app.ui.backup.BackupOperationError
+import com.worktime.app.ui.backup.BackupOperationEvent
+import com.worktime.app.ui.backup.BackupViewModel
 import com.worktime.app.ui.calendar.CalendarOperationError
 import com.worktime.app.ui.calendar.CalendarOperationEvent
 import com.worktime.app.ui.calendar.CalendarScreen
@@ -75,8 +78,15 @@ fun WorkTimeApp(
     val preferencesViewModel: PreferencesViewModel = viewModel(
         factory = PreferencesViewModel.factory(container.userPreferencesRepository),
     )
+    val backupViewModel: BackupViewModel = viewModel(
+        factory = BackupViewModel.factory(
+            workEntryRepository = container.workEntryRepository,
+            userPreferencesRepository = container.userPreferencesRepository,
+        ),
+    )
     val state by viewModel.state.collectAsStateWithLifecycle()
     val preferencesState by preferencesViewModel.state.collectAsStateWithLifecycle()
+    val backupState by backupViewModel.state.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(AppDestination.Calendar)
     val snackbarHostState = remember { SnackbarHostState() }
     val haptics = LocalHapticFeedback.current
@@ -87,13 +97,13 @@ fun WorkTimeApp(
         }
     }
 
-    LaunchedEffect(viewModel, openTodayRequest) {
+    LaunchedEffect(viewModel, backupViewModel, openTodayRequest) {
         if (openTodayRequest > 0L) {
             while (backStack.size > 1) {
                 backStack.removeLastOrNull()
             }
             viewModel.dismissChangeRateSheet()
-            viewModel.cancelImport()
+            backupViewModel.cancelImport()
             viewModel.selectDate(LocalDate.now())
         }
     }
@@ -114,8 +124,6 @@ fun WorkTimeApp(
         noEntriesInPeriodMessage,
         undoLabel,
         undoFailedMessage,
-        backupExportedMessage,
-        backupImportedMessage,
         defaultRateAdoptionFailedMessage,
     ) {
         viewModel.operationEvents.collect { event ->
@@ -132,10 +140,6 @@ fun WorkTimeApp(
                 }
                 CalendarOperationEvent.Success.NO_OP ->
                     snackbarHostState.showSnackbar(noEntriesInPeriodMessage)
-                CalendarOperationEvent.Success.BACKUP_EXPORTED ->
-                    snackbarHostState.showSnackbar(backupExportedMessage)
-                CalendarOperationEvent.Success.BACKUP_IMPORTED ->
-                    snackbarHostState.showSnackbar(backupImportedMessage)
                 is CalendarOperationEvent.Error ->
                     when (event.kind) {
                         CalendarOperationError.UNDO ->
@@ -151,6 +155,21 @@ fun WorkTimeApp(
             }
         }
     }
+    LaunchedEffect(
+        backupViewModel,
+        backupExportedMessage,
+        backupImportedMessage,
+    ) {
+        backupViewModel.events.collect { event ->
+            when (event) {
+                BackupOperationEvent.Success.EXPORTED ->
+                    snackbarHostState.showSnackbar(backupExportedMessage)
+                BackupOperationEvent.Success.IMPORTED ->
+                    snackbarHostState.showSnackbar(backupImportedMessage)
+                is BackupOperationEvent.Error -> Unit
+            }
+        }
+    }
 
     val context = LocalContext.current
     val exportLauncher = rememberLauncherForActivityResult(
@@ -159,8 +178,8 @@ fun WorkTimeApp(
         if (uri != null) {
             runCatching { context.contentResolver.openOutputStream(uri) }
                 .getOrNull()
-                ?.let(viewModel::exportBackup)
-                ?: viewModel.reportOperationError(CalendarOperationError.BACKUP_EXPORT)
+                ?.let(backupViewModel::exportBackup)
+                ?: backupViewModel.reportOperationError(BackupOperationError.EXPORT)
         }
     }
     val csvExportLauncher = rememberLauncherForActivityResult(
@@ -169,8 +188,8 @@ fun WorkTimeApp(
         if (uri != null) {
             runCatching { context.contentResolver.openOutputStream(uri) }
                 .getOrNull()
-                ?.let(viewModel::exportCsv)
-                ?: viewModel.reportOperationError(CalendarOperationError.BACKUP_EXPORT)
+                ?.let(backupViewModel::exportCsv)
+                ?: backupViewModel.reportOperationError(BackupOperationError.EXPORT)
         }
     }
     val importLauncher = rememberLauncherForActivityResult(
@@ -179,8 +198,8 @@ fun WorkTimeApp(
         if (uri != null) {
             runCatching { context.contentResolver.openInputStream(uri) }
                 .getOrNull()
-                ?.let(viewModel::importBackup)
-                ?: viewModel.reportOperationError(CalendarOperationError.BACKUP_IMPORT)
+                ?.let(backupViewModel::importBackup)
+                ?: backupViewModel.reportOperationError(BackupOperationError.IMPORT)
         }
     }
     val fullScreenDirection = fullScreenNavigationDirection(LocalLayoutDirection.current)
@@ -251,11 +270,11 @@ fun WorkTimeApp(
                     entry<AppDestination.Settings> {
                         val operationErrorMessage = when {
                             preferencesState.saveFailed -> stringResource(R.string.save_settings_failed)
-                            state.operationError == CalendarOperationError.BACKUP_EXPORT ->
+                            backupState.error == BackupOperationError.EXPORT ->
                                 stringResource(R.string.backup_export_failed)
-                            state.operationError == CalendarOperationError.BACKUP_IMPORT ->
+                            backupState.error == BackupOperationError.IMPORT ->
                                 stringResource(R.string.backup_import_failed)
-                            state.operationError == CalendarOperationError.BACKUP_IMPORT_ROLLBACK ->
+                            backupState.error == BackupOperationError.IMPORT_ROLLBACK ->
                                 stringResource(R.string.backup_import_rollback_failed)
                             else -> null
                         }
@@ -347,11 +366,11 @@ fun WorkTimeApp(
                 )
             }
 
-            state.pendingImportCount?.let { pendingCount ->
+            backupState.pendingImportCount?.let { pendingCount ->
                 ImportConfirmationDialog(
                     pendingCount = pendingCount,
-                    onConfirm = viewModel::confirmImport,
-                    onDismiss = viewModel::cancelImport,
+                    onConfirm = backupViewModel::confirmImport,
+                    onDismiss = backupViewModel::cancelImport,
                 )
             }
 
