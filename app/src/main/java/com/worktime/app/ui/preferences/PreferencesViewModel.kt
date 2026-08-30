@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.worktime.app.domain.operation.DataMutationCoordinator
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.CancellationException
@@ -14,8 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 internal data class PreferencesUiState(
     val defaultHourlyRateMicros: Long = 0L,
@@ -26,9 +25,9 @@ internal data class PreferencesUiState(
 
 internal class PreferencesViewModel(
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
 ) : ViewModel() {
     private val saveFailed = MutableStateFlow(false)
-    private val mutationMutex = Mutex()
 
     val state: StateFlow<PreferencesUiState> = combine(
         userPreferencesRepository.preferences,
@@ -62,7 +61,7 @@ internal class PreferencesViewModel(
         saveFailed.value = false
         viewModelScope.launch {
             try {
-                mutationMutex.withLock { block() }
+                dataMutationCoordinator.run { block() }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 saveFailed.value = true
@@ -73,8 +72,14 @@ internal class PreferencesViewModel(
     companion object {
         fun factory(
             userPreferencesRepository: UserPreferencesRepository,
+            dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
         ): ViewModelProvider.Factory = viewModelFactory {
-            initializer { PreferencesViewModel(userPreferencesRepository) }
+            initializer {
+                PreferencesViewModel(
+                    userPreferencesRepository = userPreferencesRepository,
+                    dataMutationCoordinator = dataMutationCoordinator,
+                )
+            }
         }
     }
 }
