@@ -251,6 +251,7 @@ for kotlin_file in (APP / "src/main/java").rglob("*.kt"):
         fail(f"Destructive Room fallback found: {kotlin_file.relative_to(ROOT)}")
 
 build_file = (APP / "build.gradle.kts").read_text(encoding="utf-8")
+baseline_profile_build_file = (ROOT / "baselineprofile/build.gradle.kts").read_text(encoding="utf-8")
 catalog_file = (ROOT / "gradle/libs.versions.toml").read_text(encoding="utf-8")
 wrapper_file = (ROOT / "gradle/wrapper/gradle-wrapper.properties").read_text(encoding="utf-8")
 workflows_dir = ROOT / ".github/workflows"
@@ -260,6 +261,35 @@ verify_script_file = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
 baseline_profile_helper_file = (ROOT / "scripts/generate_baseline_profile.sh").read_text(encoding="utf-8")
 release_builder_file = (ROOT / "scripts/build_release_candidate.sh").read_text(encoding="utf-8")
 release_script_file = (ROOT / "scripts/create_github_release.sh").read_text(encoding="utf-8")
+checked_in_baseline_path = APP / "src/release/generated/baselineProfiles/baseline-prof.txt"
+checked_in_startup_path = APP / "src/release/generated/baselineProfiles/startup-prof.txt"
+checked_in_profile_text: dict[str, str] = {}
+for label, path in (
+    ("Baseline Profile", checked_in_baseline_path),
+    ("Startup Profile", checked_in_startup_path),
+):
+    if not path.is_file():
+        fail(f"Checked-in {label} is missing: {path.relative_to(ROOT)}")
+    elif path.stat().st_size == 0:
+        fail(f"Checked-in {label} is empty: {path.relative_to(ROOT)}")
+    else:
+        checked_in_profile_text[label] = path.read_text(encoding="utf-8")
+if "Baseline Profile" in checked_in_profile_text and "Startup Profile" in checked_in_profile_text:
+    baseline_text = checked_in_profile_text["Baseline Profile"]
+    startup_text = checked_in_profile_text["Startup Profile"]
+    if baseline_text == startup_text:
+        fail("Checked-in Baseline Profile and Startup Profile must not be identical")
+    if "Lcom/worktime/app/MainActivity;" not in baseline_text:
+        fail("Checked-in Baseline Profile must contain source-level WorkTime descriptors")
+    for runtime_rule in (
+        "Lcom/worktime/app/ui/calendar/CalendarPagerState;->navigateNext",
+        "Lcom/worktime/app/ui/calendar/CalendarViewModel;->showMonth",
+    ):
+        if runtime_rule not in baseline_text:
+            fail(f"Checked-in Baseline Profile is missing calendar runtime rule: {runtime_rule}")
+        if runtime_rule in startup_text:
+            fail(f"Calendar runtime rule leaked into checked-in Startup Profile: {runtime_rule}")
+
 signer_fingerprint_path = ROOT / "release/production-signing-cert-sha256.txt"
 if not signer_fingerprint_path.is_file():
     fail("Pinned production signing fingerprint file is missing")
@@ -296,6 +326,14 @@ for required_token in (
 ):
     if required_token not in build_file:
         fail(f"API 37 managed-device configuration is missing: {required_token}")
+for required_token in (
+    'create("pixel6Api34")',
+    "apiLevel = 34",
+    'systemImageSource = "aosp"',
+    'testedAbi = "x86_64"',
+):
+    if required_token not in baseline_profile_build_file:
+        fail(f"API 34 Baseline Profile device configuration is missing: {required_token}")
 for required_token in (
     ":app:pixel6Api37DebugAndroidTest",
     "android.testInstrumentationRunnerArguments.class=com.worktime.app.ui.WorkTimeSmokeTest",
@@ -358,9 +396,4 @@ if failures:
         print(f" - {item}", file=sys.stderr)
     raise SystemExit(1)
 
-print(
-    "static-audit: OK "
-    f"({len(base_keys)} app strings + {len(base_plural_keys)} app plurals; "
-    f"{len(widget_base_keys)} widget strings + {len(widget_plural_keys)} widget plurals; "
-    "XML/privacy/domain/release invariants passed)"
-)
+print("static-audit: OK")
