@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -156,6 +158,7 @@ private fun YearSummaryContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = AppDimens.screenHorizontalPadding)
             .navigationBarsPadding()
             .padding(bottom = AppDimens.rowGap),
@@ -239,21 +242,12 @@ private fun YearSummaryContent(
         )
         MonthSectionHeader()
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Month.entries.forEachIndexed { index, month ->
                 val monthTotal = summary.months[month.value - 1]
                 val empty = !summary.monthHasData.getOrElse(index) { false }
-                val rowModifier = if (summary.monthsWithData == 0) {
-                    Modifier.height(24.dp)
-                } else {
-                    Modifier.weight(1f)
-                }
                 MonthLine(
-                    modifier = rowModifier,
+                    modifier = Modifier.heightIn(min = 32.dp),
                     label = monthDisplayName(month, locale),
                     detail = if (empty) {
                         null
