@@ -274,7 +274,8 @@ for required_task in (
 for required_token in (
     'create("pixel6Api37")',
     "apiLevel = 37",
-    'systemImageSource = "aosp"',
+    'systemImageSource = "google"',
+    'testedAbi = "x86_64"',
 ):
     if required_token not in build_file:
         fail(f"API 37 managed-device configuration is missing: {required_token}")
