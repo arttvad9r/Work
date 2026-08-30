@@ -2,9 +2,9 @@
 
 ## Product statement
 
-WorkTime is a personal portrait-only Android timesheet that records actual worked time by date and immediately shows expected income for the selected month.
+WorkTime is a personal, phone-first Android timesheet that records actual worked time by date and immediately shows expected income for the selected month.
 
-It is a salary calendar, not a project tracker, shift planner, timer, HR system or payroll suite.
+It is a salary calendar, not a project tracker, shift planner, timer, HR system or payroll suite. The compact phone layout is the primary product surface, but the application remains resizable and adapts to the available app window instead of locking orientation or assuming one device resolution.
 
 ## Primary flow
 
@@ -28,7 +28,7 @@ It is a salary calendar, not a project tracker, shift planner, timer, HR system 
 - New or changed saved data gets a restrained content transition in the affected cell.
 - Grid geometry does not depend on entries or report state.
 - In the current month, `Fill today` appears only while today's entry is missing and uses a short enter/exit transition.
-- Application orientation remains portrait-only.
+- Layout is derived from the available app window. Compact windows keep the summary/report below the calendar; wider windows can expose the month report as a supporting pane. Rotation, split-screen and resizing must not require an orientation lock.
 
 ## Day editor
 
@@ -133,7 +133,7 @@ Haptics are deliberately sparse: a user-driven month pager snap and actual segme
 - taxes, exchange rates or multi-currency accounting;
 - notes or quick-duration templates;
 - validation helper text;
-- landscape layout support;
+- a separate device-model-specific or landscape-only product mode;
 - looping/decorative animation or motion that delays user actions.
 
 ## Release criteria
@@ -141,6 +141,7 @@ Haptics are deliberately sparse: a user-driven month pager snap and actual segme
 - `./scripts/verify.sh` completes on the release candidate when runner/toolchain access is available.
 - Core create/edit/delete/relaunch, bulk-rate, import/export and widget paths pass on physical hardware.
 - Editor IME transitions and modal-sheet gestures remain stable.
-- Calendar pager, reports, settings and year summary do not clip in supported portrait font scales/locales.
+- Calendar, reports, settings and year summary remain usable without clipping across the supported compact/expanded window states, supported font scales and locales.
+- Rotation/window resize does not reset persisted feature state or expose an unsupported fixed-resolution layout.
 - Motion and haptics remain smooth/restrained on supported devices and do not change interaction timing or data semantics.
 - No known data-loss or calculation defect remains.

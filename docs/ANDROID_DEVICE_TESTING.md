@@ -23,16 +23,18 @@ The project target SDK is 37 and the minimum supported SDK is 26.
 The minimum supported test matrix is:
 
 - API 26 for the `minSdk` boundary;
-- API 35 as the stable modern baseline.
+- API 35 as the stable modern baseline;
+- API 37 for target-platform compatibility, including adaptive window behavior.
 
-API 37 is an experimental/known-issue target because the current Compose instrumentation stack fails in Espresso before the assertion.
+A historical API 37 blocker came from Espresso's reflective `InputManager.getInstance` access. WorkTime explicitly pins Espresso 3.7.0, whose stable release replaces that reflection path, so the obsolete failure must not be used as a waiver for target-platform testing.
 
 The project flake provides Android SDK tooling but intentionally does not include large system images. Install required images into a writable SDK location, for example:
 
 ```bash
 sdkmanager --sdk_root="$HOME/.android/sdk" \
   "system-images;android-26;google_apis;x86_64" \
-  "system-images;android-35;google_apis;x86_64"
+  "system-images;android-35;google_apis;x86_64" \
+  "system-images;android-37;google_apis;x86_64"
 ```
 
 Create an AVD with `avdmanager` and start it with the emulator. A headless NixOS example is:
@@ -57,7 +59,20 @@ With an online emulator:
 ./gradlew connectedDebugAndroidTest --stacktrace
 ```
 
-The task runs the Room instrumentation test and the Compose startup smoke test. Device/API and the complete Gradle output should be recorded for every QA run.
+The task runs the repository Android instrumentation suite. Device/API and the complete Gradle output should be recorded for every QA run.
+
+Normal GitHub CI additionally runs:
+
+```bash
+./gradlew :app:pixel2Api30DebugAndroidTest \
+  -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+
+./gradlew :app:pixel6Api37DebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.worktime.app.ui.WorkTimeSmokeTest \
+  -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+```
+
+The API 30 device carries the full instrumentation suite. The API 37 managed device is a narrower target-platform Compose startup/UI smoke and does not replace physical-device adaptive QA.
 
 ## 4. NixOS-specific behavior
 
@@ -83,7 +98,7 @@ The Android build also uses the existing FHS-compatible `aapt2` override from th
 | API | Status | Purpose/notes |
 |---:|---|---|
 | 26 | Required | `minSdk` boundary and Room/instrumentation smoke coverage |
-| 35 | Required | Stable modern Android baseline |
-| 37 | Experimental / known issue | Target SDK baseline; current AndroidX Test/Espresso stack fails with `InputManager.getInstance` reflection error |
+| 35 | Required | Stable modern Android baseline and manual interaction QA |
+| 37 | Required | Target SDK startup/runtime compatibility and adaptive window behavior; automated smoke plus physical/resizable-window evidence |
 
-TalkBack requires an emulator/device image with the service available and enabled. Font-scale, rotation, dark-mode, persistence and core create/edit/delete flows should be recorded separately from automated test results.
+TalkBack requires an emulator/device image with the service available and enabled. Font-scale, rotation/window resize, dark-mode, persistence and core create/edit/delete flows should be recorded separately from automated test results.

@@ -3,20 +3,47 @@
 ## Layers
 
 ```text
-Compose UI -> CalendarViewModel -> domain repository interfaces -> Room / DataStore
-                      `-------> domain calculations
+Compose UI -> screen/destination state holders -> domain repository interfaces -> Room / DataStore
+                                      `-------> domain calculations / mutation coordination
 ```
 
-- `domain` owns work-entry invariants and exact calculations.
+- `domain` owns work-entry invariants, exact calculations, repository contracts and cross-store mutation coordination.
 - `data` implements Room and DataStore repositories.
-- `ui` renders immutable state and sends user intents.
-- The app composition root wires implementations to interfaces.
+- `ui` renders immutable state and sends explicit user actions back to the owning state holder.
+- `WorkTimeApp` is the composition root: it wires repository implementations to ViewModel factories and owns app navigation/overlay composition.
+- Reusable composables receive state and callbacks instead of resolving repositories or ViewModels themselves.
 
-## State
+The project intentionally stays a small single app module. A separate domain module or DI framework would add structure without reducing current complexity.
 
-`CalendarViewModel` combines the requested month, the matching Room month snapshot, preferences, selected date, settings visibility and recoverable operation error.
+## State ownership
 
-Month and entries are emitted together to avoid showing one month title with another month's rows. `isReady` blocks editing until Room/DataStore have emitted real state.
+State is split by feature instead of being accumulated in one root ViewModel:
+
+- `CalendarViewModel` owns visible month, selected day, month-entry snapshots, bulk-rate UI state, recoverable calendar errors and the session-scoped Undo snapshot.
+- `PreferencesViewModel` owns theme/default-rate preference state and preference mutations.
+- `BackupViewModel` owns import/export state, confirmation, backup errors and rollback behavior.
+- `YearSummaryViewModel` is scoped to the Navigation 3 Year Summary destination and owns selected-year summary state.
+
+All repository-backed state exposed to Compose is collected lifecycle-aware. Calendar month and entries are emitted together, and `isReady` blocks editing until persisted state has emitted.
+
+Transient interaction state that does not belong in a ViewModel remains local to its screen. `CalendarPagerState` owns calendar pager position, spring interruption/velocity and gesture-settle bookkeeping; `YearSummaryPagerState` owns the equivalent year-pager interaction state. The selected business month/year still belongs to the corresponding ViewModel and is committed only after the pager settles.
+
+## Navigation
+
+The app uses Navigation 3 with a saveable back stack and destination-scoped ViewModel stores.
+
+- Calendar is the root destination.
+- Settings is a peer full-screen destination.
+- Year Summary is a destination with its own state holder and vertical enter/exit motion.
+- Predictive pop uses the same structural exit motion as normal Back.
+
+Navigation objects stay at the app root and are not injected into feature ViewModels.
+
+## Mutation serialization
+
+`DataMutationCoordinator` serializes writes that can affect shared Room/DataStore state across Calendar, Preferences and Backup flows. This prevents concurrent feature mutations from interleaving during operations such as backup replacement.
+
+Calendar Undo is intentionally process-local convenience state. Persisted repository changes survive process recreation; an in-memory Undo snapshot does not.
 
 ## Persistence
 
@@ -54,10 +81,12 @@ Parsing rejects malformed/exponent input. `MoneyLimits` bounds user-entered comp
 
 ## UI surfaces
 
-- `CalendarScreen`: fixed calendar, fixed summary, standard draggable report sheet.
-- `DayEditorSheet`: draft validation and create/edit/delete actions.
-- `SettingsScreen`: default rate, theme and data operations.
-- `YearSummaryScreen`: view-only yearly statistics.
+- `CalendarScreen`: adaptive calendar/report orchestration; pager interaction state is delegated to `CalendarPagerState`.
+- `CalendarGrid`, `CalendarChrome`, `CalendarSummary`: focused calendar rendering components.
+- `DayEditorSheet`: public sheet entry point; form, numeric fields and calculation summary are split into focused components.
+- `SettingsScreen`: default rate, theme and data operations driven by dedicated Preferences/Backup state holders.
+- `YearSummaryScreen`: view-only yearly statistics; destination state lives in `YearSummaryViewModel` and pager interaction state in `YearSummaryPagerState`.
+- `AppOverlays`, `AppOperationFeedback`, `AppNavigationMotion`: root-only overlay, feedback and motion concerns extracted from `WorkTimeApp`.
 - `MoneyFormatting` and `DurationFormatting`: presentation-boundary formatting only.
 
 Write failures keep the relevant editor/settings surface open where applicable and expose a generic localized error without logging personal values. Import is validated before confirmation and compensated across Room/DataStore: a failure after replacement attempts to restore both snapshots; rollback failure is reported separately.
