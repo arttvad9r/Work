@@ -61,6 +61,14 @@ android {
             }
             proguardFiles("proguard-rules.pro")
         }
+
+        create("benchmark") {
+            // Macrobenchmark must measure code that behaves like production, while a local
+            // debug key keeps the variant installable without production signing material.
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
     }
 
     testOptions {
@@ -106,6 +114,7 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.profileinstaller)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
