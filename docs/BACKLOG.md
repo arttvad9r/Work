@@ -19,8 +19,7 @@
 
 ## P1 — release packaging and hardening
 
-- Add reliable Compose instrumentation for report gestures and persistent-editor focus transitions where the test environment supports them.
-- Verify process death around the latest in-memory Undo state and document the expected loss of Undo after process death.
+- Run the manual Baseline Profile generator, review and land the generated profile, then measure its effect with Macrobenchmark on a physical device before treating it as a performance improvement.
 - Capture final release screenshots.
 - Review signing, launcher/store assets and Play pre-launch results before public distribution.
 - Keep the exact release candidate green through `./scripts/verify.sh` and GitHub Actions before tagging or distributing it.
