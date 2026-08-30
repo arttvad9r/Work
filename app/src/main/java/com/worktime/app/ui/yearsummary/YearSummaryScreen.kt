@@ -1,8 +1,6 @@
 package com.worktime.app.ui.yearsummary
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +12,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -29,13 +30,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,85 +55,96 @@ import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import java.time.Month
 import java.time.format.TextStyle
-import kotlinx.coroutines.coroutineScope
+import kotlin.math.abs
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+
+private const val YearPagerPageCount = 24_001
+private const val YearPagerAnchorPage = YearPagerPageCount / 2
 
 @Composable
 fun YearSummaryScreen(
-    summary: YearSummary?,
+    selectedYear: Int,
+    summaries: Map<Int, YearSummary>,
     onDismiss: () -> Unit,
-    onPreviousYear: () -> Unit,
-    onNextYear: () -> Unit,
+    onSelectYear: (Int) -> Unit,
 ) {
     val locale = LocalLocale.current.platformLocale
-    val density = LocalDensity.current
-    var displayedSummary by remember { mutableStateOf<YearSummary?>(summary) }
-    val contentOffset = remember { Animatable(0f) }
-    val contentAlpha = remember { Animatable(1f) }
-    val transitionTravelPx = with(density) { 32.dp.toPx() }
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+    val originYear = rememberSaveable { selectedYear }
+    val pagerState = rememberPagerState(
+        initialPage = YearPagerAnchorPage,
+        pageCount = { YearPagerPageCount },
+    )
+    val pagerFlingBehavior = PagerDefaults.flingBehavior(
+        state = pagerState,
+        snapAnimationSpec = spring(
+            dampingRatio = AppMotion.NoBounceDampingRatio,
+            stiffness = AppMotion.PagerStiffness,
+        ),
+        snapPositionalThreshold = 0.35f,
+    )
+    var programmaticPage by remember { mutableStateOf<Int?>(null) }
+    var programmaticScrollJob by remember { mutableStateOf<Job?>(null) }
 
-    // Dense year reports are always rendered as exactly one layer. When a new query result
-    // arrives, move the old report a short distance out while fading it away, swap the data
-    // only while the layer is invisible, then settle the same layer back in from the opposite
-    // side. This preserves direction without ever painting two reports on top of each other.
-    LaunchedEffect(summary, transitionTravelPx) {
-        val next = summary ?: return@LaunchedEffect
-        val previous = displayedSummary
-        if (next == previous) return@LaunchedEffect
+    fun yearForPage(page: Int): Int = originYear + page - YearPagerAnchorPage
 
-        val previousYear = previous?.year
-        if (previousYear == null || next.year == previousYear) {
-            displayedSummary = next
-            contentOffset.snapTo(0f)
-            contentAlpha.snapTo(1f)
-            return@LaunchedEffect
-        }
+    fun pageForYear(year: Int): Int = YearPagerAnchorPage + year - originYear
 
-        val direction = if (next.year > previousYear) 1f else -1f
-
-        coroutineScope {
-            launch {
-                contentOffset.animateTo(
-                    targetValue = -direction * transitionTravelPx,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.MicroMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
-                )
-            }
-            launch {
-                contentAlpha.animateTo(
-                    targetValue = 0f,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.MicroMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
-                )
-            }
-        }
-
-        displayedSummary = next
-        contentOffset.snapTo(direction * transitionTravelPx)
-
-        coroutineScope {
-            launch {
-                contentOffset.animateTo(
-                    targetValue = 0f,
+    val animateToPage: (Int) -> Unit = { requestedPage ->
+        val targetPage = requestedPage.coerceIn(0, YearPagerPageCount - 1)
+        if (programmaticScrollJob?.isActive != true || programmaticPage != targetPage) {
+            programmaticPage = targetPage
+            programmaticScrollJob?.cancel()
+            programmaticScrollJob = scope.launch {
+                pagerState.animateScrollToPage(
+                    page = targetPage,
                     animationSpec = spring(
                         dampingRatio = AppMotion.NoBounceDampingRatio,
-                        stiffness = AppMotion.NavigationStiffness,
+                        stiffness = AppMotion.PagerStiffness,
                     ),
                 )
             }
-            launch {
-                contentAlpha.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(
-                        durationMillis = AppMotion.FastMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
-                )
+        }
+    }
+
+    // Saved-state or other external year changes keep the pager aligned with the selected year.
+    // Adjacent changes use the same spring as direct arrow navigation; large jumps stay immediate.
+    LaunchedEffect(selectedYear) {
+        val targetPage = pageForYear(selectedYear)
+        if (targetPage !in 0 until YearPagerPageCount || targetPage == pagerState.settledPage) {
+            return@LaunchedEffect
+        }
+        if (abs(targetPage - pagerState.currentPage) <= 1) {
+            animateToPage(targetPage)
+        } else {
+            programmaticPage = targetPage
+            programmaticScrollJob?.cancel()
+            pagerState.scrollToPage(targetPage)
+            programmaticPage = null
+        }
+    }
+
+    // Gesture progress is owned by HorizontalPager. Commit the selected year only when the page
+    // settles so repository observation does not churn while the user's finger is still moving.
+    LaunchedEffect(pagerState, selectedYear) {
+        var previousSettledPage = pagerState.settledPage
+        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+            if (settledPage == previousSettledPage) return@collect
+
+            val expectedProgrammaticPage = programmaticPage
+            val userDriven = expectedProgrammaticPage == null || expectedProgrammaticPage != settledPage
+            if (userDriven) {
+                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
             }
+            programmaticPage = null
+
+            val settledYear = yearForPage(settledPage)
+            if (settledYear != selectedYear) {
+                onSelectYear(settledYear)
+            }
+            previousSettledPage = settledPage
         }
     }
 
@@ -153,25 +169,30 @@ fun YearSummaryScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onPreviousYear) {
+                    IconButton(
+                        onClick = {
+                            val basePage = programmaticPage ?: pagerState.currentPage
+                            if (basePage > 0) animateToPage(basePage - 1)
+                        },
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                             contentDescription = stringResource(R.string.previous_year),
                         )
                     }
                     Text(
-                        text = displayedSummary?.year?.toString().orEmpty(),
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp)
-                            .graphicsLayer {
-                                translationX = contentOffset.value
-                                alpha = contentAlpha.value
-                            },
+                        text = yearForPage(pagerState.currentPage).toString(),
+                        modifier = Modifier.padding(horizontal = 12.dp),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Medium,
                     )
-                    IconButton(onClick = onNextYear) {
+                    IconButton(
+                        onClick = {
+                            val basePage = programmaticPage ?: pagerState.currentPage
+                            if (basePage < YearPagerPageCount - 1) animateToPage(basePage + 1)
+                        },
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = stringResource(R.string.next_year),
@@ -180,28 +201,28 @@ fun YearSummaryScreen(
                 }
             }
 
-            val shownSummary = displayedSummary
-            if (shownSummary == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = AppDimens.sectionSpacing * 3f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .graphicsLayer {
-                            translationX = contentOffset.value
-                            alpha = contentAlpha.value
-                        },
-                ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .testTag("year-summary-pager"),
+                beyondViewportPageCount = 1,
+                flingBehavior = pagerFlingBehavior,
+                key = { page -> yearForPage(page) },
+            ) { page ->
+                val pageYear = yearForPage(page)
+                val summary = summaries[pageYear]
+                if (summary == null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
                     YearSummaryContent(
-                        summary = shownSummary,
+                        summary = summary,
                         locale = locale,
                     )
                 }
