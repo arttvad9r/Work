@@ -84,6 +84,12 @@ android {
                     systemImageSource = "aosp-atd"
                     testedAbi = "x86"
                 }
+                create("pixel6Api37") {
+                    device = "Pixel 6"
+                    apiLevel = 37
+                    systemImageSource = "aosp"
+                    testedAbi = "x86_64"
+                }
             }
         }
     }
