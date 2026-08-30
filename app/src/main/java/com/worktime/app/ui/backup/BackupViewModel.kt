@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.worktime.app.data.backup.BackupCodec
 import com.worktime.app.data.backup.BackupData
 import com.worktime.app.data.backup.WorkEntryCsv
+import com.worktime.app.domain.operation.DataMutationCoordinator
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
 import java.io.InputStream
@@ -24,10 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal data class BackupUiState(
@@ -53,10 +51,10 @@ internal sealed interface BackupOperationEvent {
 internal class BackupViewModel(
     private val workEntryRepository: WorkEntryRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
 ) : ViewModel() {
     private val pendingImport = MutableStateFlow<BackupData?>(null)
     private val operationError = MutableStateFlow<BackupOperationError?>(null)
-    private val operationMutex = Mutex()
     private var operationGeneration = 0L
     private val _events = Channel<BackupOperationEvent>(Channel.BUFFERED)
     val events: Flow<BackupOperationEvent> = _events.receiveAsFlow()
@@ -121,7 +119,7 @@ internal class BackupViewModel(
 
     fun confirmImport() {
         val data = pendingImport.value ?: return
-        runOperation(BackupOperationError.IMPORT, body = {
+        runOperation(BackupOperationError.IMPORT, supersede = true, body = {
             val oldEntries = workEntryRepository.getAll()
             val oldPreferences = userPreferencesRepository.preferences.first()
             val oldDefaultRateInitialized = userPreferencesRepository.defaultRateInitialized.first()
@@ -157,13 +155,11 @@ internal class BackupViewModel(
     }
 
     fun cancelImport() {
-        supersedeOperation()
         operationError.value = null
         pendingImport.value = null
     }
 
     fun reportOperationError(error: BackupOperationError) {
-        supersedeOperation()
         operationError.value = error
         _events.trySend(BackupOperationEvent.Error(error))
     }
@@ -172,12 +168,14 @@ internal class BackupViewModel(
         errorKind: BackupOperationError,
         body: suspend () -> Unit,
         onSuccess: suspend () -> Unit = {},
+        supersede: Boolean = false,
     ) {
         operationError.value = null
-        val generation = supersedeOperation()
+        if (supersede) operationGeneration += 1
+        val generation = operationGeneration
         viewModelScope.launch {
             try {
-                operationMutex.withLock { body() }
+                dataMutationCoordinator.run { body() }
                 if (generation == operationGeneration) onSuccess()
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
@@ -194,20 +192,17 @@ internal class BackupViewModel(
         }
     }
 
-    private fun supersedeOperation(): Long {
-        operationGeneration += 1
-        return operationGeneration
-    }
-
     companion object {
         fun factory(
             workEntryRepository: WorkEntryRepository,
             userPreferencesRepository: UserPreferencesRepository,
+            dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 BackupViewModel(
                     workEntryRepository = workEntryRepository,
                     userPreferencesRepository = userPreferencesRepository,
+                    dataMutationCoordinator = dataMutationCoordinator,
                 )
             }
         }
