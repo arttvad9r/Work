@@ -9,7 +9,6 @@ import com.worktime.app.data.backup.BackupCodec
 import com.worktime.app.data.backup.BackupData
 import com.worktime.app.data.backup.WorkEntryCsv
 import com.worktime.app.domain.model.WorkEntry
-import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
 import java.io.InputStream
@@ -238,36 +237,6 @@ class CalendarViewModel(
             undoSnapshot.value = null
             _operationEvents.send(CalendarOperationEvent.Success.OPERATION_UNDONE)
         }, invalidateUndo = false)
-    }
-
-    /** Autosaves the theme as soon as the user picks it; settings stay open. */
-    fun updateThemeMode(themeMode: ThemeMode) {
-        operationError.value = null
-        viewModelScope.launch {
-            try {
-                operationMutex.withLock {
-                    userPreferencesRepository.updateThemeMode(themeMode)
-                }
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                operationError.value = CalendarOperationError.SAVE_SETTINGS
-            }
-        }
-    }
-
-    /** Autosaves a valid default rate as soon as it is entered; settings stay open. */
-    fun updateDefaultRate(defaultHourlyRateMicros: Long) {
-        operationError.value = null
-        viewModelScope.launch {
-            try {
-                operationMutex.withLock {
-                    userPreferencesRepository.updateDefaultHourlyRate(defaultHourlyRateMicros)
-                }
-            } catch (error: Exception) {
-                if (error is CancellationException) throw error
-                operationError.value = CalendarOperationError.SAVE_SETTINGS
-            }
-        }
     }
 
     fun exportBackup(stream: OutputStream) {
