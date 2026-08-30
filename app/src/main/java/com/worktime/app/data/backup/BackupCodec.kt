@@ -1,5 +1,6 @@
 package com.worktime.app.data.backup
 
+import com.worktime.app.domain.backup.BackupPayload
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.preferences.UserPreferences
@@ -9,12 +10,6 @@ import java.time.format.DateTimeParseException
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-
-data class BackupData(
-    val entries: List<WorkEntry>,
-    val preferences: UserPreferences,
-    val defaultRateInitialized: Boolean,
-)
 
 /**
  * JSON backup format:
@@ -56,7 +51,7 @@ object BackupCodec {
         return root.toString()
     }
 
-    fun decode(text: String): BackupData = try {
+    fun decode(text: String): BackupPayload = try {
         require(text.isNotBlank()) { "Malformed backup file" }
         require(text.toByteArray(StandardCharsets.UTF_8).size <= MAX_BACKUP_SIZE_BYTES) {
             "Backup file is too large"
@@ -93,7 +88,7 @@ object BackupCodec {
         } else {
             inferLegacyDefaultRateInitialized(entries, preferences)
         }
-        BackupData(
+        BackupPayload(
             entries = entries,
             preferences = preferences,
             defaultRateInitialized = defaultRateInitialized,

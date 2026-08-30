@@ -58,6 +58,7 @@ fun WorkTimeApp(
         factory = BackupViewModel.factory(
             workEntryRepository = container.workEntryRepository,
             userPreferencesRepository = container.userPreferencesRepository,
+            backupDocumentSerializer = container.backupDocumentSerializer,
             dataMutationCoordinator = container.dataMutationCoordinator,
         ),
     )

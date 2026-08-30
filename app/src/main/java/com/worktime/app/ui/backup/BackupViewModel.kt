@@ -5,9 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.worktime.app.data.backup.BackupCodec
-import com.worktime.app.data.backup.BackupData
-import com.worktime.app.data.backup.WorkEntryCsv
+import com.worktime.app.domain.backup.BackupDocumentSerializer
+import com.worktime.app.domain.backup.BackupPayload
 import com.worktime.app.domain.operation.DataMutationCoordinator
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
@@ -51,9 +50,10 @@ internal sealed interface BackupOperationEvent {
 internal class BackupViewModel(
     private val workEntryRepository: WorkEntryRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val backupDocumentSerializer: BackupDocumentSerializer,
     private val dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
 ) : ViewModel() {
-    private val pendingImport = MutableStateFlow<BackupData?>(null)
+    private val pendingImport = MutableStateFlow<BackupPayload?>(null)
     private val operationError = MutableStateFlow<BackupOperationError?>(null)
     private var operationGeneration = 0L
     private val _events = Channel<BackupOperationEvent>(Channel.BUFFERED)
@@ -76,20 +76,12 @@ internal class BackupViewModel(
     fun exportBackup(stream: OutputStream) {
         runOperation(BackupOperationError.EXPORT, body = {
             withContext(Dispatchers.IO) {
-                val data = BackupData(
+                val encoded = backupDocumentSerializer.encodeBackup(
                     entries = workEntryRepository.getAll(),
                     preferences = userPreferencesRepository.preferences.first(),
                     defaultRateInitialized = userPreferencesRepository.defaultRateInitialized.first(),
                 )
-                stream.use {
-                    it.write(
-                        BackupCodec.encode(
-                            data.entries,
-                            data.preferences,
-                            data.defaultRateInitialized,
-                        ).toByteArray(),
-                    )
-                }
+                stream.use { it.write(encoded.encodeToByteArray()) }
             }
         }, onSuccess = {
             _events.send(BackupOperationEvent.Success.EXPORTED)
@@ -99,7 +91,8 @@ internal class BackupViewModel(
     fun exportCsv(stream: OutputStream) {
         runOperation(BackupOperationError.EXPORT, body = {
             withContext(Dispatchers.IO) {
-                stream.use { it.write(WorkEntryCsv.encode(workEntryRepository.getAll()).toByteArray()) }
+                val encoded = backupDocumentSerializer.encodeCsv(workEntryRepository.getAll())
+                stream.use { it.write(encoded.encodeToByteArray()) }
             }
         }, onSuccess = {
             _events.send(BackupOperationEvent.Success.EXPORTED)
@@ -110,8 +103,8 @@ internal class BackupViewModel(
         runOperation(BackupOperationError.IMPORT, body = {
             pendingImport.value = withContext(Dispatchers.IO) {
                 stream.use { input ->
-                    val bytes = input.readBounded(BackupCodec.MAX_BACKUP_SIZE_BYTES)
-                    BackupCodec.decode(bytes.decodeToString())
+                    val bytes = input.readBounded(backupDocumentSerializer.maxBackupSizeBytes)
+                    backupDocumentSerializer.decodeBackup(bytes.decodeToString())
                 }
             }
         })
@@ -196,12 +189,14 @@ internal class BackupViewModel(
         fun factory(
             workEntryRepository: WorkEntryRepository,
             userPreferencesRepository: UserPreferencesRepository,
+            backupDocumentSerializer: BackupDocumentSerializer,
             dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 BackupViewModel(
                     workEntryRepository = workEntryRepository,
                     userPreferencesRepository = userPreferencesRepository,
+                    backupDocumentSerializer = backupDocumentSerializer,
                     dataMutationCoordinator = dataMutationCoordinator,
                 )
             }
