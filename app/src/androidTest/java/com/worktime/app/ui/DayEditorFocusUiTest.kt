@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasPerformImeAction
@@ -55,13 +55,13 @@ class DayEditorFocusUiTest {
         input.performImeAction()
         composeRule.waitForIdle()
         activeInput().assertIsFocused()
-        composeRule.onNodeWithTag("day-editor-row-duration").assertExists()
+        composeRule.onNodeWithTag("day-editor-row-duration").assertIsDisplayed()
 
         // Switching by tapping another value row must preserve focus for the same reason.
         composeRule.onNodeWithTag("day-editor-row-bonus").performClick()
         composeRule.waitForIdle()
         activeInput().assertIsFocused()
-        composeRule.onNodeWithTag("day-editor-row-rate").assertExists()
+        composeRule.onNodeWithTag("day-editor-row-rate").assertIsDisplayed()
     }
 
     private fun activeInput(): SemanticsNodeInteraction = composeRule.onNode(
