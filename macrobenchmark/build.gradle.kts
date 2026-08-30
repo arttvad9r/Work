@@ -22,6 +22,9 @@ android {
 
     buildTypes {
         create("benchmark") {
+            // The benchmark test APK is never distributed. Sign it with the standard debug
+            // key so managed devices can install the instrumentation package locally/CI.
+            signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }
     }
@@ -33,6 +36,9 @@ android {
                     device = "Pixel 6"
                     apiLevel = 34
                     systemImageSource = "aosp-atd"
+                    // Keep the current ATD image ABI explicit; AGP 10 changes the implicit
+                    // default to arm64-v8a, which this x86_64 image cannot translate.
+                    testedAbi = "x86_64"
                 }
             }
         }
