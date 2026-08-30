@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("androidx.baselineprofile")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
@@ -94,6 +95,8 @@ ksp {
 
 dependencies {
     val composeBom = platform(libs.compose.bom)
+
+    baselineProfile(project(":baselineprofile"))
 
     implementation(composeBom)
     androidTestImplementation(composeBom)

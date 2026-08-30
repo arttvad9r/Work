@@ -38,6 +38,7 @@ jobs:
             :app:assembleRelease \
             :app:assembleBenchmark \
             :macrobenchmark:assembleBenchmark \
+            :baselineprofile:assemble \
             --stacktrace
       - name: Upload verification reports
         if: always()
