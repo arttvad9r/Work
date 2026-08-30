@@ -21,5 +21,10 @@ if [ -z "$profile" ]; then
   exit 1
 fi
 
+if ! grep -Fq 'Lcom/worktime/app/MainActivity;' "$profile"; then
+  echo "Generated Baseline Profile does not contain source-level WorkTime descriptors; capture may be obfuscated." >&2
+  exit 1
+fi
+
 echo "Generated profile: $profile"
 wc -l "$profile"
