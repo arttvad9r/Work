@@ -1,5 +1,8 @@
 package com.worktime.app.ui
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.SnackbarHostState
@@ -101,13 +104,16 @@ fun WorkTimeApp(
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
                 transitionSpec = {
-                    fullScreenForwardTransition(fullScreenDirection)
+                    fullScreenEnterTransition(fullScreenDirection) togetherWith
+                        ExitTransition.KeepUntilTransitionsFinished
                 },
                 popTransitionSpec = {
-                    fullScreenPopTransition(fullScreenDirection)
+                    EnterTransition.None togetherWith
+                        fullScreenExitTransition(fullScreenDirection)
                 },
                 predictivePopTransitionSpec = { _ ->
-                    fullScreenPopTransition(fullScreenDirection)
+                    EnterTransition.None togetherWith
+                        fullScreenExitTransition(fullScreenDirection)
                 },
                 entryProvider = entryProvider {
                     entry<AppDestination.Calendar> {
@@ -162,14 +168,17 @@ fun WorkTimeApp(
                     entry<AppDestination.YearSummary>(
                         metadata = metadata {
                             put(NavDisplay.TransitionKey) {
-                                yearSummaryForwardTransition()
+                                yearSummaryEnterTransition() togetherWith
+                                    ExitTransition.KeepUntilTransitionsFinished
                             }
                             put(NavDisplay.PopTransitionKey) {
-                                yearSummaryPopTransition()
+                                EnterTransition.None togetherWith yearSummaryExitTransition()
                             }
                             put(
                                 NavDisplay.PredictivePopTransitionKey,
-                                { _: Int -> yearSummaryPopTransition() },
+                                { _: Int ->
+                                    EnterTransition.None togetherWith yearSummaryExitTransition()
+                                },
                             )
                         },
                     ) { destination ->
