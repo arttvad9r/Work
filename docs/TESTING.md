@@ -22,6 +22,7 @@ Coverage includes work-entry invariants, salary rounding/aggregation, month grid
 
 ```bash
 ./gradlew \
+  :app:validateDebugScreenshotTest \
   :app:lintDebug \
   :app:lintRelease \
   :app:assembleDebug \
@@ -32,7 +33,23 @@ Coverage includes work-entry invariants, salary rounding/aggregation, month grid
   :baselineprofile:assemble
 ```
 
-`./scripts/verify.sh` runs the static audit and all commands above through the repository Gradle Wrapper. Normal GitHub CI uses the same compile/build gate. `assembleRelease` exercises the optimized APK variant that is signed for GitHub distribution, while the three performance tasks verify that the release-like benchmark app, Macrobenchmark test APK and Baseline Profile generator module remain buildable without turning hosted-emulator measurements into release thresholds.
+`./scripts/verify.sh` runs the static audit, JVM tests, screenshot validation and all build/lint commands above through the repository Gradle Wrapper. Normal GitHub CI uses the same compile/build gate. `assembleRelease` exercises the optimized APK variant that is signed for GitHub distribution, while the three performance tasks verify that the release-like benchmark app, Macrobenchmark test APK and Baseline Profile generator module remain buildable without turning hosted-emulator measurements into release thresholds.
+
+### Compose screenshot regression
+
+Normal CI runs the official Compose Preview Screenshot Testing validator:
+
+```bash
+./gradlew :app:validateDebugScreenshotTest
+```
+
+Committed goldens cover populated calendar light/dark states, populated and empty Year Summary states, and a large-font Year Summary state. Reference images live under `app/src/screenshotTestDebug/reference`. Updating them is an explicit maintenance action:
+
+```bash
+./gradlew :app:updateDebugScreenshotTest
+```
+
+Review every regenerated PNG before committing it. A changed golden is evidence of an intentional visual change only after review; it must not be used to mask an unexplained rendering regression.
 
 ### Signing smoke
 
@@ -73,9 +90,9 @@ The `:baselineprofile` module is the official AndroidX Baseline Profile producer
   -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
 ```
 
-The workflow verifies that a non-empty generated `baseline-prof.txt` exists and uploads the profile plus managed-device reports. Emulator use is acceptable for profile collection because this step is not a timing comparison.
+The capture uses an explicit `nonMinifiedRelease` build type with AGP optimization disabled so generated rules retain source-level class and method descriptors, while the production `release` build remains optimized. `scripts/generate_baseline_profile.sh` rejects a generated profile that does not contain the source-level `MainActivity` descriptor. The workflow verifies generation and uploads the profile plus managed-device reports. Emulator use is acceptable for profile collection because this step is not a timing comparison.
 
-A generated profile is not currently committed to `main`. Do not claim Baseline Profile startup improvement until the manual generator has been run, the generated profile has been reviewed and landed, and its effect has been compared with Macrobenchmark on a physical device. Numerical performance conclusions must come from representative physical hardware.
+The reviewed generated profiles are checked in under `app/src/release/generated/baselineProfiles/`. This establishes profile packaging, not a measured speedup. Do not claim Baseline Profile startup improvement until its effect has been compared with Macrobenchmark on representative physical hardware. Numerical performance conclusions must come from representative physical hardware.
 
 ### Physical-device tests
 

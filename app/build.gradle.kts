@@ -66,6 +66,18 @@ android {
             proguardFiles("proguard-rules.pro")
         }
 
+        create("nonMinifiedRelease") {
+            // Baseline Profile capture must preserve source-level class and method names.
+            // With AGP 9.x, disable the new optimization DSL explicitly in addition to
+            // the Baseline Profile plugin's non-minified variant overrides.
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            optimization {
+                enable = false
+            }
+            matchingFallbacks += listOf("release")
+        }
+
         create("benchmark") {
             // Macrobenchmark must measure code that behaves like production, while a local
             // debug key keeps the variant installable without production signing material.
