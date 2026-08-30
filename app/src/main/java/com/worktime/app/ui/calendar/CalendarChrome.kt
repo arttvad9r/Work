@@ -111,18 +111,26 @@ internal fun CalendarHeader(
                     contentDescription = stringResource(R.string.previous_month),
                 )
             }
-            Text(
-                text = monthTitle,
+            Box(
                 modifier = Modifier
-                    .clickable(onClick = onSelectMonth, onClickLabel = stringResource(R.string.select_month))
+                    .height(AppDimens.rowMinHeight)
+                    .clickable(
+                        onClick = onSelectMonth,
+                        onClickLabel = stringResource(R.string.select_month),
+                    )
                     .padding(horizontal = 4.dp)
-                    .testTag("calendar-month-title")
-                    .then(if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier),
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+                    .testTag("calendar-month-title"),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = monthTitle,
+                    modifier = if (largeFont) Modifier.widthIn(max = 140.dp) else Modifier,
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = titleFontSize),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             IconButton(onClick = onNextMonth) {
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
