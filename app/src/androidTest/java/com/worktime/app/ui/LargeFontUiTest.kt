@@ -10,12 +10,13 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.worktime.app.R
 import com.worktime.app.domain.model.MonthSummary
 import com.worktime.app.domain.model.WorkEntry
@@ -24,7 +25,6 @@ import com.worktime.app.ui.calendar.CalendarUiState
 import com.worktime.app.ui.settings.SettingsScreen
 import com.worktime.app.ui.yearsummary.YearSummary
 import com.worktime.app.ui.yearsummary.YearSummaryScreen
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.LocalDate
 import java.time.Month
 import java.time.YearMonth
@@ -43,7 +43,10 @@ class LargeFontUiTest {
     fun yearSummaryKeepsEssentialActionsAtLargeFontInNarrowLayout() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         composeRule.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
+            val deviceDensity = LocalDensity.current.density
+            CompositionLocalProvider(
+                LocalDensity provides Density(deviceDensity, fontScale = 2f),
+            ) {
                 Box(Modifier.size(240.dp, 800.dp)) {
                     YearSummaryScreen(
                         selectedYear = 2026,
@@ -87,7 +90,10 @@ class LargeFontUiTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         var opened = false
         composeRule.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
+            val deviceDensity = LocalDensity.current.density
+            CompositionLocalProvider(
+                LocalDensity provides Density(deviceDensity, fontScale = 2f),
+            ) {
                 Box(Modifier.size(240.dp, 800.dp)) {
                     SettingsScreen(
                         defaultHourlyRateMicros = 500_000_000L,
@@ -115,7 +121,10 @@ class LargeFontUiTest {
     fun calendarKeepsNavigationAndPopulatedDayAtLargeFontInNarrowLayout() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         composeRule.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
+            val deviceDensity = LocalDensity.current.density
+            CompositionLocalProvider(
+                LocalDensity provides Density(deviceDensity, fontScale = 2f),
+            ) {
                 Box(Modifier.size(280.dp, 800.dp)) {
                     CalendarScreen(
                         state = CalendarUiState(
@@ -179,8 +188,12 @@ class LargeFontUiTest {
 
     @Test
     fun calendarMacroHeightIsUnchangedAtLargeFontScale() {
+        var deviceDensity = 1f
         composeRule.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = 2f)) {
+            deviceDensity = LocalDensity.current.density
+            CompositionLocalProvider(
+                LocalDensity provides Density(deviceDensity, fontScale = 2f),
+            ) {
                 Box(Modifier.size(320.dp, 800.dp)) {
                     CalendarScreen(
                         state = CalendarUiState(
@@ -199,9 +212,13 @@ class LargeFontUiTest {
         }
 
         composeRule.waitForIdle()
-        val largeHeight = composeRule.onNodeWithTag("calendar-pager").fetchSemanticsNode().boundsInRoot.height
+        val largeHeightPx = composeRule.onNodeWithTag("calendar-pager")
+            .fetchSemanticsNode()
+            .boundsInRoot
+            .height
+        val largeHeightDp = largeHeightPx / deviceDensity
 
-        assert(abs(largeHeight - 420f) < 1f) { "calendar pager height changed: $largeHeight" }
+        assert(abs(largeHeightDp - 420f) < 1f) { "calendar pager height changed: ${largeHeightDp}dp" }
     }
 
     private fun summary() = YearSummary(
