@@ -9,6 +9,7 @@ import com.worktime.app.data.backup.BackupCodec
 import com.worktime.app.data.backup.BackupData
 import com.worktime.app.data.backup.WorkEntryCsv
 import com.worktime.app.domain.model.WorkEntry
+import com.worktime.app.domain.operation.DataMutationCoordinator
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
 import java.io.InputStream
@@ -32,14 +33,13 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarViewModel(
     private val workEntryRepository: WorkEntryRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
 ) : ViewModel() {
     private val visibleMonth = MutableStateFlow(YearMonth.now())
     private val selectedDate = MutableStateFlow<LocalDate?>(null)
@@ -49,7 +49,6 @@ class CalendarViewModel(
     private val undoSnapshot = MutableStateFlow<UndoSnapshot?>(null)
     private val pendingImport = MutableStateFlow<BackupData?>(null)
     private var operationGeneration = 0L
-    private val operationMutex = Mutex()
     private val _operationEvents = Channel<CalendarOperationEvent>(Channel.BUFFERED)
     val operationEvents: Flow<CalendarOperationEvent> = _operationEvents.receiveAsFlow()
 
@@ -239,6 +238,12 @@ class CalendarViewModel(
         }, invalidateUndo = false)
     }
 
+    /** Invalidates stale calendar results and undo before an external full-data replacement. */
+    fun prepareForExternalDataReplacement() {
+        operationError.value = null
+        supersedeOperation()
+    }
+
     fun exportBackup(stream: OutputStream) {
         runOperation(CalendarOperationError.BACKUP_EXPORT, body = {
             withContext(Dispatchers.IO) {
@@ -337,7 +342,7 @@ class CalendarViewModel(
         val generation = operationGeneration
         viewModelScope.launch {
             try {
-                operationMutex.withLock { body() }
+                dataMutationCoordinator.run { body() }
                 if (generation == operationGeneration) onSuccess()
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
@@ -373,8 +378,15 @@ class CalendarViewModel(
         fun factory(
             workEntryRepository: WorkEntryRepository,
             userPreferencesRepository: UserPreferencesRepository,
+            dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
         ): ViewModelProvider.Factory = viewModelFactory {
-            initializer { CalendarViewModel(workEntryRepository, userPreferencesRepository) }
+            initializer {
+                CalendarViewModel(
+                    workEntryRepository = workEntryRepository,
+                    userPreferencesRepository = userPreferencesRepository,
+                    dataMutationCoordinator = dataMutationCoordinator,
+                )
+            }
         }
     }
 
