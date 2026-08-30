@@ -73,8 +73,8 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // External preference changes (restore/system-driven state) remain authoritative.
-    // A direct tap, however, commits the global palette from the segmented-control spring's
-    // finished callback below instead of guessing its duration with a fixed delay.
+    // Direct taps update both the visual selection and global palette immediately; the
+    // segmented-control spring is presentation only and never delays the preference write.
     LaunchedEffect(themeMode) {
         if (themeMode != presentedThemeMode) {
             presentedThemeMode = themeMode
@@ -128,11 +128,11 @@ fun SettingsScreen(
                 AppSegmentedControl(
                     options = ThemeMode.entries.map { themeLabel(it) },
                     selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
-                    onSelect = { index -> presentedThemeMode = ThemeMode.entries[index] },
-                    onIndicatorSettled = { index ->
-                        val settledMode = ThemeMode.entries[index]
-                        if (settledMode == presentedThemeMode && settledMode != themeMode) {
-                            onThemeChange(settledMode)
+                    onSelect = { index ->
+                        val selectedMode = ThemeMode.entries[index]
+                        presentedThemeMode = selectedMode
+                        if (selectedMode != themeMode) {
+                            onThemeChange(selectedMode)
                         }
                     },
                     modifier = Modifier.padding(vertical = AppDimens.rowGap),
