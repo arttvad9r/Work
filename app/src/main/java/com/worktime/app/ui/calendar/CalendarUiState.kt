@@ -30,7 +30,6 @@ data class CalendarUiState(
 enum class CalendarOperationError {
     SAVE_ENTRY,
     DELETE_ENTRY,
-    SAVE_SETTINGS,
     BULK_RATE,
     UNDO,
     BACKUP_EXPORT,
