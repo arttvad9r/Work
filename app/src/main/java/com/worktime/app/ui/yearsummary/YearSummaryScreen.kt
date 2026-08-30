@@ -48,6 +48,10 @@ import com.worktime.app.ui.format.formatDurationCompact
 import java.time.Month
 import java.time.format.TextStyle as JavaTextStyle
 
+private const val MonthLabelWeight = 1.2f
+private const val MonthDetailWeight = 1.2f
+private const val MonthAmountWeight = 0.9f
+
 @Composable
 fun YearSummaryScreen(
     selectedYear: Int,
@@ -318,7 +322,7 @@ private fun MonthSectionHeader(compactText: Boolean) {
     ) {
         Text(
             text = stringResource(R.string.by_month),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(MonthLabelWeight),
             style = primaryHeaderStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -326,7 +330,7 @@ private fun MonthSectionHeader(compactText: Boolean) {
         )
         Text(
             text = stringResource(R.string.year_month_detail_header),
-            modifier = Modifier.weight(1.2f),
+            modifier = Modifier.weight(MonthDetailWeight),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
             textAlign = TextAlign.End,
@@ -334,7 +338,7 @@ private fun MonthSectionHeader(compactText: Boolean) {
         )
         Text(
             text = stringResource(R.string.year_month_income_header),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(MonthAmountWeight),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
             textAlign = TextAlign.End,
@@ -360,14 +364,14 @@ private fun MonthLine(
     ) {
         Text(
             text = label,
-            modifier = Modifier.alpha(alpha).weight(1f),
+            modifier = Modifier.alpha(alpha).weight(MonthLabelWeight),
             style = style,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = detail ?: "—",
-            modifier = Modifier.weight(1.2f).alpha(alpha),
+            modifier = Modifier.weight(MonthDetailWeight).alpha(alpha),
             style = style,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = if (detail == null) TextAlign.Center else TextAlign.End,
@@ -376,7 +380,7 @@ private fun MonthLine(
         )
         Text(
             text = if (dimmed) "—" else amount,
-            modifier = Modifier.weight(1f).alpha(alpha),
+            modifier = Modifier.weight(MonthAmountWeight).alpha(alpha),
             style = style,
             fontWeight = FontWeight.Medium,
             textAlign = if (dimmed) TextAlign.Center else TextAlign.End,
