@@ -54,7 +54,6 @@ internal class YearSummaryPagerState(
             programmaticPage = targetPage
             programmaticScrollJob?.cancel()
             pagerState.scrollToPage(targetPage)
-            programmaticPage = null
         }
     }
 
