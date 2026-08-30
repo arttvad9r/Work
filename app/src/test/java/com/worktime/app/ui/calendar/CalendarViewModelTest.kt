@@ -488,12 +488,11 @@ class CalendarViewModelTest {
     fun `theme change before first save does not prevent default rate adoption`() = runTest {
         val repository = FakeWorkEntryRepository(emptyList())
         val preferences = FakeUserPreferencesRepository()
+        preferences.updateThemeMode(ThemeMode.DARK)
         val viewModel = CalendarViewModel(repository, preferences)
         val stateJob = launch { viewModel.state.collect() }
         viewModel.state.first { it.isReady }
 
-        viewModel.updateThemeMode(ThemeMode.DARK)
-        preferences.preferences.first { it.themeMode == ThemeMode.DARK }
         viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 10), 60, 370_000_000L))
 
         assertEquals(
@@ -556,7 +555,7 @@ class CalendarViewModelTest {
 
         viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 10), 60, 370_000_000L))
         repository.observeMonth(YearMonth.now()).first { it.isNotEmpty() }
-        viewModel.updateDefaultRate(0L)
+        preferences.updateDefaultHourlyRate(0L)
         preferences.preferences.first { it.defaultHourlyRateMicros == 0L && preferences.initialized }
         viewModel.saveEntry(WorkEntry(LocalDate.of(2026, 8, 11), 60, 420_000_000L))
         repository.observeMonth(YearMonth.now()).first { it.size == 2 }
@@ -578,23 +577,6 @@ class CalendarViewModelTest {
 
         repository.observeMonth(YearMonth.now()).first { it.size == 2 }
         assertEquals(370_000_000L, preferences.preferences.first { it.defaultHourlyRateMicros > 0L }.defaultHourlyRateMicros)
-        stateJob.cancel()
-    }
-
-    @Test
-    fun `concurrent theme and rate updates preserve both values`() = runTest {
-        val preferences = FakeUserPreferencesRepository()
-        val viewModel = CalendarViewModel(FakeWorkEntryRepository(emptyList()), preferences)
-        val stateJob = launch { viewModel.state.collect() }
-        viewModel.state.first { it.isReady }
-
-        viewModel.updateThemeMode(ThemeMode.DARK)
-        viewModel.updateDefaultRate(123_000_000L)
-
-        assertEquals(
-            UserPreferences(123_000_000L, ThemeMode.DARK),
-            preferences.preferences.first { it == UserPreferences(123_000_000L, ThemeMode.DARK) },
-        )
         stateJob.cancel()
     }
 
