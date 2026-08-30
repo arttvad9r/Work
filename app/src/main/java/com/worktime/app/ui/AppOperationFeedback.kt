@@ -65,6 +65,7 @@ internal fun AppOperationFeedback(
                 }
                 CalendarOperationEvent.Success.NO_OP ->
                     snackbarHostState.showSnackbar(noEntriesInPeriodMessage)
+                CalendarOperationEvent.Success.OPERATION_UNDONE -> Unit
                 is CalendarOperationEvent.Error ->
                     when (event.kind) {
                         CalendarOperationError.UNDO ->
