@@ -8,6 +8,7 @@ Run this checklist against the exact commit and APK that will be published. Prio
 - [ ] `:app:testDebugUnitTest` passes with no failed or skipped regression tests.
 - [ ] `:app:lintDebug` and `:app:lintRelease` pass; remaining hints are reviewed and understood.
 - [ ] `:app:assembleDebug`, `:app:assembleDebugAndroidTest` and `:app:assembleRelease` pass through the checked-in Gradle Wrapper.
+- [ ] `:app:assembleBenchmark`, `:macrobenchmark:assembleBenchmark` and `:baselineprofile:assemble` pass through the same local/CI verification gate.
 - [ ] Release optimization remains enabled through AGP `optimization { enable = true }`.
 - [ ] The matching GitHub Actions run is green, including `signing-smoke` and managed-device instrumentation.
 - [ ] CI retains the unsigned optimized release APK and R8 mapping for inspection; the unsigned APK is never distributed.
