@@ -8,12 +8,12 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.worktime.app.data.backup.BackupCodec
 import com.worktime.app.data.backup.BackupData
 import com.worktime.app.data.backup.WorkEntryCsv
-import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
 import com.worktime.app.ui.yearsummary.YearSummary
+import com.worktime.app.ui.yearsummary.buildYearSummary
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.LocalDate
@@ -495,18 +495,3 @@ private data class YearSummaryUi(
     val isOpen: Boolean,
     val summary: YearSummary?,
 )
-
-internal fun buildYearSummary(year: Int, entries: List<WorkEntry>): YearSummary {
-    val byMonth = entries.groupBy { YearMonth.from(it.date) }
-    val months = (1..12).map { month ->
-        SalaryCalculator.monthSummary(byMonth[YearMonth.of(year, month)].orEmpty())
-    }
-    return YearSummary(
-        year = year,
-        total = SalaryCalculator.monthSummary(entries),
-        months = months,
-        monthHasData = (1..12).map { month ->
-            byMonth[YearMonth.of(year, month)].orEmpty().isNotEmpty()
-        },
-    )
-}
