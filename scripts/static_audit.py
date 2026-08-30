@@ -257,7 +257,13 @@ if re.search(
     re.DOTALL,
 ) is None:
     fail("Release build must enable AGP optimization (R8 + resource shrinking)")
-for required_task in (":app:lintRelease", ":app:assembleRelease"):
+for required_task in (
+    ":app:lintRelease",
+    ":app:assembleRelease",
+    ":app:assembleBenchmark",
+    ":macrobenchmark:assembleBenchmark",
+    ":baselineprofile:assemble",
+):
     if required_task not in workflow_file:
         fail(f"CI release gate is missing task: {required_task}")
     if required_task not in verify_script_file:

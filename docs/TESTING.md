@@ -26,21 +26,13 @@ Coverage includes work-entry invariants, salary rounding/aggregation, month grid
   :app:lintRelease \
   :app:assembleDebug \
   :app:assembleDebugAndroidTest \
-  :app:assembleRelease
-```
-
-`./scripts/verify.sh` runs the static audit and all commands above through the repository Gradle Wrapper. `assembleRelease` exercises the optimized APK variant that is signed for GitHub distribution.
-
-Normal GitHub CI extends the compile/build gate with the release-like benchmark app, Macrobenchmark test APK and Baseline Profile generator module:
-
-```bash
-./gradlew \
+  :app:assembleRelease \
   :app:assembleBenchmark \
   :macrobenchmark:assembleBenchmark \
   :baselineprofile:assemble
 ```
 
-These tasks verify that performance tooling remains buildable without turning hosted-emulator measurements into release thresholds.
+`./scripts/verify.sh` runs the static audit and all commands above through the repository Gradle Wrapper. Normal GitHub CI uses the same compile/build gate. `assembleRelease` exercises the optimized APK variant that is signed for GitHub distribution, while the three performance tasks verify that the release-like benchmark app, Macrobenchmark test APK and Baseline Profile generator module remain buildable without turning hosted-emulator measurements into release thresholds.
 
 ### Signing smoke
 
