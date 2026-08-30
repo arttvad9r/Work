@@ -15,4 +15,7 @@ fi
   :app:assembleDebug \
   :app:assembleDebugAndroidTest \
   :app:assembleRelease \
+  :app:assembleBenchmark \
+  :macrobenchmark:assembleBenchmark \
+  :baselineprofile:assemble \
   --stacktrace
