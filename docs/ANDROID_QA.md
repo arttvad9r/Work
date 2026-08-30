@@ -2,7 +2,7 @@
 
 Run this checklist against a clean build from the branch/commit being evaluated. Record device model, Android version, app version/commit and result.
 
-WorkTime is portrait-only by product decision. Landscape support is out of scope.
+WorkTime is portrait-first on compact phones, but it must remain functional through rotation, window resizing and large-screen environments. There is no separate landscape-only product mode and QA must not depend on an orientation lock.
 
 ## Install and startup
 
@@ -10,7 +10,7 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] APK installs cleanly.
 - [ ] First launch does not crash or flash an editor before preferences load.
 - [ ] Relaunch preserves entries and theme.
-- [ ] App remains locked to portrait orientation.
+- [ ] Rotate or resize the app window and confirm the activity remains usable and persisted state is intact; on API 37 large screens, verify the UI still works when platform orientation restrictions are ignored.
 
 ## Calendar
 
@@ -89,6 +89,7 @@ WorkTime is portrait-only by product decision. Landscape support is out of scope
 - [ ] Light and dark themes have readable contrast.
 - [ ] 200% font scale does not hide essential actions.
 - [ ] Narrow portrait phone does not produce overlapping text.
+- [ ] Rotated/short-height phone and a resized or large-screen window keep essential actions reachable without overlapping critical content.
 - [ ] TalkBack announces dates, selected/today state, duration and adjustments.
 - [ ] Fixed `₽` and `₽/h` labels are readable and do not overlap at narrow width or 200% font scale.
 - [ ] Settings exposes `Change rate for period`; no recorded-entry rate history is shown.

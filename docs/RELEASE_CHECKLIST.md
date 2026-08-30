@@ -66,7 +66,8 @@ Run this checklist against the exact commit and APK that will be published. Prio
 
 ## UI/accessibility
 
-- [ ] App remains portrait-only.
+- [ ] Compact portrait phone remains the primary layout and does not regress.
+- [ ] Rotation/window resizing preserves a usable UI and state; on an API 37 large-screen environment, verify the app remains usable when platform orientation restrictions are ignored.
 - [ ] Calendar never vertically scrolls or jumps; horizontal month swipes track the finger and settle on the expected month.
 - [ ] Russian labels fit, including `Системная` and `Отработано часов`.
 - [ ] Invalid numeric input uses red outline only; no validation helper text appears.

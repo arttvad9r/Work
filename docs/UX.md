@@ -13,7 +13,7 @@ Calendar
    `- Year summary -> full-screen YearSummaryScreen
 ```
 
-The application is portrait-only. Day editing, rate changing and export-format selection use modal sheets. Settings and year summary are full-screen surfaces.
+The compact portrait phone is the primary layout target, but WorkTime does not rely on an orientation lock. The same UI must remain functional through rotation, window resizing and large-screen environments where Android can ignore orientation restrictions. This is adaptive support, not a separate landscape-only product mode. Day editing, rate changing and export-format selection use modal sheets. Settings and year summary are full-screen surfaces.
 
 ## Calendar
 

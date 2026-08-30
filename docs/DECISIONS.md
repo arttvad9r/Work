@@ -10,6 +10,10 @@ The month calendar is the primary screen. A date opens the editor directly; ther
 
 The calendar uses six rows and consumes a stable portion of the viewport. Summary/report content adapts below it and never moves the grid.
 
+### Portrait-first, not portrait-locked
+
+The compact portrait phone is the primary visual and physical-QA target, but WorkTime does not depend on `screenOrientation` or runtime orientation locks. Rotation, window resizing and large-screen layouts must remain usable and preserve valid app state. This is adaptive support required by the Android platform; it does not introduce a separate landscape-only product mode.
+
 ### Standard draggable report sheet
 
 The compact summary is permanent. A separate `BottomSheetScaffold` sheet exposes the detailed month report through one native drag/tap handle.

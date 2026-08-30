@@ -8,7 +8,7 @@
 python3 scripts/static_audit.py
 ```
 
-Checks XML/resources, EN/RU key parity, privacy controls, portrait/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback, pinned CI actions, wrapper checksum, release signing safety, release optimization, required release-build CI tasks and the GitHub tag-release workflow invariants.
+Checks XML/resources, EN/RU key parity, privacy controls, adaptive-orientation/IME manifest controls, forbidden binary floating point in domain/data, destructive Room fallback, pinned CI actions, wrapper checksum, release signing safety, release optimization, required release-build CI tasks and the GitHub tag-release workflow invariants.
 
 ### JVM tests
 
@@ -69,7 +69,7 @@ A generated profile is not currently committed to `main`. Do not claim Baseline 
 
 ### Physical-device tests
 
-A managed emulator does not replace the manual interaction checklist in `ANDROID_QA.md`, especially for IME visibility, haptics, widget presentation, launcher behavior, document picker flows and bottom-sheet gestures. The final pass must use the exact signed optimized APK downloaded from the draft GitHub Release.
+A managed emulator does not replace the manual interaction checklist in `ANDROID_QA.md`, especially for IME visibility, haptics, widget presentation, launcher behavior, document picker flows, bottom-sheet gestures and adaptive behavior through rotation/window resizing. The final pass must use the exact signed optimized APK downloaded from the draft GitHub Release.
 
 For updates, install the candidate over the previous public APK without uninstalling. This simultaneously checks version/signing continuity and local data/widget preservation.
 
@@ -103,7 +103,7 @@ For updates, install the candidate over the previous public APK without uninstal
 - sparse same-rate entries are labelled as recorded-entry groups, not continuous effective periods.
 - concurrent theme and default-rate updates preserve both independent preference values.
 - Undo is available only while the owning `CalendarViewModel` remains alive; recreating it does not restore an old Undo snapshot.
-- portrait orientation remains enforced.
+- the app does not rely on a compact-phone orientation lock; rotation/window resize must preserve a valid, usable UI and persisted state, including API 37 large-screen environments where orientation restrictions are ignored.
 - Settings and Year Summary exits travel beyond the old partial-width target before composition removes them.
 - LTR/RTL full-screen navigation direction stays mirrored while predictive back follows the actual swipe edge.
 - the in-app privacy disclosure opens and remains scrollable on a compact viewport.

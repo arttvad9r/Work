@@ -14,7 +14,7 @@
 10. Export JSON and CSV; import the JSON backup and confirm entries/settings/initialization state restore correctly. Confirm malformed import writes nothing.
 11. Open Year summary from the monthly report, switch years and verify totals plus month-column alignment; verify an empty year remains compact.
 12. Add the home-screen widget, change an entry and confirm refresh, theme behavior, compact presentation, body tap-through and `+` opening today's editor.
-13. Check Russian and English locales, narrow portrait width, increased supported font scale and TalkBack.
+13. Check Russian and English locales, narrow portrait width, rotation/window resize, increased supported font scale and TalkBack; on a large-screen/API 37 environment confirm the UI remains usable when the platform ignores orientation restrictions.
 14. Complete the remaining items in `ANDROID_QA.md` and `RELEASE_CHECKLIST.md`.
 
 ## P1 — release packaging and hardening
@@ -29,4 +29,4 @@
 - multiple work profiles/jobs;
 - overtime/pay-period configuration.
 
-Do not reintroduce currency selection, notes, quick-duration presets, validation helper text, landscape support, cloud accounts or timers without an explicit product decision.
+Do not reintroduce currency selection, notes, quick-duration presets, validation helper text, cloud accounts or timers without an explicit product decision. Do not add a separate landscape-only product mode; adaptive rotation/window resizing remains part of the Android quality contract.
