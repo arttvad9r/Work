@@ -101,7 +101,7 @@ All interactive rows follow the shared 48 dp row contract; segmented controls an
 
 The shared segmented control uses one moving selected pill rather than unrelated hard-swapped fills. An actual selection change emits one light segment tick; tapping the already selected option does not.
 
-Theme changes interpolate the visible Material color roles for about one local-transition interval instead of replacing the complete light/dark palette in one frame. Layout and typography do not animate or reflow during the theme transition.
+Theme palette changes apply immediately when an option is selected. The segmented indicator may continue its short presentation spring, but it never delays the preference write or the visible theme change; layout and typography do not animate or reflow during the switch.
 
 Default rate edits inline and autosaves valid values. It is semantically separate from an individual entry rate. The first saved worked entry may initialize an uninitialized default; later per-day rates do not overwrite an initialized default.
 
@@ -126,11 +126,13 @@ The settings screen uses IME-aware scrolling so lower actions remain reachable w
 The year summary is a full-screen, view-only screen opened from the monthly report.
 
 - compact year pager with previous/next arrows;
+- the report itself is intentionally non-scrollable: January through December must remain visible together on one page;
+- the 12 month rows divide the remaining viewport height evenly, with a compact report text tier at larger supported font scales rather than introducing vertical scrolling;
 - yearly income, work days, hours, average working-month income, average shift and optional bonus/penalty totals;
 - month breakdown header is one line: `By month` at the left, `shifts · h` and `income` aligned to their data columns;
 - populated months are normal emphasis; missing months are muted with dashes;
 - an entirely empty year uses compact rows instead of stretching empty content across available height;
-- changing year slides/fades the year number and report content laterally in the direction of time while retaining the previous year until the next Room result is ready.
+- changing year follows the finger horizontally and settles with the same directional pager model for swipe and arrow navigation while retaining adjacent-year data during the gesture.
 
 Settings enters from the right with a restrained slide + fade and reverses that direction on dismiss. Year summary rises from the bottom and returns downward because it is launched from the bottom monthly report rather than from top-level horizontal navigation.
 
