@@ -12,14 +12,18 @@ import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 
 internal data class YearSummaryUiState(
-    val summary: YearSummary? = null,
-)
+    val selectedYear: Int,
+    val summaries: Map<Int, YearSummary> = emptyMap(),
+) {
+    val summary: YearSummary?
+        get() = summaries[selectedYear]
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class YearSummaryViewModel(
@@ -29,31 +33,50 @@ internal class YearSummaryViewModel(
 ) : ViewModel() {
     private val year = savedStateHandle.getStateFlow(KEY_YEAR, initialYear)
 
-    val state: StateFlow<YearSummaryUiState> = year
+    private val summaries = year
         .flatMapLatest { selectedYear ->
+            val firstYear = selectedYear - 1
+            val lastYear = selectedYear + 1
             workEntryRepository.observeDateRange(
-                LocalDate.of(selectedYear, 1, 1),
-                LocalDate.of(selectedYear, 12, 31),
-            )
-                .map { entries ->
-                    YearSummaryUiState(
-                        summary = buildYearSummary(selectedYear, entries),
-                    )
+                LocalDate.of(firstYear, 1, 1),
+                LocalDate.of(lastYear, 12, 31),
+            ).map { entries ->
+                val entriesByYear = entries.groupBy { it.date.year }
+                (firstYear..lastYear).associateWith { summaryYear ->
+                    buildYearSummary(summaryYear, entriesByYear[summaryYear].orEmpty())
                 }
-                .onStart { emit(YearSummaryUiState()) }
+            }
         }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-            initialValue = YearSummaryUiState(),
+            initialValue = emptyMap(),
         )
 
+    val state: StateFlow<YearSummaryUiState> = combine(
+        year,
+        summaries,
+    ) { selectedYear, loadedSummaries ->
+        YearSummaryUiState(
+            selectedYear = selectedYear,
+            summaries = loadedSummaries,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+        initialValue = YearSummaryUiState(selectedYear = year.value),
+    )
+
+    fun showYear(selectedYear: Int) {
+        savedStateHandle[KEY_YEAR] = selectedYear
+    }
+
     fun showPreviousYear() {
-        savedStateHandle[KEY_YEAR] = year.value - 1
+        showYear(year.value - 1)
     }
 
     fun showNextYear() {
-        savedStateHandle[KEY_YEAR] = year.value + 1
+        showYear(year.value + 1)
     }
 
     companion object {
