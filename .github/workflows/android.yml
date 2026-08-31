@@ -27,6 +27,8 @@ jobs:
         run: ./gradlew --version
       - name: Repository static audit
         run: python3 scripts/static_audit.py
+      - name: Verify debug package isolation
+        run: grep -F 'applicationIdSuffix = ".debug"' app/build.gradle.kts
       - name: Unit tests, screenshot validation, lint and Android target compilation
         run: |
           ./gradlew --no-daemon \
