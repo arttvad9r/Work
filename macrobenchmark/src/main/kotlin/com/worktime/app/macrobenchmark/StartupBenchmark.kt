@@ -7,11 +7,10 @@ import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import com.worktime.app.benchmark.shared.WorkTimeBenchmarkPackage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-
-private const val TargetPackage = "com.worktime.app"
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
@@ -33,7 +32,7 @@ class StartupBenchmark {
     )
 
     private fun coldStartup(compilationMode: CompilationMode) = benchmarkRule.measureRepeated(
-        packageName = TargetPackage,
+        packageName = WorkTimeBenchmarkPackage,
         metrics = listOf(StartupTimingMetric()),
         compilationMode = compilationMode,
         startupMode = StartupMode.COLD,

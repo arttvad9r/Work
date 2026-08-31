@@ -6,8 +6,8 @@ import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import com.worktime.app.benchmark.shared.WorkTimeBenchmarkPackage
 import com.worktime.app.benchmark.shared.WorkTimeJourneys
-import com.worktime.app.benchmark.shared.WorkTimePackage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,11 +18,11 @@ class MonthNavigationBenchmark {
     @get:Rule
     val benchmarkRule = MacrobenchmarkRule()
 
-    private val journeys = WorkTimeJourneys()
+    private val journeys = WorkTimeJourneys(WorkTimeBenchmarkPackage)
 
     @Test
     fun nextMonthFrameTimingWithBaselineProfile() = benchmarkRule.measureRepeated(
-        packageName = WorkTimePackage,
+        packageName = WorkTimeBenchmarkPackage,
         metrics = listOf(FrameTimingMetric()),
         compilationMode = CompilationMode.Partial(
             baselineProfileMode = BaselineProfileMode.Require,

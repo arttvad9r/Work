@@ -11,15 +11,18 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 const val WorkTimePackage = "com.worktime.app"
+const val WorkTimeBenchmarkPackage = "com.worktime.app.benchmark"
 
 private const val NextMonthResourceName = "next_month"
 
-class WorkTimeJourneys {
+class WorkTimeJourneys(
+    private val targetPackage: String = WorkTimePackage,
+) {
     private val targetResources by lazy {
         InstrumentationRegistry.getInstrumentation()
             .context
             .packageManager
-            .getResourcesForApplication(WorkTimePackage)
+            .getResourcesForApplication(targetPackage)
     }
 
     private val locale: Locale by lazy {
@@ -30,7 +33,7 @@ class WorkTimeJourneys {
         val resourceId = targetResources.getIdentifier(
             NextMonthResourceName,
             "string",
-            WorkTimePackage,
+            targetPackage,
         )
         check(resourceId != 0) {
             "Target app does not expose string resource $NextMonthResourceName"

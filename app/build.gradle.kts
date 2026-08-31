@@ -87,9 +87,12 @@ android {
         }
 
         create("benchmark") {
-            // Macrobenchmark must measure code that behaves like production, while a local
-            // debug key keeps the variant installable without production signing material.
+            // Macrobenchmark must measure release-like code without touching the installed
+            // production package on a physical QA device. The benchmark application id is
+            // disposable and independently debug-signed.
             initWith(getByName("release"))
+            applicationIdSuffix = ".benchmark"
+            versionNameSuffix = "-benchmark"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }
