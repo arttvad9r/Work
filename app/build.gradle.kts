@@ -52,6 +52,14 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            // Keep development/instrumentation installs isolated from the real app package.
+            // connectedDebugAndroidTest may uninstall its tested APK during cleanup, so a
+            // dedicated application id prevents a physical QA run from deleting user data.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+
         release {
             // Production signing is opt-in through RELEASE_* properties/env vars.
             // Without them Gradle produces an unsigned release artifact, never a
