@@ -4,6 +4,14 @@ Run this checklist against a clean build from the branch/commit being evaluated.
 
 WorkTime is phone-first, not orientation-locked. The compact portrait layout remains the primary visual target, but rotation, split-screen and resizable/expanded windows are part of the supported adaptive contract.
 
+## Physical-device safety
+
+- [ ] Confirm the production package (`com.worktime.app`) and its data are not the target of routine instrumentation.
+- [ ] Debug/instrumentation builds use `com.worktime.app.debug`; verify that package id before `connectedDebugAndroidTest`.
+- [ ] Treat Gradle instrumentation installs as disposable: they may be removed during task cleanup.
+- [ ] Never run `pm clear`, uninstall `com.worktime.app` or replace it with a debug-signed APK during routine physical QA.
+- [ ] Exact production install/update testing is a separate release gate and requires the actual production signer plus an explicit data-safe plan.
+
 ## Install and startup
 
 - [ ] `assembleDebug` completes.
