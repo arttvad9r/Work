@@ -20,6 +20,13 @@ Keep WorkTime a small calendar-first personal timesheet. Do not add notes, quick
 
 Do not report a build, test or device result as passed unless the command/test actually ran to completion. Infrastructure failures must be recorded separately from code failures.
 
+## Physical-device test safety
+
+- Debug builds use `com.worktime.app.debug`; keep this application-id suffix in place so Gradle instrumentation cleanup cannot uninstall the real `com.worktime.app` package and its user data.
+- Before running `connectedDebugAndroidTest` on a personal device, verify the tested package is the debug-suffixed package. Never run destructive instrumentation against the production application id.
+- Release/benchmark install and update checks are separate release gates. Do not substitute a debug-signed build for a production-signed release candidate.
+- Do not use `pm clear`, uninstall the production package or otherwise destroy existing user data as part of routine physical QA.
+
 ## Repository hygiene
 
 - Use short-lived branches for isolated changes and delete them after their work is merged or superseded.
