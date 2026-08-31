@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -24,6 +26,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -39,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowSizeClass.Companion.HEIGHT_DP_MEDIUM_LOWER_BOUND
 import com.worktime.app.R
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppMotion
@@ -51,7 +56,21 @@ import java.time.format.TextStyle as JavaTextStyle
 private const val MonthLabelWeight = 1.2f
 private const val MonthDetailWeight = 1.2f
 private const val MonthAmountWeight = 0.9f
+private val ShortViewportMonthRowMinHeight = 32.dp
 
+internal enum class YearSummaryLayoutMode {
+    FixedViewport,
+    CompactShort,
+}
+
+internal fun yearSummaryLayoutMode(isHeightAtLeastMedium: Boolean): YearSummaryLayoutMode =
+    if (isHeightAtLeastMedium) {
+        YearSummaryLayoutMode.FixedViewport
+    } else {
+        YearSummaryLayoutMode.CompactShort
+    }
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun YearSummaryScreen(
     selectedYear: Int,
@@ -61,6 +80,12 @@ fun YearSummaryScreen(
 ) {
     val locale = LocalLocale.current.platformLocale
     val scope = rememberCoroutineScope()
+    val adaptiveInfo = currentWindowAdaptiveInfoV2()
+    val layoutMode = yearSummaryLayoutMode(
+        isHeightAtLeastMedium = adaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(
+            HEIGHT_DP_MEDIUM_LOWER_BOUND,
+        ),
+    )
     val pager = rememberYearSummaryPagerState(selectedYear)
     val pagerFlingBehavior = PagerDefaults.flingBehavior(
         state = pager.pagerState,
@@ -147,6 +172,7 @@ fun YearSummaryScreen(
                     YearSummaryContent(
                         summary = summary,
                         locale = locale,
+                        layoutMode = layoutMode,
                     )
                 }
             }
@@ -158,8 +184,10 @@ fun YearSummaryScreen(
 private fun YearSummaryContent(
     summary: YearSummary,
     locale: java.util.Locale,
+    layoutMode: YearSummaryLayoutMode,
 ) {
     val compactText = LocalDensity.current.fontScale >= 1.4f
+    val scrollState = rememberScrollState()
     val metricStyle = if (compactText) {
         MaterialTheme.typography.bodySmall
     } else {
@@ -170,6 +198,11 @@ private fun YearSummaryContent(
     } else {
         MaterialTheme.typography.bodyMedium
     }
+    val scrollModifier = if (layoutMode == YearSummaryLayoutMode.CompactShort) {
+        Modifier.verticalScroll(scrollState)
+    } else {
+        Modifier
+    }
 
     Column(
         modifier = Modifier
@@ -177,6 +210,7 @@ private fun YearSummaryContent(
             .padding(horizontal = AppDimens.screenHorizontalPadding)
             .navigationBarsPadding()
             .padding(bottom = AppDimens.rowGap)
+            .then(scrollModifier)
             .testTag("year-summary-content"),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
@@ -245,18 +279,30 @@ private fun YearSummaryContent(
         MonthSectionHeader(compactText = compactText)
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .testTag("year-summary-months"),
+            modifier = if (layoutMode == YearSummaryLayoutMode.FixedViewport) {
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .testTag("year-summary-months")
+            } else {
+                Modifier
+                    .fillMaxWidth()
+                    .testTag("year-summary-months")
+            },
         ) {
             Month.entries.forEachIndexed { index, month ->
                 val monthTotal = summary.months[month.value - 1]
                 val empty = !summary.monthHasData.getOrElse(index) { false }
                 MonthLine(
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("year-summary-month-${month.value}"),
+                    modifier = if (layoutMode == YearSummaryLayoutMode.FixedViewport) {
+                        Modifier
+                            .weight(1f)
+                            .testTag("year-summary-month-${month.value}")
+                    } else {
+                        Modifier
+                            .heightIn(min = ShortViewportMonthRowMinHeight)
+                            .testTag("year-summary-month-${month.value}")
+                    },
                     label = monthDisplayName(month, locale),
                     detail = if (empty) {
                         null
