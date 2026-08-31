@@ -82,6 +82,14 @@ internal fun TodayEntryPrompt(
     }
 }
 
+internal fun calendarMonthTitle(
+    visibleMonth: YearMonth,
+    locale: Locale,
+    largeFont: Boolean,
+): String = visibleMonth.format(
+    DateTimeFormatter.ofPattern(if (largeFont) "LLL yyyy" else "LLLL yyyy", locale),
+)
+
 @Composable
 internal fun CalendarHeader(
     visibleMonth: YearMonth,
@@ -92,8 +100,8 @@ internal fun CalendarHeader(
     onSelectMonth: () -> Unit,
     onSettingsClick: () -> Unit,
 ) {
-    val monthTitle = visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
     val largeFont = LocalDensity.current.fontScale >= 1.5f
+    val monthTitle = calendarMonthTitle(visibleMonth, locale, largeFont)
     val titleFontSize = if (largeFont) 18.sp else 22.sp
     Row(
         modifier = Modifier
