@@ -80,18 +80,21 @@ internal fun SummaryStrip(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(haptics) {
+                .pointerInput(haptics, onClick, onSwipeUp) {
                     val threshold = 40.dp.toPx()
-                    var totalDrag = 0f
+                    var totalDragX = 0f
+                    var totalDragY = 0f
                     var thresholdActive = false
                     detectDragGestures(
                         onDragStart = {
-                            totalDrag = 0f
+                            totalDragX = 0f
+                            totalDragY = 0f
                             thresholdActive = false
                         },
                         onDrag = { change, dragAmount ->
-                            totalDrag += dragAmount.y
-                            val isEligible = totalDrag <= -threshold
+                            totalDragX += dragAmount.x
+                            totalDragY += dragAmount.y
+                            val isEligible = totalDragY <= -threshold
                             if (isEligible && !thresholdActive) {
                                 haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
                                 thresholdActive = true
@@ -101,8 +104,19 @@ internal fun SummaryStrip(
                             change.consume()
                         },
                         onDragEnd = {
-                            if (totalDrag <= -threshold) onSwipeUp()
-                            totalDrag = 0f
+                            val dragDistanceSquared =
+                                totalDragX * totalDragX + totalDragY * totalDragY
+                            when {
+                                totalDragY <= -threshold -> onSwipeUp()
+                                dragDistanceSquared < threshold * threshold -> onClick()
+                            }
+                            totalDragX = 0f
+                            totalDragY = 0f
+                            thresholdActive = false
+                        },
+                        onDragCancel = {
+                            totalDragX = 0f
+                            totalDragY = 0f
                             thresholdActive = false
                         },
                     )
