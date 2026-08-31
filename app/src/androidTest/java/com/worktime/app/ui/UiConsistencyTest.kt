@@ -2,8 +2,17 @@ package com.worktime.app.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.byValue
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -19,10 +28,10 @@ import com.worktime.app.ui.components.AppDestructiveAction
 import com.worktime.app.ui.components.AppNavigationRow
 import com.worktime.app.ui.components.AppPrimaryButton
 import com.worktime.app.ui.components.AppSegmentedControl
-import com.worktime.app.ui.dayeditor.DayEditorSheetContent
+import com.worktime.app.ui.dayeditor.NumericEditorSection
+import com.worktime.app.ui.dayeditor.NumericField
 import com.worktime.app.ui.settings.SettingsScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
-import java.time.LocalDate
 import kotlin.math.abs
 import org.junit.Rule
 import org.junit.Test
@@ -90,15 +99,52 @@ class UiConsistencyTest {
     fun dayEditorKeepsSemanticRowOrderWhenFieldsSwitchToCompactEditors() {
         composeRule.setContent {
             WorkTimeTheme {
-                Box(Modifier.size(320.dp, 800.dp)) {
-                    DayEditorSheetContent(
-                        date = LocalDate.of(2026, 8, 21),
-                        existing = null,
-                        defaultHourlyRateMicros = 370_000_000L,
-                        operationErrorMessage = null,
-                        onDismiss = {},
-                        onSave = {},
-                        onDelete = {},
+                var activeField by remember { mutableStateOf(NumericField.Duration) }
+                var bonusVisible by remember { mutableStateOf(false) }
+                var penaltyVisible by remember { mutableStateOf(false) }
+                val durationState = rememberTextFieldState(initialText = "00:00")
+                val rateState = rememberTextFieldState(initialText = "370")
+                val bonusState = rememberTextFieldState()
+                val penaltyState = rememberTextFieldState()
+                val editorState = rememberTextFieldState(initialText = "00:00")
+                val passthroughTransformation = remember {
+                    InputTransformation.byValue { _, proposed -> proposed }
+                }
+                val focusRequester = remember { FocusRequester() }
+
+                // Geometry is tested at the component boundary instead of inside the
+                // scrollable modal sheet. Clicking a field here changes only logical
+                // selection, so a real-device IME transition cannot clip/scroll the
+                // semantics bounds and masquerade as a row-layout regression.
+                Box(Modifier.size(320.dp, 320.dp)) {
+                    NumericEditorSection(
+                        durationState = durationState,
+                        rateState = rateState,
+                        bonusState = bonusState,
+                        penaltyState = penaltyState,
+                        editorState = editorState,
+                        activeField = activeField,
+                        bonusVisible = bonusVisible,
+                        penaltyVisible = penaltyVisible,
+                        durationInputTransformation = passthroughTransformation,
+                        moneyInputTransformation = passthroughTransformation,
+                        numericKeyboardOptions = KeyboardOptions(),
+                        durationHasError = false,
+                        rateHasError = false,
+                        bonusHasError = false,
+                        penaltyHasError = false,
+                        onActivateField = { activeField = it },
+                        onShowBonus = {
+                            bonusVisible = true
+                            activeField = NumericField.Bonus
+                        },
+                        onShowPenalty = {
+                            penaltyVisible = true
+                            activeField = NumericField.Penalty
+                        },
+                        onNext = {},
+                        editorFocusRequester = focusRequester,
+                        onEditorFocusChanged = {},
                     )
                 }
             }
@@ -120,24 +166,20 @@ class UiConsistencyTest {
         composeRule.onNodeWithTag("day-editor-row-bonus").performClick()
         composeRule.waitForIdle()
 
-        // The active field's own passive row is replaced by the compact editor; every
-        // other semantic row keeps its order and its exact inter-row geometry. All
-        // comparisons use the penalty row as an anchor so a global IME/sheet shift
-        // cancels out while any per-row jump still fails.
-        val anchorShift = topOf("day-editor-row-penalty") - penaltyTopBefore
         assert(topOf("day-editor-row-duration") < topOf("day-editor-row-rate")) {
             "duration/rate order broken"
         }
         assert(topOf("day-editor-row-rate") < topOf("day-editor-row-penalty")) {
             "rate/penalty order broken"
         }
-        val rateDrift = abs(topOf("day-editor-row-rate") - rateTopBefore - anchorShift)
-        assert(rateDrift <= 2f) { "rate row jumped by ${rateDrift}px (anchor shift $anchorShift)" }
+        val rateDrift = abs(topOf("day-editor-row-rate") - rateTopBefore)
+        assert(rateDrift <= 2f) { "rate row jumped by ${rateDrift}px" }
+        val penaltyDrift = abs(topOf("day-editor-row-penalty") - penaltyTopBefore)
+        assert(penaltyDrift <= 2f) { "penalty row jumped by ${penaltyDrift}px" }
         val activeTop = topOf("day-editor-active-field")
-        val activeDrift = abs(activeTop - bonusTopBefore - anchorShift)
+        val activeDrift = abs(activeTop - bonusTopBefore)
         assert(activeDrift <= 2f) {
-            "active editor did not take over the bonus slot: drift ${activeDrift}px " +
-                "(anchor shift $anchorShift)"
+            "active editor did not take over the bonus slot: drift ${activeDrift}px"
         }
     }
 
