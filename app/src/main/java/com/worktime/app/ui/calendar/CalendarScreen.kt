@@ -67,6 +67,10 @@ internal fun calendarLayoutMode(
     else -> CalendarLayoutMode.Compact
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun shouldExpandSummaryAfterToggle(targetValue: SheetValue): Boolean =
+    targetValue != SheetValue.Expanded
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun CalendarScreen(
@@ -131,12 +135,10 @@ fun CalendarScreen(
     }
     val toggleSummary: () -> Unit = {
         scope.launch {
-            if (summarySheetState.currentValue == SheetValue.Expanded ||
-                summarySheetState.targetValue == SheetValue.Expanded
-            ) {
-                summarySheetState.hide()
-            } else {
+            if (shouldExpandSummaryAfterToggle(summarySheetState.targetValue)) {
                 summarySheetState.expand()
+            } else {
+                summarySheetState.hide()
             }
         }
     }
