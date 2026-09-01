@@ -1,56 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-
-    <group
-        android:pivotX="54"
-        android:pivotY="54"
-        android:scaleX="0.78"
-        android:scaleY="0.78">
-
-        <!-- Open clock ring: one clear silhouette, no decorative ticks. -->
-        <path
-            android:fillColor="@android:color/transparent"
-            android:pathData="M82,49 A31,31 0,1 0,63 78"
-            android:strokeColor="#1769F4"
-            android:strokeWidth="7.6"
-            android:strokeLineCap="round" />
-
-        <!-- Clock hands. -->
-        <path
-            android:fillColor="@android:color/transparent"
-            android:pathData="M52,50 L52,35 M52,50 L65,59"
-            android:strokeColor="#1769F4"
-            android:strokeWidth="5.5"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
-        <path
-            android:fillColor="#1769F4"
-            android:pathData="M52,45.5 A4.5,4.5 0,1 0,52 54.5 A4.5,4.5 0,1 0,52 45.5" />
-
-        <!-- Earnings badge: outline only so the background remains visually light. -->
-        <path
-            android:fillColor="@android:color/transparent"
-            android:pathData="M76,59 A14,14 0,1 0,76 87 A14,14 0,1 0,76 59"
-            android:strokeColor="#1769F4"
-            android:strokeWidth="4.6" />
-
-        <!-- Compact dollar mark. -->
-        <path
-            android:fillColor="@android:color/transparent"
-            android:pathData="M81,66 C79,64.5 74,64.5 72,67.5 C70,70.5 73,72.5 77,73.5 C81,74.5 83,77 81,80 C79,83 74,83 71,81"
-            android:strokeColor="#1769F4"
-            android:strokeWidth="3.2"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
-        <path
-            android:fillColor="@android:color/transparent"
-            android:pathData="M76,63.5 L76,84"
-            android:strokeColor="#1769F4"
-            android:strokeWidth="2.8"
-            android:strokeLineCap="round" />
-    </group>
-</vector>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_launcher_exact"
+    android:gravity="fill"
+    android:antialias="true"
+    android:filter="true" />
