@@ -73,10 +73,9 @@ class FullScreenMotionUiTest {
             composeRule.activity.onBackPressedDispatcher.onBackPressed()
         }
 
-        // Sample the whole transition instead of relying on one device-specific frame. Settings
-        // intentionally uses short spatial travel: enough to preserve hierarchy direction, but
-        // well below the old width/5-or-more exit that made dismissal feel much heavier than
-        // entry. The current shared navigation contract targets one eighth of the viewport.
+        // Physical-device video showed that the old one-eighth transition read almost as a hard
+        // cut. Keep the hierarchy travel restrained, but require enough distance to remain
+        // perceptible across 60/90/120 Hz displays. The shared contract now targets one sixth.
         var maxTravelled = 0f
         repeat(60) {
             composeRule.mainClock.advanceTimeByFrame()
@@ -90,7 +89,7 @@ class FullScreenMotionUiTest {
         assertTrue(
             "Expected a visible but restrained full-screen exit; " +
                 "maxTravelled=$maxTravelled rootWidth=$rootWidth",
-            maxTravelled >= rootWidth * 0.10f && maxTravelled <= rootWidth * 0.16f,
+            maxTravelled >= rootWidth * 0.14f && maxTravelled <= rootWidth * 0.19f,
         )
         node.assertDoesNotExist()
     }
@@ -116,9 +115,9 @@ class FullScreenMotionUiTest {
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()
         assertTrue(
-            "Expected Year Summary to move downward while closing; " +
+            "Expected a readable but restrained Year Summary downward exit; " +
                 "maxTravelled=$maxTravelled rootHeight=$rootHeight",
-            maxTravelled > rootHeight * 0.05f,
+            maxTravelled >= rootHeight * 0.08f && maxTravelled <= rootHeight * 0.12f,
         )
         node.assertDoesNotExist()
     }
