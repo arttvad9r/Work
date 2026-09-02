@@ -39,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -46,6 +48,7 @@ import androidx.window.core.layout.WindowSizeClass.Companion.HEIGHT_DP_MEDIUM_LO
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppSheetShape
+import com.worktime.app.ui.components.pagerSwipeHapticFeedback
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.launch
@@ -84,6 +87,7 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalLocale.current.platformLocale
+    val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val adaptiveInfo = currentWindowAdaptiveInfoV2()
     val paneDirective = calculatePaneScaffoldDirective(adaptiveInfo)
@@ -111,14 +115,6 @@ fun CalendarScreen(
         visibleMonth = state.visibleMonth,
         scope = scope,
         onSelectMonth = onSelectMonth,
-    )
-
-    val displayedMonth = pager.displayedMonth
-    val displayedEntries = state.monthEntries[displayedMonth]
-        ?: if (displayedMonth == state.visibleMonth) state.entries else emptyMap()
-    val displayedState = state.copy(
-        visibleMonth = displayedMonth,
-        entries = displayedEntries,
     )
 
     val summarySheetState = rememberStandardBottomSheetState(
@@ -193,11 +189,11 @@ fun CalendarScreen(
                 Spacer(modifier = Modifier.height(1.dp))
             } else {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // This is the actual sheet peek. Vertical drags now move the Material sheet
-                    // directly instead of waiting for a custom threshold and starting a second
-                    // animation only after the finger has already been released.
+                    // This is the actual sheet peek. Vertical drags move the Material sheet
+                    // directly instead of waiting for a custom threshold and launching a second
+                    // animation after the finger has already been released.
                     SummaryStrip(
-                        state = displayedState,
+                        state = state,
                         locale = locale,
                         expanded = summaryTargetExpanded,
                         onClick = toggleSummary,
@@ -215,7 +211,7 @@ fun CalendarScreen(
                         shadowElevation = 0.dp,
                     ) {
                         MonthlySummaryPanel(
-                            state = displayedState,
+                            state = state,
                             onOpenYearSummary = { closeSummaryBehind(onOpenYearSummary) },
                             locale = locale,
                             modifier = Modifier
@@ -238,17 +234,22 @@ fun CalendarScreen(
                 modifier = paneModifier,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                // Header/summary metadata stays on the settled business month. Previously it was
+                // derived from PagerState.currentPage, which flips near the middle of a page move
+                // and made the title/footer jump while the calendar was still physically moving.
                 CalendarHeader(
-                    visibleMonth = displayedMonth,
+                    visibleMonth = state.visibleMonth,
                     isReady = state.isReady,
                     locale = locale,
                     onPreviousMonth = {
                         closeSummaryBehind {
+                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                             if (!pager.navigatePrevious(scope)) onPreviousMonth()
                         }
                     },
                     onNextMonth = {
                         closeSummaryBehind {
+                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                             if (!pager.navigateNext(scope)) onNextMonth()
                         }
                     },
@@ -270,6 +271,7 @@ fun CalendarScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(calendarGridHeight())
+                            .pagerSwipeHapticFeedback()
                             .testTag("calendar-pager"),
                         beyondViewportPageCount = 1,
                         flingBehavior = pagerFlingBehavior,
@@ -290,8 +292,8 @@ fun CalendarScreen(
                     }
                     if (
                         shouldShowTodayEntryPrompt(
-                            visibleMonth = displayedMonth,
-                            entryDates = displayedEntries.keys,
+                            visibleMonth = state.visibleMonth,
+                            entryDates = state.entries.keys,
                             today = today,
                         )
                     ) {
@@ -359,7 +361,7 @@ fun CalendarScreen(
                     ) {
                         if (state.isReady) {
                             MonthlySummaryPanel(
-                                state = displayedState,
+                                state = state,
                                 onOpenYearSummary = onOpenYearSummary,
                                 locale = locale,
                                 modifier = Modifier
