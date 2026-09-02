@@ -19,7 +19,7 @@ internal fun fullScreenEnterTransition(direction: Int): EnterTransition =
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
         ),
-        initialOffsetX = { width -> direction * width / 5 },
+        initialOffsetX = { width -> direction * width / 8 },
     )
 
 internal fun fullScreenExitTransition(direction: Int): ExitTransition =
@@ -28,7 +28,7 @@ internal fun fullScreenExitTransition(direction: Int): ExitTransition =
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
         ),
-        targetOffsetX = { width -> direction * width },
+        targetOffsetX = { width -> direction * width / 8 },
     )
 
 internal fun yearSummaryEnterTransition(): EnterTransition =
