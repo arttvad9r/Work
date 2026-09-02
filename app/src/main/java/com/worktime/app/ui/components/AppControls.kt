@@ -2,6 +2,7 @@ package com.worktime.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -46,10 +47,10 @@ import androidx.compose.ui.unit.dp
  * control visually stable while a restrained rounded press state acknowledges touch-down
  * without flashing the framework's rectangular indication behind the pill.
  *
- * Position uses a critically damped spring rather than a duration-based tween. This keeps
- * the capsule interruptible and equally responsive when the display switches between
- * 120/90/60 Hz. [onIndicatorSettled] is useful when an external state change should happen
- * only after the visual selection has physically reached its destination (theme palette).
+ * Most segmented controls use a critically damped spring so the capsule is interruptible.
+ * Callers whose selection also swaps the whole Material palette can disable that presentation
+ * motion: the indicator and label colors then snap in the same frame as the palette instead of
+ * briefly showing a new theme with the old option still highlighted.
  */
 @Composable
 fun AppSegmentedControl(
@@ -57,6 +58,7 @@ fun AppSegmentedControl(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     onIndicatorSettled: ((Int) -> Unit)? = null,
+    animateSelection: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     if (options.isEmpty()) return
@@ -79,10 +81,14 @@ fun AppSegmentedControl(
         val segmentWidth = maxWidth / options.size
         val indicatorOffset by animateDpAsState(
             targetValue = segmentWidth * safeIndex,
-            animationSpec = spring(
-                dampingRatio = AppMotion.NoBounceDampingRatio,
-                stiffness = AppMotion.ControlStiffness,
-            ),
+            animationSpec = if (animateSelection) {
+                spring(
+                    dampingRatio = AppMotion.NoBounceDampingRatio,
+                    stiffness = AppMotion.ControlStiffness,
+                )
+            } else {
+                snap()
+            },
             finishedListener = { onIndicatorSettled?.invoke(safeIndex) },
             label = "segmented indicator",
         )
@@ -112,10 +118,14 @@ fun AppSegmentedControl(
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                    animationSpec = tween(
-                        durationMillis = AppMotion.FastMillis,
-                        easing = AppMotion.StandardEasing,
-                    ),
+                    animationSpec = if (animateSelection) {
+                        tween(
+                            durationMillis = AppMotion.FastMillis,
+                            easing = AppMotion.StandardEasing,
+                        )
+                    } else {
+                        snap()
+                    },
                     label = "segmented content",
                 )
                 val pressedColor by animateColorAsState(
