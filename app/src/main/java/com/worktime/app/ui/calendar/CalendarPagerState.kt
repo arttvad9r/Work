@@ -37,9 +37,6 @@ internal class CalendarPagerState(
     private var programmaticPage by mutableStateOf<Int?>(null)
     private var programmaticScrollJob: Job? = null
 
-    val displayedMonth: YearMonth
-        get() = monthForPage(pagerState.currentPage)
-
     fun monthForPage(page: Int): YearMonth =
         yearMonthFromIndex(originMonthIndex + page - PagerAnchorPage)
 
@@ -162,8 +159,8 @@ internal fun CalendarPagerEffects(
         pager.syncToVisibleMonth(scope, visibleMonth)
     }
 
-    // Pager swipes stay purely visual. A settle-time haptic is intentionally omitted because the
-    // actuator fires after the user's finger has already finished the gesture and feels delayed.
+    // Settling only commits business state. Tactile feedback is deliberately handled earlier:
+    // arrow taps tick immediately and direct swipes tick at the finger-crossed snap threshold.
     LaunchedEffect(pager, visibleMonth) {
         var previousSettledPage = pager.pagerState.settledPage
         snapshotFlow { pager.pagerState.settledPage }.collect { settledPage ->
