@@ -38,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -55,7 +56,7 @@ internal enum class CalendarLayoutMode {
     SupportingPane,
 }
 
-private val SummarySheetPeekHeight = 72.dp
+private val SummarySheetPeekHeight = 64.dp
 
 internal fun calendarLayoutMode(
     maxHorizontalPartitions: Int,
@@ -183,7 +184,10 @@ fun CalendarScreen(
         sheetShape = AppSheetShape,
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
-        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+        // Keep the collapsed calendar visually identical to the old standalone strip. The
+        // detailed report owns its opaque surface below the peek; the scaffold itself stays
+        // transparent so it does not draw a white/black rounded halo around the pill.
+        sheetContainerColor = Color.Transparent,
         sheetContent = {
             if (layoutMode == CalendarLayoutMode.SupportingPane) {
                 Spacer(modifier = Modifier.height(1.dp))
@@ -200,17 +204,25 @@ fun CalendarScreen(
                         modifier = Modifier.padding(
                             start = AppDimens.screenHorizontalPadding,
                             end = AppDimens.screenHorizontalPadding,
-                            bottom = 16.dp,
+                            bottom = 8.dp,
                         ),
                     )
-                    MonthlySummaryPanel(
-                        state = displayedState,
-                        onOpenYearSummary = { closeSummaryBehind(onOpenYearSummary) },
-                        locale = locale,
-                        modifier = Modifier
-                            .navigationBarsPadding()
-                            .padding(bottom = 10.dp),
-                    )
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = AppSheetShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
+                    ) {
+                        MonthlySummaryPanel(
+                            state = displayedState,
+                            onOpenYearSummary = { closeSummaryBehind(onOpenYearSummary) },
+                            locale = locale,
+                            modifier = Modifier
+                                .navigationBarsPadding()
+                                .padding(bottom = 10.dp),
+                        )
+                    }
                 }
             }
         },
