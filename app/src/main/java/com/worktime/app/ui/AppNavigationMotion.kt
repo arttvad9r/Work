@@ -19,7 +19,7 @@ internal fun fullScreenEnterTransition(direction: Int): EnterTransition =
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
         ),
-        initialOffsetX = { width -> direction * width / 8 },
+        initialOffsetX = { width -> direction * width / 6 },
     )
 
 internal fun fullScreenExitTransition(direction: Int): ExitTransition =
@@ -28,7 +28,7 @@ internal fun fullScreenExitTransition(direction: Int): ExitTransition =
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
         ),
-        targetOffsetX = { width -> direction * width / 8 },
+        targetOffsetX = { width -> direction * width / 6 },
     )
 
 internal fun yearSummaryEnterTransition(): EnterTransition =
@@ -37,10 +37,10 @@ internal fun yearSummaryEnterTransition(): EnterTransition =
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
         ),
-        initialOffsetY = { height -> height / 16 },
+        initialOffsetY = { height -> height / 10 },
     ) + fadeIn(
         animationSpec = tween(
-            durationMillis = AppMotion.FastMillis,
+            durationMillis = AppMotion.StandardMillis,
             easing = AppMotion.StandardEasing,
         ),
     )
@@ -51,10 +51,10 @@ internal fun yearSummaryExitTransition(): ExitTransition =
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
         ),
-        targetOffsetY = { height -> height / 16 },
+        targetOffsetY = { height -> height / 10 },
     ) + fadeOut(
         animationSpec = tween(
-            durationMillis = AppMotion.FastMillis,
+            durationMillis = AppMotion.StandardMillis,
             easing = AppMotion.StandardEasing,
         ),
     )
