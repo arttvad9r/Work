@@ -40,14 +40,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass.Companion.HEIGHT_DP_MEDIUM_LOWER_BOUND
-import com.worktime.app.R
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppSheetShape
-import com.worktime.app.ui.components.PlainDragHandle
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.launch
@@ -57,6 +54,8 @@ internal enum class CalendarLayoutMode {
     CompactShort,
     SupportingPane,
 }
+
+private val SummarySheetPeekHeight = 72.dp
 
 internal fun calendarLayoutMode(
     maxHorizontalPartitions: Int,
@@ -104,7 +103,7 @@ fun CalendarScreen(
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.PagerStiffness,
         ),
-        snapPositionalThreshold = 0.35f,
+        snapPositionalThreshold = AppMotion.PagerSnapPositionalThreshold,
     )
     CalendarPagerEffects(
         pager = pager,
@@ -113,8 +112,20 @@ fun CalendarScreen(
         onSelectMonth = onSelectMonth,
     )
 
+    val displayedMonth = pager.displayedMonth
+    val displayedEntries = state.monthEntries[displayedMonth]
+        ?: if (displayedMonth == state.visibleMonth) state.entries else emptyMap()
+    val displayedState = state.copy(
+        visibleMonth = displayedMonth,
+        entries = displayedEntries,
+    )
+
     val summarySheetState = rememberStandardBottomSheetState(
-        initialValue = SheetValue.Hidden,
+        initialValue = if (layoutMode == CalendarLayoutMode.SupportingPane) {
+            SheetValue.Hidden
+        } else {
+            SheetValue.PartiallyExpanded
+        },
         skipHiddenState = false,
     )
     val scaffoldState = rememberBottomSheetScaffoldState(
@@ -122,14 +133,14 @@ fun CalendarScreen(
     )
     val summaryTargetExpanded = summarySheetState.targetValue == SheetValue.Expanded
     val closeSummaryBehind: (() -> Unit) -> Unit = { action ->
-        val shouldHide = summarySheetState.currentValue != SheetValue.Hidden ||
-            summarySheetState.targetValue != SheetValue.Hidden
+        val shouldCollapse = summarySheetState.currentValue == SheetValue.Expanded ||
+            summarySheetState.targetValue == SheetValue.Expanded
 
         action()
 
-        if (shouldHide) {
+        if (shouldCollapse) {
             scope.launch {
-                runCatching { summarySheetState.hide() }
+                runCatching { summarySheetState.partialExpand() }
             }
         }
     }
@@ -138,25 +149,35 @@ fun CalendarScreen(
             if (shouldExpandSummaryAfterToggle(summarySheetState.targetValue)) {
                 summarySheetState.expand()
             } else {
-                summarySheetState.hide()
+                summarySheetState.partialExpand()
             }
         }
     }
 
     LaunchedEffect(layoutMode) {
-        if (
+        when {
             layoutMode == CalendarLayoutMode.SupportingPane &&
-            (summarySheetState.currentValue != SheetValue.Hidden ||
-                summarySheetState.targetValue != SheetValue.Hidden)
-        ) {
-            runCatching { summarySheetState.hide() }
+                (summarySheetState.currentValue != SheetValue.Hidden ||
+                    summarySheetState.targetValue != SheetValue.Hidden) -> {
+                runCatching { summarySheetState.hide() }
+            }
+
+            layoutMode != CalendarLayoutMode.SupportingPane &&
+                (summarySheetState.currentValue == SheetValue.Hidden ||
+                    summarySheetState.targetValue == SheetValue.Hidden) -> {
+                runCatching { summarySheetState.partialExpand() }
+            }
         }
     }
 
     BottomSheetScaffold(
         modifier = modifier,
         scaffoldState = scaffoldState,
-        sheetPeekHeight = 0.dp,
+        sheetPeekHeight = if (layoutMode == CalendarLayoutMode.SupportingPane) {
+            0.dp
+        } else {
+            SummarySheetPeekHeight
+        },
         sheetDragHandle = null,
         sheetSwipeEnabled = layoutMode != CalendarLayoutMode.SupportingPane,
         sheetShape = AppSheetShape,
@@ -168,15 +189,22 @@ fun CalendarScreen(
                 Spacer(modifier = Modifier.height(1.dp))
             } else {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    if (summaryTargetExpanded) {
-                        PlainDragHandle(
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            onClick = toggleSummary,
-                            accessibilityLabel = stringResource(R.string.monthly_summary),
-                        )
-                    }
+                    // This is the actual sheet peek. Vertical drags now move the Material sheet
+                    // directly instead of waiting for a custom threshold and starting a second
+                    // animation only after the finger has already been released.
+                    SummaryStrip(
+                        state = displayedState,
+                        locale = locale,
+                        expanded = summaryTargetExpanded,
+                        onClick = toggleSummary,
+                        modifier = Modifier.padding(
+                            start = AppDimens.screenHorizontalPadding,
+                            end = AppDimens.screenHorizontalPadding,
+                            bottom = 16.dp,
+                        ),
+                    )
                     MonthlySummaryPanel(
-                        state = state,
+                        state = displayedState,
                         onOpenYearSummary = { closeSummaryBehind(onOpenYearSummary) },
                         locale = locale,
                         modifier = Modifier
@@ -188,18 +216,10 @@ fun CalendarScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        val displayedMonth = pager.displayedMonth
-        val displayedEntries = state.monthEntries[displayedMonth]
-            ?: if (displayedMonth == state.visibleMonth) state.entries else emptyMap()
-        val displayedState = state.copy(
-            visibleMonth = displayedMonth,
-            entries = displayedEntries,
-        )
         val today = LocalDate.now()
 
-        val primaryPane: @Composable (Modifier, Boolean, Boolean) -> Unit = {
+        val primaryPane: @Composable (Modifier, Boolean) -> Unit = {
                 paneModifier,
-                showSummaryStrip,
                 useFlexibleSpacer,
             ->
             Column(
@@ -270,24 +290,6 @@ fun CalendarScreen(
                     if (useFlexibleSpacer) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
-                    if (showSummaryStrip) {
-                        SummaryStrip(
-                            state = displayedState,
-                            locale = locale,
-                            expanded = summaryTargetExpanded,
-                            onClick = toggleSummary,
-                            onSwipeUp = {
-                                scope.launch { summarySheetState.expand() }
-                            },
-                            modifier = Modifier
-                                .navigationBarsPadding()
-                                .padding(
-                                    start = AppDimens.screenHorizontalPadding,
-                                    end = AppDimens.screenHorizontalPadding,
-                                    bottom = 8.dp,
-                                ),
-                        )
-                    }
                 }
             }
         }
@@ -300,7 +302,6 @@ fun CalendarScreen(
                         .statusBarsPadding()
                         .padding(innerPadding),
                     true,
-                    true,
                 )
             }
 
@@ -311,7 +312,6 @@ fun CalendarScreen(
                         .statusBarsPadding()
                         .padding(innerPadding)
                         .verticalScroll(shortScrollState),
-                    true,
                     false,
                 )
             }
@@ -333,7 +333,6 @@ fun CalendarScreen(
                         Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        false,
                         true,
                     )
                     Spacer(modifier = Modifier.width(16.dp))
