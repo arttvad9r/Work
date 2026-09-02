@@ -1,9 +1,13 @@
 package com.worktime.app.ui.calendar
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,12 +19,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -35,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.worktime.app.R
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.WorkEntry
+import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import com.worktime.app.ui.format.formatWholeAmountMicros
@@ -147,6 +154,7 @@ private fun DayCell(
     val visibleEntry = entry.takeIf { isInVisibleMonth }
     val largeFont = LocalDensity.current.fontScale >= 1.5f
     val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val totalMicros = visibleEntry?.let {
         runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull()
     }
@@ -194,11 +202,22 @@ private fun DayCell(
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
     }
-    val backgroundColor = when {
+    val baseBackgroundColor = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         visibleEntry != null -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
         else -> Color.Transparent
     }
+    val pressedBackgroundColor = MaterialTheme.colorScheme.onSurface
+        .copy(alpha = AppMotion.PressedStateAlpha)
+        .compositeOver(baseBackgroundColor)
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isPressed) pressedBackgroundColor else baseBackgroundColor,
+        animationSpec = tween(
+            durationMillis = AppMotion.MicroMillis,
+            easing = AppMotion.StandardEasing,
+        ),
+        label = "calendar day state",
+    )
 
     Box(
         modifier = Modifier
@@ -217,7 +236,7 @@ private fun DayCell(
             .clickable(
                 enabled = isInVisibleMonth,
                 interactionSource = interactionSource,
-                indication = null,
+                indication = LocalIndication.current,
                 onClick = onClick,
             ),
     ) {

@@ -48,9 +48,11 @@ Only `MaterialTheme.typography` (all styles carry tabular numerals):
   SummaryStrip, secondary CTA surfaces (e.g. year-summary navigation).
 - `error` — invalid input outline, negative totals, destructive actions.
 
-Theme-mode changes interpolate the visible Material color roles rather than replacing the
-whole palette in one frame. Geometry, typography and content order stay fixed while colors
-cross between the light and dark schemes.
+Theme-mode changes update the visible Material palette immediately when the user selects a
+mode. The preference write is optimistic and runs after the visual state has changed; a failed
+write rolls the palette back to repository state and surfaces error feedback. Segmented-pill
+motion is presentation only and must never delay the palette change. Geometry, typography and
+content order stay fixed while the theme changes.
 
 ### Calendar hierarchy
 
@@ -75,24 +77,31 @@ corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
 Motion communicates continuity and feedback; it is never decorative. The interface
 should feel responsive rather than animated for its own sake.
 
-- Micro state/color feedback: roughly 100–160 ms.
+- Micro state/color feedback: roughly 75–160 ms.
 - Local content/position changes: roughly 160–220 ms or a non-bouncy spring.
 - Full-screen hierarchy changes: roughly 220–300 ms with a short directional slide + fade.
-- Settings enters from the side; Year summary rises from below because it is launched from
-  the bottom monthly report and returns toward that source when dismissed.
+- Settings enters from the side; Year summary rises only a short distance from below because it
+  is launched from the bottom monthly report and returns toward that source when dismissed.
+  The Year summary transition should read primarily as an appearance/disappearance, not as a
+  full-height sliding page.
 - Calendar month navigation uses `HorizontalPager`: content follows the finger during a
   drag and arrows animate the same pager programmatically. Adjacent month data stays warm.
+- Year-summary paging uses the same pager stiffness, snap threshold and interruptible arrow
+  retargeting as the calendar. Month/year paging therefore shares one physical language.
 - The persistent numeric editor may move between its fixed rows with a non-bouncy spring;
   it must remain one focusable node so the OEM IME session is preserved.
 - Bonus/Penalty Add/value states use a short fade-through while that persistent editor
   moves into or out of the fixed adjustment slot; row geometry stays unchanged.
-- Selected segmented state is one moving pill rather than unrelated hard-swapped fills.
+- Selected segmented state is one moving pill rather than unrelated hard-swapped fills. Each
+  segment gets a restrained rounded press state on touch-down without a rectangular flash.
 - Conditional contextual content such as `Fill today` may fade/expand in and collapse out.
 - Calendar state colors (selected/today/populated) should interpolate rather than flash;
   entry content may use a short fade/very small scale-in when saved data appears or changes.
-- The monthly summary strip may slightly compress and strengthen its container tone while
-  pressed, while retaining normal indication/ripple feedback. Its chevron rotates with the
-  open/closed report state.
+  Day cells retain normal bounded press/ripple feedback so touch-down is acknowledged before
+  the editor sheet appears.
+- The monthly summary strip slightly compresses while pressed, retains normal ripple feedback,
+  and follows upward drag progress with a small direct lift/scale response before the sheet
+  settles. Its chevron rotates with the open/closed report state.
 - Month/year numeric summary values may use short fade-through transitions rather than
   replacing text in one frame.
 - Year-to-year report changes move laterally in time while screen entry/exit remains vertical.
@@ -101,22 +110,24 @@ should feel responsive rather than animated for its own sake.
 - Never add looping motion, bounce/overshoot for routine controls, artificial action delays,
   animated data-layout reflow, or motion whose only purpose is decoration.
 
-Press/ripple feedback from Material components remains enabled. Motion must remain
-interruptible where practical and must not change business state timing.
+Press/ripple feedback from Material components remains enabled unless a custom control provides
+an equivalent shape-aware press state. Motion must remain interruptible where practical and must
+not change business state timing.
 
 ### Haptics
 
 Haptics are sparse and semantic, not a vibration on every tap. They use Compose/platform
 feedback types so device and system settings remain authoritative.
 
-- `SegmentTick` — when the selected segmented option actually changes and when a user-driven
-  month pager settles on a different month.
+- `SegmentTick` — when the selected segmented option actually changes and when direct user
+  month/year navigation settles on a different page, whether initiated by swipe or an arrow.
+  Restored/external pager synchronization stays silent.
 - `GestureThresholdActivate` — once when an upward monthly-summary drag becomes actionable;
   moving back below the threshold re-arms it.
 - `Confirm` — only after persistence succeeds for saving/deleting an entry or applying a
   non-empty rate change.
-- Ordinary navigation taps, arrows, day taps, field focus and passive scrolling do not add
-  extra haptics.
+- `Reject` — once for an explicit persistence/backup/calendar operation failure.
+- Ordinary navigation taps, day taps, field focus and passive scrolling do not add extra haptics.
 
 ## Components
 
@@ -136,13 +147,15 @@ feedback types so device and system settings remain authoritative.
   row for a full-width form field and never changes the row height.
 - **`AppSegmentedControl(options, selectedIndex)`** — the only segmented presentation
   for mutually exclusive options (theme mode, rate period). A shared secondaryContainer
-  pill moves between equal-width options and emits one light tick on a real selection change.
+  pill moves between equal-width options, each segment provides a rounded press state, and
+  one light tick is emitted on a real selection change.
 - **`AppPrimaryButton`** — full-width ≥52 dp primary action (Save, Change rate).
 - **`AppDestructiveAction`** — full-width error-colored text action (Delete entry).
 - **Contextual quick action** — lightweight `TextButton` with a leading semantic icon,
   no card/fill, and a ≥48 dp touch target. Use only for a timely optional shortcut such
   as “Fill today”; hide it when the shortcut is no longer relevant.
-- **`PlainDragHandle`** — tooltip-free drag handle shared by all sheets.
+- **`PlainDragHandle`** — tooltip-free drag handle shared by all sheets. When tappable it
+  provides a restrained tone change on touch-down rather than remaining visually silent.
 
 Row decision guide: opens another screen/sheet → `AppNavigationRow`; shows a computed
 or stored value → `LabelValueRow`; edits a number in place → value-slot contract;
@@ -155,8 +168,8 @@ chooses one of 2–4 mutually exclusive options → `AppSegmentedControl`.
   calendar hierarchy above instead of adopting settings-row styling. In the current
   month, a missing entry for today may expose the lightweight “Fill today” contextual
   action below the grid; it disappears as soon as today's entry exists.
-- **Year summary** — non-scrolling screen showing all twelve months at once. Populated
-  years use the available height; an entirely empty year uses compact fixed month rows
-  so missing data does not look like stretched content.
+- **Year summary** — dense yearly report showing all twelve months when height permits and
+  becoming vertically scrollable on short windows. Populated years use the available height;
+  an entirely empty year keeps compact month rows so missing data does not look stretched.
 - **Month picker dialog** — grid of month chips inside an AlertDialog; a deliberate
   picker pattern, not a segmented control.

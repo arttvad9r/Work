@@ -1,8 +1,11 @@
 package com.worktime.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -10,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,8 +27,8 @@ import androidx.compose.ui.unit.dp
  * Visual bottom-sheet handle without Material's long-press tooltip.
  *
  * When [onClick] is supplied, the handle remains tappable without ripple/tooltip feedback.
- * [accessibilityLabel] restores a single TalkBack action without using Material's tooltip slot.
- * Dragging is still owned by the containing sheet.
+ * A restrained tone change acknowledges touch-down while [accessibilityLabel] restores a
+ * single TalkBack action. Dragging is still owned by the containing sheet.
  */
 @Composable
 fun PlainDragHandle(
@@ -33,6 +37,17 @@ fun PlainDragHandle(
     accessibilityLabel: String? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val handleColor by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+            alpha = if (isPressed && onClick != null) 0.72f else 0.52f,
+        ),
+        animationSpec = tween(
+            durationMillis = AppMotion.MicroMillis,
+            easing = AppMotion.StandardEasing,
+        ),
+        label = "drag handle press",
+    )
     val clickModifier = if (onClick != null) {
         Modifier.clickable(
             interactionSource = interactionSource,
@@ -70,9 +85,7 @@ fun PlainDragHandle(
                 .width(40.dp)
                 .height(5.dp)
                 .clip(RoundedCornerShape(50))
-                .background(
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.52f),
-                ),
+                .background(handleColor),
         )
     }
 }

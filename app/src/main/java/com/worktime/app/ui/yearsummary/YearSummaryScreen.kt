@@ -91,9 +91,9 @@ fun YearSummaryScreen(
         state = pager.pagerState,
         snapAnimationSpec = spring(
             dampingRatio = AppMotion.NoBounceDampingRatio,
-            stiffness = YearSummaryPagerStiffness,
+            stiffness = AppMotion.PagerStiffness,
         ),
-        snapPositionalThreshold = 0.25f,
+        snapPositionalThreshold = AppMotion.PagerSnapPositionalThreshold,
     )
     YearSummaryPagerEffects(
         pager = pager,

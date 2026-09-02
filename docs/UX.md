@@ -21,16 +21,15 @@ The compact phone layout is the primary interaction target, but the application 
 - Header contains previous month, tappable localized month/year, next month and Settings.
 - Tapping month/year opens the month picker.
 - Horizontal month navigation uses a real `HorizontalPager`: the neighbouring calendar follows the finger during the drag and snaps with Compose pager physics instead of changing only after release.
-- Previous/next arrows drive the same pager animation programmatically, so gesture and button navigation share one spatial model.
+- Previous/next arrows drive the same interruptible pager animation programmatically, so gesture and button navigation share one spatial model and repeated taps preserve/re-target the current spring velocity.
 - The visible month plus both immediate neighbours are observed together from the repository so a drag does not expose an empty page while Room switches queries.
 - Vertical-dominant interaction remains available to the calendar content and does not intentionally navigate months.
 - Adjacent-month dates stay visible but muted and inactive.
 - Populated cells use a neutral `surfaceContainerHigh`-style treatment. Date is secondary, duration is primary content and amount is a restrained `primary` accent; negative amount uses `error`.
 - Selected day uses `primaryContainer`; today uses its own primary outline/date treatment. Selection, today and data emphasis must remain distinguishable.
-- Day-cell state colors interpolate over a short transition instead of hard-swapping.
-- New or changed entry content fades/scales in subtly after a successful save so the edited cell visibly receives the result of the action.
+- Day-cell state colors interpolate over a short transition instead of hard-swapping. Enabled day cells also retain bounded press/ripple feedback so touch-down is acknowledged before the editor sheet appears.
 - Grid/divider lines are deliberately quiet so data reads before table chrome.
-- In the current month only, when today has no entry, a lightweight `Fill today` TextButton appears below the calendar. Its appearance/disappearance uses a short fade + vertical reveal/collapse.
+- In the current month only, when today has no entry, a lightweight `Fill today` TextButton appears below the calendar.
 - Compact-height windows may scroll the primary pane to preserve reachability instead of clipping controls.
 - Wider windows keep the calendar as the primary pane and show the month report in a supporting pane rather than stretching the compact footer across the whole width.
 - Rotation, split-screen and freeform resizing are treated as window-size changes, not as separate device-specific layouts.
@@ -39,10 +38,10 @@ The compact phone layout is the primary interaction target, but the application 
 
 The fixed footer is one compact summary strip containing shifts, worked hours and monthly income. It acts as the entry point to the detailed month report and must remain visually subordinate to the calendar.
 
-- summary values use a short fade-through when they change;
 - the strip has a very small pressed compression/tonal response while retaining normal Material indication;
+- during an upward drag it follows gesture progress with a restrained direct lift/scale response and springs back if the gesture is cancelled or remains below the activation distance;
 - its up/down chevron rotates with the report state;
-- an upward drag gives one threshold haptic before opening the report;
+- crossing the actionable upward-drag threshold emits one threshold haptic;
 - geometry remains fixed.
 
 The detailed report sheet contains:
@@ -56,7 +55,7 @@ The detailed report sheet contains:
 - average income per shift;
 - a normal navigation row to `Year summary`.
 
-Headline and compact summary values fade through when their underlying data changes. The report is view-only. The handle remains tooltip-free and tap/drag behavior must keep stable anchors. Sheet opening/closing keeps Material drag physics. On a wide supporting-pane layout the same report content is persistent and does not open another sheet.
+The report is view-only. The handle remains tooltip-free; when it is tappable, touch-down gets a restrained visual tone response. Sheet opening/closing keeps Material drag physics. On a wide supporting-pane layout the same report content is persistent and does not open another sheet.
 
 ## Day editor
 
@@ -85,9 +84,9 @@ All logical numeric fields share one persistent state-based editable node/input 
 
 ### Bonus and penalty semantics
 
-Collapsed Bonus/Penalty rows show an Add affordance, not a chevron: tapping reveals an inline field rather than navigating elsewhere. Add/value/active presentation uses a short fade-through while the persistent editor moves into or out of the same fixed row. If a revealed adjustment is still empty when focus moves away, it collapses back to the Add row.
+Collapsed Bonus/Penalty rows show an Add affordance, not a chevron: tapping reveals an inline field rather than navigating elsewhere. If a revealed adjustment is still empty when focus moves away, it collapses back to the Add row.
 
-Successful Save gets a confirmation haptic only after repository persistence succeeds. The resulting calendar cell then animates its changed content; the haptic is not fired merely because the button was pressed.
+Successful Save gets a confirmation haptic only after repository persistence succeeds. A failed persistence operation gets semantic reject feedback rather than a success-like tap vibration.
 
 ## Settings
 
@@ -97,11 +96,11 @@ Successful Save gets a confirmation haptic only after repository persistence suc
 - `Appearance`: system/light/dark segmented control;
 - `Data`: Export data, Import data.
 
-All interactive rows follow the shared 48 dp row contract; segmented controls and inline fields use 44 dp height; primary sheet actions are at least 52 dp. Normal Material press feedback is retained.
+All interactive rows follow the shared 48 dp row contract; segmented controls and inline fields use 44 dp height; primary sheet actions are at least 52 dp. Normal Material press feedback is retained except where a custom shape-aware press state replaces it.
 
-The shared segmented control uses one moving selected pill rather than unrelated hard-swapped fills. An actual selection change emits one light segment tick; tapping the already selected option does not.
+The shared segmented control uses one moving selected pill rather than unrelated hard-swapped fills. Each touched segment gets a restrained rounded press state. An actual selection change emits one light segment tick; tapping the already selected option does not.
 
-Theme palette changes apply immediately when an option is selected. The segmented indicator may continue its short presentation spring, but it never delays the preference write or the visible theme change; layout and typography do not animate or reflow during the switch.
+Theme palette changes apply immediately when an option is selected. The segmented indicator may continue its short presentation spring, but it never delays the visible theme change. Persistence is optimistic: the DataStore write remains serialized with other app mutations after the palette changes; a failed write rolls the selection/palette back to repository state, emits reject feedback and surfaces the existing error message. Layout and typography do not animate or reflow during the switch.
 
 Default rate edits inline and autosaves valid values. It is semantically separate from an individual entry rate. The first saved worked entry may initialize an uninitialized default; later per-day rates do not overwrite an initialized default.
 
@@ -125,16 +124,15 @@ The settings screen uses IME-aware scrolling so lower actions remain reachable w
 
 The year summary is a full-screen, view-only screen opened from the monthly report.
 
-- compact year pager with previous/next arrows;
-- the report itself is intentionally non-scrollable: January through December must remain visible together on one page;
-- the 12 month rows divide the remaining viewport height evenly, with a compact report text tier at larger supported font scales rather than introducing vertical scrolling;
-- yearly income, work days, hours, average working-month income, average shift and optional bonus/penalty totals;
+- horizontal year pager with previous/next arrows;
+- swipe and arrow navigation use the same spring stiffness and snap threshold as calendar month paging; arrow navigation is interruptible and preserves/re-targets current velocity just like the calendar;
+- yearly income, shifts, hours, average working-month income, average shift and optional bonus/penalty totals;
 - month breakdown header is one line: `By month` at the left, `shifts · h` and `income` aligned to their data columns;
 - populated months are normal emphasis; missing months are muted with dashes;
-- an entirely empty year uses compact rows instead of stretching empty content across available height;
-- changing year follows the finger horizontally and settles with the same directional pager model for swipe and arrow navigation while retaining adjacent-year data during the gesture.
+- medium/tall windows keep the dense report in the fixed viewport; short windows allow vertical scrolling with compact minimum month-row heights so content remains reachable rather than clipped;
+- changing year follows the finger horizontally and retains adjacent-year data during the gesture.
 
-Settings enters from the right with a restrained slide + fade and reverses that direction on dismiss. Year summary rises from the bottom and returns downward because it is launched from the bottom monthly report rather than from top-level horizontal navigation.
+Settings enters from the right with a restrained spatial transition and reverses that direction on dismiss. Year summary appears from below with only a short one-sixteenth-viewport travel plus fade and returns downward, preserving its relationship to the bottom monthly report without reading as a full-height sliding page.
 
 ## Export and import
 
@@ -143,7 +141,7 @@ Settings enters from the right with a restrained slide + fade and reverses that 
 - Version 1 JSON remains readable; because it did not contain the initialization flag, compatibility import infers that legacy state from the stored default rate and worked entries.
 - CSV is export-only.
 - Import validates before showing replacement confirmation and writes nothing when validation fails.
-- Success/failure feedback uses Snackbar/error surfaces without inserting temporary layout rows.
+- Success/failure feedback uses Snackbar/error surfaces without inserting temporary layout rows; explicit backup failures also use semantic reject haptics.
 
 ## Home-screen widget
 
@@ -158,10 +156,11 @@ WorkTime uses AndroidX SplashScreen compatibility so Android 12+ and older suppo
 Haptics are sparse and semantic. WorkTime does not vibrate on every tap.
 
 - segmented selection: one light `SegmentTick` only when selection actually changes;
-- user-swiped month: one light tick when the pager settles on a different month;
+- direct month/year navigation: one light `SegmentTick` when a swipe or arrow request settles on a different page; restored/external pager synchronization stays silent;
 - monthly-summary upward drag: one threshold activation when the gesture becomes actionable;
 - Save/Delete/non-empty bulk rate update: `Confirm` only after the repository operation succeeds;
-- ordinary navigation taps, arrows, day taps, text-field focus and passive scrolling add no extra vibration.
+- explicit calendar/settings-persistence/backup failure: one `Reject`;
+- ordinary navigation taps, day taps, text-field focus and passive scrolling add no extra vibration.
 
 ## Visual system
 

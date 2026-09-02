@@ -19,6 +19,7 @@ import com.worktime.app.ui.calendar.CalendarViewModel
 internal fun AppOperationFeedback(
     calendarViewModel: CalendarViewModel,
     backupViewModel: BackupViewModel,
+    preferencesSaveFailed: Boolean,
     snackbarHostState: SnackbarHostState,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -30,6 +31,12 @@ internal fun AppOperationFeedback(
     val backupExportedMessage = stringResource(R.string.backup_exported)
     val backupImportedMessage = stringResource(R.string.backup_imported)
     val defaultRateAdoptionFailedMessage = stringResource(R.string.default_rate_adoption_failed)
+
+    LaunchedEffect(preferencesSaveFailed, haptics) {
+        if (preferencesSaveFailed) {
+            haptics.performHapticFeedback(HapticFeedbackType.Reject)
+        }
+    }
 
     LaunchedEffect(
         calendarViewModel,
@@ -66,7 +73,8 @@ internal fun AppOperationFeedback(
                 CalendarOperationEvent.Success.NO_OP ->
                     snackbarHostState.showSnackbar(noEntriesInPeriodMessage)
                 CalendarOperationEvent.Success.OPERATION_UNDONE -> Unit
-                is CalendarOperationEvent.Error ->
+                is CalendarOperationEvent.Error -> {
+                    haptics.performHapticFeedback(HapticFeedbackType.Reject)
                     when (event.kind) {
                         CalendarOperationError.UNDO ->
                             snackbarHostState.showSnackbar(
@@ -80,12 +88,14 @@ internal fun AppOperationFeedback(
                             )
                         else -> Unit
                     }
+                }
             }
         }
     }
 
     LaunchedEffect(
         backupViewModel,
+        haptics,
         backupExportedMessage,
         backupImportedMessage,
     ) {
@@ -95,7 +105,8 @@ internal fun AppOperationFeedback(
                     snackbarHostState.showSnackbar(backupExportedMessage)
                 BackupOperationEvent.Success.IMPORTED ->
                     snackbarHostState.showSnackbar(backupImportedMessage)
-                is BackupOperationEvent.Error -> Unit
+                is BackupOperationEvent.Error ->
+                    haptics.performHapticFeedback(HapticFeedbackType.Reject)
             }
         }
     }

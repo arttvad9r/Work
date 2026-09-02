@@ -3,6 +3,7 @@ package com.worktime.app.ui.preferences
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.domain.preferences.UserPreferences
 import com.worktime.app.domain.repository.UserPreferencesRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -32,6 +33,26 @@ class PreferencesViewModelTest {
     }
 
     @Test
+    fun `theme selection is optimistic before persistence completes`() = runTest {
+        val repository = FakeUserPreferencesRepository()
+        val writeGate = CompletableDeferred<Unit>()
+        repository.themeWriteGate = writeGate
+        val viewModel = PreferencesViewModel(repository)
+        viewModel.state.first { it.isReady }
+
+        viewModel.updateThemeMode(ThemeMode.DARK)
+
+        val optimistic = viewModel.state.first { it.themeMode == ThemeMode.DARK }
+        assertEquals(ThemeMode.DARK, optimistic.themeMode)
+        assertEquals(ThemeMode.SYSTEM, repository.current.themeMode)
+
+        writeGate.complete(Unit)
+        viewModel.state.first {
+            it.themeMode == ThemeMode.DARK && repository.current.themeMode == ThemeMode.DARK
+        }
+    }
+
+    @Test
     fun `theme and rate mutations preserve both values`() = runTest {
         val repository = FakeUserPreferencesRepository()
         val viewModel = PreferencesViewModel(repository)
@@ -49,7 +70,7 @@ class PreferencesViewModelTest {
     }
 
     @Test
-    fun `failed mutation is exposed and a successful retry clears the error`() = runTest {
+    fun `failed theme mutation rolls optimistic state back and retry clears the error`() = runTest {
         val repository = FakeUserPreferencesRepository().apply {
             themeFailure = IllegalStateException("datastore")
         }
@@ -57,7 +78,9 @@ class PreferencesViewModelTest {
         viewModel.state.first { it.isReady }
 
         viewModel.updateThemeMode(ThemeMode.DARK)
-        assertTrue(viewModel.state.first { it.saveFailed }.saveFailed)
+        val failed = viewModel.state.first { it.saveFailed }
+        assertTrue(failed.saveFailed)
+        assertEquals(ThemeMode.SYSTEM, failed.themeMode)
 
         repository.themeFailure = null
         viewModel.updateThemeMode(ThemeMode.DARK)
@@ -75,8 +98,11 @@ private class FakeUserPreferencesRepository(
     private val values = MutableStateFlow(initial)
     override val preferences: Flow<UserPreferences> = values
     override val defaultRateInitialized: Flow<Boolean> = flowOf(false)
+    val current: UserPreferences
+        get() = values.value
     var themeFailure: Exception? = null
     var rateFailure: Exception? = null
+    var themeWriteGate: CompletableDeferred<Unit>? = null
 
     override suspend fun update(
         defaultHourlyRateMicros: Long,
@@ -87,6 +113,7 @@ private class FakeUserPreferencesRepository(
     }
 
     override suspend fun updateThemeMode(themeMode: ThemeMode) {
+        themeWriteGate?.await()
         themeFailure?.let { throw it }
         values.value = values.value.copy(themeMode = themeMode)
     }

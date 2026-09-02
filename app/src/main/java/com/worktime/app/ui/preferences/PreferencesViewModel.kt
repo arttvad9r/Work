@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -28,14 +29,17 @@ internal class PreferencesViewModel(
     private val dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
 ) : ViewModel() {
     private val saveFailed = MutableStateFlow(false)
+    private val pendingThemeMode = MutableStateFlow<ThemeMode?>(null)
+    private var themeMutationGeneration = 0L
 
     val state: StateFlow<PreferencesUiState> = combine(
         userPreferencesRepository.preferences,
         saveFailed,
-    ) { preferences, failed ->
+        pendingThemeMode,
+    ) { preferences, failed, optimisticThemeMode ->
         PreferencesUiState(
             defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
-            themeMode = preferences.themeMode,
+            themeMode = optimisticThemeMode ?: preferences.themeMode,
             isReady = true,
             saveFailed = failed,
         )
@@ -45,9 +49,33 @@ internal class PreferencesViewModel(
         initialValue = PreferencesUiState(),
     )
 
+    /**
+     * Theme selection is optimistic: the visible palette follows the tap immediately while the
+     * durable DataStore write remains serialized with other app mutations. If persistence fails,
+     * the optimistic value is cleared and repository state becomes authoritative again.
+     */
     fun updateThemeMode(themeMode: ThemeMode) {
-        runMutation {
-            userPreferencesRepository.updateThemeMode(themeMode)
+        val generation = ++themeMutationGeneration
+        pendingThemeMode.value = themeMode
+        saveFailed.value = false
+        viewModelScope.launch {
+            try {
+                dataMutationCoordinator.run {
+                    userPreferencesRepository.updateThemeMode(themeMode)
+                }
+                // Keep the optimistic value until the repository flow has caught up so clearing it
+                // cannot expose a one-frame palette rollback after the DataStore edit completes.
+                userPreferencesRepository.preferences.first { it.themeMode == themeMode }
+                if (generation == themeMutationGeneration) {
+                    pendingThemeMode.value = null
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == themeMutationGeneration) {
+                    pendingThemeMode.value = null
+                    saveFailed.value = true
+                }
+            }
         }
     }
 

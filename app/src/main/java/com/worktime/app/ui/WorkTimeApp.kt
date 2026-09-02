@@ -89,6 +89,7 @@ fun WorkTimeApp(
     AppOperationFeedback(
         calendarViewModel = viewModel,
         backupViewModel = backupViewModel,
+        preferencesSaveFailed = preferencesState.saveFailed,
         snackbarHostState = snackbarHostState,
     )
 

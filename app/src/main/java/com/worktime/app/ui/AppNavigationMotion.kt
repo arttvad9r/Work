@@ -37,7 +37,7 @@ internal fun yearSummaryEnterTransition(): EnterTransition =
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
         ),
-        initialOffsetY = { height -> height / 8 },
+        initialOffsetY = { height -> height / 16 },
     ) + fadeIn(
         animationSpec = tween(
             durationMillis = AppMotion.FastMillis,
@@ -51,7 +51,7 @@ internal fun yearSummaryExitTransition(): ExitTransition =
             dampingRatio = AppMotion.NoBounceDampingRatio,
             stiffness = AppMotion.NavigationStiffness,
         ),
-        targetOffsetY = { height -> height / 8 },
+        targetOffsetY = { height -> height / 16 },
     ) + fadeOut(
         animationSpec = tween(
             durationMillis = AppMotion.FastMillis,

@@ -28,6 +28,13 @@ object AppMotion {
     const val ControlStiffness = 1_100f
     const val NavigationStiffness = 850f
     const val PagerStiffness = 700f
+    const val PagerSnapPositionalThreshold = 0.35f
+
+    // Shared direct-manipulation feedback. These remain deliberately restrained so press
+    // feedback is visible without making routine controls feel elastic or decorative.
+    const val PressedScale = 0.985f
+    const val PressedStateAlpha = 0.06f
+    const val DragScaleReduction = 0.015f
 
     val StandardEasing: Easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 }

@@ -2,22 +2,25 @@
 
 All notable product changes are documented here. Detailed intermediate implementation history remains available in Git.
 
-## [Unreleased] — 2026-08-29
+## [Unreleased] — 2026-09-02
 
 ### Motion and interaction
 
+- Added direct touch-down feedback to the calendar's primary interaction surface: enabled bounded press/ripple indication for day cells and short state-color interpolation for selected/populated/pressed states instead of an atomic background swap.
+- Segmented controls keep the single moving capsule but now add a restrained rounded press state to the touched segment; the custom state replaces the deliberately disabled rectangular framework indication without leaving the control visually silent before release.
+- Theme selection is now optimistic: the visible Material palette changes immediately on selection while the serialized DataStore write completes afterward. Failed persistence rolls the palette back to repository state and surfaces error feedback instead of making the user wait on storage or another app mutation.
+- Calendar and Year Summary paging now share the same spring stiffness and positional threshold. Year arrow navigation uses the same interruptible, velocity-preserving retargeting model as month arrows, and both swipe and arrow navigation emit one restrained `SegmentTick` only after the requested page actually settles.
+- Year Summary keeps its vertical hierarchy but reduces entry/exit travel to one-sixteenth of the viewport plus a short fade, so the screen reads as appearing from the monthly report rather than sliding a large distance.
+- The compact monthly summary now responds continuously during an upward drag with a small direct lift/scale treatment, springs back when the gesture is cancelled/insufficient, slightly compresses while pressed, and retains the normal ripple plus the existing threshold haptic.
+- Tappable sheet drag handles now acknowledge touch-down with a restrained tone change instead of remaining visually silent.
+- Added semantic `Reject` haptics for explicit calendar, settings-persistence and backup failures; ordinary navigation/day/field taps remain silent and successful persistence keeps the existing `Confirm` feedback.
 - Reworked the motion system around a shared direct-feedback vocabulary and refresh-rate-independent timing: gesture motion follows the platform frame clock, compact positional controls use critically damped springs, and non-spatial feedback uses short real-time tiers rather than frame counts.
 - The persistent day-editor numeric node still preserves one IME session but now relocates between fixed slots without visually travelling up and down the form; Bonus/Penalty presentation changes are atomic so their labels and values do not cross-fade through an empty frame.
 - Calendar navigation uses a real horizontal pager so adjacent months follow the finger; video QA removed the extra page alpha/scale treatment and header/summary dimming that read as flicker in device recordings. Programmatic navigation remains interruptible instead of stacking repeated targets.
 - The calendar title, `Fill today` action and compact monthly summary are derived from the same displayed pager state, so month labels, entries and totals do not expose stale-content crossfades.
 - Day/month content does not cross-fade stale values between months, so the new page settles without old entries or summary text blinking through it.
-- Segmented controls use a quiet stable container, moving critically damped capsule and haptic tick as one feedback layer without the framework's rectangular press indication flashing behind the pill.
-- Theme selection lets the capsule physically settle first, then transitions the entire Material palette from one synchronized 150 ms progress value instead of an atomic black/white flash or dozens of independently finishing color animations.
-- Full-screen settings and year-summary destinations remain opaque but now use a wider one-fifth-screen critically damped travel, so entering/leaving reads as spatial navigation rather than a shallow near-cut.
-- Year-to-year report changes still render exactly one dense report layer. The old report now performs a short directional fade-out, data swaps only while that layer is invisible, and the same layer settles back from the opposite side; rapid changes cannot reintroduce stacked report rows.
 - `Change rate for period` keeps one fixed two-row period geometry in both current-month and custom modes, so moving the segmented capsule no longer resizes the sheet body and shifts the action button.
 - Modal sheets share one zero-tonal-elevation surface and restrained scrim so editor/settings sheets read as the same visual layer.
-- Added a deliberately sparse haptic set; ordinary navigation remains silent and there is no decorative looping/bounce motion.
 - AndroidX SplashScreen provides the launch transition without an artificial delay.
 
 ### Data integrity and reports

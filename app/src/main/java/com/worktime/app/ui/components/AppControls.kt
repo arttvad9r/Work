@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -31,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
@@ -41,7 +43,8 @@ import androidx.compose.ui.unit.dp
 /**
  * The one segmented presentation for mutually exclusive options (theme, period).
  * The selected pill is the only moving surface. A quiet container behind it keeps the
- * control visually stable while the framework rectangular press indication stays disabled.
+ * control visually stable while a restrained rounded press state acknowledges touch-down
+ * without flashing the framework's rectangular indication behind the pill.
  *
  * Position uses a critically damped spring rather than a duration-based tween. This keeps
  * the capsule interruptible and equally responsive when the display switches between
@@ -102,6 +105,7 @@ fun AppSegmentedControl(
             options.forEachIndexed { index, option ->
                 val selected = safeIndex == index
                 val interactionSource = remember(index) { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
                 val contentColor by animateColorAsState(
                     targetValue = if (selected) {
                         MaterialTheme.colorScheme.onSecondaryContainer
@@ -113,6 +117,18 @@ fun AppSegmentedControl(
                         easing = AppMotion.StandardEasing,
                     ),
                     label = "segmented content",
+                )
+                val pressedColor by animateColorAsState(
+                    targetValue = if (isPressed) {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = AppMotion.PressedStateAlpha)
+                    } else {
+                        Color.Transparent
+                    },
+                    animationSpec = tween(
+                        durationMillis = AppMotion.MicroMillis,
+                        easing = AppMotion.StandardEasing,
+                    ),
+                    label = "segmented press",
                 )
                 Box(
                     modifier = Modifier
@@ -129,7 +145,10 @@ fun AppSegmentedControl(
                                     onSelect(index)
                                 }
                             },
-                        ),
+                        )
+                        .padding(3.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .background(pressedColor),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
