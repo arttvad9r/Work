@@ -50,7 +50,6 @@ import com.worktime.app.R
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppTopBar
-import com.worktime.app.ui.components.pagerSwipeHapticFeedback
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import java.time.Month
@@ -139,9 +138,6 @@ fun YearSummaryScreen(
                             contentDescription = stringResource(R.string.previous_year),
                         )
                     }
-                    // Keep the chrome on the settled business year. PagerState.currentPage flips
-                    // around the midpoint of a page move and made this label jump while content
-                    // was still travelling laterally in the device recordings.
                     Text(
                         text = selectedYear.toString(),
                         modifier = Modifier.padding(horizontal = 12.dp),
@@ -169,7 +165,6 @@ fun YearSummaryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .pagerSwipeHapticFeedback()
                     .testTag("year-summary-pager"),
                 beyondViewportPageCount = 1,
                 flingBehavior = pagerFlingBehavior,
