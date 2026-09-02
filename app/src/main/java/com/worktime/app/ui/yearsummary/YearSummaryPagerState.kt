@@ -31,9 +31,6 @@ internal class YearSummaryPagerState(
     private var programmaticPage by mutableStateOf<Int?>(null)
     private var programmaticScrollJob: Job? = null
 
-    val displayedYear: Int
-        get() = yearForPage(pagerState.currentPage)
-
     fun yearForPage(page: Int): Int = originYear + page - YearPagerAnchorPage
 
     fun navigatePrevious(scope: CoroutineScope): Boolean = navigateBy(scope, delta = -1)
@@ -149,8 +146,8 @@ internal fun YearSummaryPagerEffects(
         pager.syncToSelectedYear(scope, selectedYear)
     }
 
-    // Year swipes stay purely visual. Settle-time vibration is deliberately absent: by the time
-    // settledPage changes the gesture is already over, which makes the feedback feel detached.
+    // Settling only commits the selected year. Feedback is synchronous with the interaction:
+    // arrows tick on press and direct swipes tick while the finger crosses the snap threshold.
     LaunchedEffect(pager, selectedYear) {
         var previousSettledPage = pager.pagerState.settledPage
         snapshotFlow { pager.pagerState.settledPage }.collect { settledPage ->
