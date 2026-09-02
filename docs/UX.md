@@ -24,8 +24,9 @@ The compact phone layout is the primary interaction target, but the application 
 - Previous/next arrows drive the same interruptible pager animation programmatically, so gesture and button navigation share one spatial model and repeated taps preserve/re-target the current spring velocity.
 - The visible month plus both immediate neighbours are observed together from the repository so a drag does not expose an empty page while Room switches queries.
 - Pager settling is deliberately softer than compact-control motion so release does not feel like a hard snap.
-- Month paging is silent: swipe and arrow navigation do not emit a late haptic after the page has already settled.
-- Vertical-dominant interaction remains available to the calendar content and does not intentionally navigate months.
+- A horizontal swipe emits one light pager detent when the finger crosses the same 35% positional threshold used by snapping. Previous/next arrows emit the same light tick immediately when a valid navigation action starts. No pager haptic is emitted from `settledPage` or another animation-completion event.
+- The fixed header, `Fill today` action and monthly-summary strip remain on the last committed month while a swipe is in flight. They switch only after the pager settles, so `PagerState.currentPage` changing halfway through a drag cannot make the title or totals jump ahead of the moving page.
+- Vertical-dominant interaction remains available to the calendar content and does not intentionally navigate months or trigger the pager detent.
 - Adjacent-month dates stay visible but muted and inactive.
 - Populated cells use a neutral `surfaceContainerHigh`-style treatment. Date is secondary, duration is primary content and amount is a restrained `primary` accent; negative amount uses `error`.
 - Tapping a day opens the editor immediately. The closed grid therefore has no persistent selected fill; `selectedDate` remains business/accessibility state rather than another broad visual layer.
@@ -130,14 +131,15 @@ The year summary is a full-screen, view-only screen opened from the monthly repo
 
 - horizontal year pager with previous/next arrows;
 - swipe and arrow navigation use the same soft pager stiffness and snap threshold as calendar month paging; arrow navigation is interruptible and preserves/re-targets current velocity just like the calendar;
-- year paging is silent for the same reason as month paging: no delayed vibration is emitted after a direct gesture has already completed;
+- direct year swipes emit one light detent at the 35% snap threshold, while arrow navigation ticks immediately when the accepted movement begins; settle-time vibration is forbidden;
+- the fixed year label remains on the last committed year until paging settles, so it does not jump halfway through the lateral page movement;
 - yearly income, shifts, hours, average working-month income, average shift and optional bonus/penalty totals;
 - month breakdown header is one line: `By month` at the left, `shifts · h` and `income` aligned to their data columns;
 - populated months are normal emphasis; missing months are muted with dashes;
 - medium/tall windows keep the dense report in the fixed viewport; short windows allow vertical scrolling with compact minimum month-row heights so content remains reachable rather than clipped;
 - changing year follows the finger horizontally and retains adjacent-year data during the gesture.
 
-Settings enters from the right with a short symmetric spatial transition and returns by the same distance on dismiss. Year summary appears from below with only a short one-sixteenth-viewport travel plus fade and returns downward, preserving its relationship to the bottom monthly report without reading as a full-height sliding page.
+Settings enters from the right with a restrained symmetric transition of about one-sixth of the viewport width and returns by the same distance on dismiss. Year Summary appears from below with about one-tenth of the viewport height plus a short fade and returns downward. Device-video QA showed that the previous one-eighth/one-sixteenth travel was so short that both transitions read almost as hard cuts, while full-screen travel remained unnecessarily heavy.
 
 ## Export and import
 
@@ -161,7 +163,10 @@ WorkTime uses AndroidX SplashScreen compatibility so Android 12+ and older suppo
 Haptics are sparse and semantic. WorkTime does not vibrate on every tap.
 
 - segmented selection: one light `SegmentTick` only when selection actually changes;
-- direct month/year paging: deliberately silent for both swipe and arrow navigation; feedback must not be attached to `settledPage` or another later animation-completion event;
+- direct month/year swipe: one light `SegmentTick` when horizontal finger travel crosses the pager's 35% snap threshold; returning close to the origin re-arms the detent for a later deliberate crossing;
+- month/year arrow navigation: one light tick immediately when a valid arrow action begins;
+- pager feedback must never be attached to `settledPage` or another animation-completion event; settle commits business state only;
+- vertical-dominant movement does not trigger the pager detent;
 - monthly-summary dragging: deliberately silent; it is direct Material sheet manipulation with no synthetic threshold event;
 - Save/Delete/non-empty bulk rate update: `Confirm` only after the repository operation succeeds;
 - explicit calendar/settings-persistence/backup failure: one `Reject`;
