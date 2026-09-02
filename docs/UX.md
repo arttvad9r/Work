@@ -39,13 +39,14 @@ The compact phone layout is the primary interaction target, but the application 
 
 ## Monthly summary and report
 
-The fixed footer is one compact summary strip containing shifts, worked hours and monthly income. It acts as the entry point to the detailed month report and must remain visually subordinate to the calendar.
+The fixed footer is one compact summary strip containing shifts, worked hours and monthly income. It acts as both the entry point and the persistent peek/header of the detailed month report and must remain visually subordinate to the calendar.
 
-- normal tap interaction keeps the standard Material click indication without an additional scale or custom pressed-color layer;
-- during an upward drag the strip follows gesture progress only with a restrained direct vertical lift and springs back if the gesture is cancelled or remains below the activation distance;
-- its up/down chevron rotates with the report state;
-- crossing the actionable upward-drag threshold emits one threshold haptic because that feedback is synchronized with the finger crossing the threshold, not with a later animation completion;
-- geometry remains fixed.
+- normal taps keep the standard Material click indication without an additional scale or custom pressed-color layer;
+- the strip is the real `BottomSheetScaffold` peek, so an upward or downward drag moves the sheet directly under the finger using Material sheet physics;
+- there is no separate custom drag detector, synthetic activation distance, decorative lift/scale, or release-triggered catch-up animation;
+- dragging the monthly summary is silent because there is no longer a second threshold event to confirm;
+- its up/down chevron rotates with the report target state;
+- the collapsed strip keeps the same compact geometry and 8 dp lower breathing room as the standalone footer it replaced.
 
 The detailed report sheet contains:
 
@@ -58,7 +59,7 @@ The detailed report sheet contains:
 - average income per shift;
 - a normal navigation row to `Year summary`.
 
-The report is view-only. The handle remains tooltip-free; when it is tappable, touch-down gets a restrained visual tone response. Sheet opening/closing keeps Material drag physics. On a wide supporting-pane layout the same report content is persistent and does not open another sheet.
+The report is view-only. The persistent summary strip is the compact sheet handle; no second drag handle is inserted above the report. Sheet opening/closing and gesture tracking use Material sheet physics. On a wide supporting-pane layout the same report content is persistent and does not open another sheet.
 
 ## Day editor
 
@@ -101,11 +102,11 @@ Successful Save gets a confirmation haptic only after repository persistence suc
 
 All interactive rows follow the shared 48 dp row contract; segmented controls and inline fields use 44 dp height; primary sheet actions are at least 52 dp. Normal Material press feedback is retained except where a custom shape-aware press state replaces it.
 
-The shared segmented control uses one moving selected pill rather than unrelated hard-swapped fills. Each touched segment gets a restrained rounded press state. An actual selection change emits one light segment tick; tapping the already selected option does not.
+The shared segmented control normally uses one moving selected pill rather than unrelated hard-swapped fills. Each touched segment gets a restrained rounded press state. An actual selection change emits one light segment tick; tapping the already selected option does not.
 
-Theme palette changes apply immediately when an option is selected. The segmented indicator may continue its short presentation spring, but it never delays the visible theme change. Persistence is optimistic: the DataStore write remains serialized with other app mutations after the palette changes; a failed write rolls the selection/palette back to repository state, emits reject feedback and surfaces the existing error message. Layout and typography do not animate or reflow during the switch.
+Theme palette changes apply immediately when an option is selected. Theme mode is the deliberate exception to moving-pill presentation: its pill and label colors snap to the selected option in the same frame as the global palette. Device-video QA showed that continuing the pill spring after the palette changed briefly displayed a dark theme with the light option still highlighted, or the inverse. Persistence remains optimistic: the DataStore write is serialized after the visual change; a failed write rolls the selection/palette back to repository state, emits reject feedback and surfaces the existing error message. Layout and typography do not animate or reflow during the switch.
 
-Default rate edits inline and autosaves valid values. It is semantically separate from an individual entry rate. The first saved worked entry may initialize an uninitialized default; later per-day rates do not overwrite an initialized default.
+Default rate edits inline and autosaves valid values. Entering/leaving that fixed trailing editor slot is atomic rather than cross-faded: the previous read-only number must never remain visible underneath the focused field. It is semantically separate from an individual entry rate. The first saved worked entry may initialize an uninitialized default; later per-day rates do not overwrite an initialized default.
 
 The settings screen uses IME-aware scrolling so lower actions remain reachable while the default rate is being edited.
 
@@ -161,7 +162,7 @@ Haptics are sparse and semantic. WorkTime does not vibrate on every tap.
 
 - segmented selection: one light `SegmentTick` only when selection actually changes;
 - direct month/year paging: deliberately silent for both swipe and arrow navigation; feedback must not be attached to `settledPage` or another later animation-completion event;
-- monthly-summary upward drag: one `GestureThresholdActivate` when the finger crosses the actionable threshold; moving back below it re-arms the threshold;
+- monthly-summary dragging: deliberately silent; it is direct Material sheet manipulation with no synthetic threshold event;
 - Save/Delete/non-empty bulk rate update: `Confirm` only after the repository operation succeeds;
 - explicit calendar/settings-persistence/backup failure: one `Reject`;
 - ordinary navigation taps, day taps, text-field focus and passive scrolling add no extra vibration.
@@ -176,4 +177,4 @@ The canonical tokens and component semantics live in [`UI_SYSTEM.md`](UI_SYSTEM.
 - primary/secondary/error colors communicate hierarchy and state, not decoration;
 - dark theme is a readable counterpart of the light theme, while the light theme remains the primary visual target;
 - one routine action should normally produce one clear feedback signal rather than stacked ripple, tint, scale, haptic and navigation effects;
-- motion communicates continuity through short state transitions, non-bouncy springs, direct gesture-following pager motion and restrained directional hierarchy changes; it must not become looping decoration, bounce-heavy feedback or delayed actions.
+- motion communicates continuity through short state transitions, non-bouncy springs, direct gesture-following pager/sheet motion and restrained directional hierarchy changes; it must not become looping decoration, bounce-heavy feedback or delayed actions.
