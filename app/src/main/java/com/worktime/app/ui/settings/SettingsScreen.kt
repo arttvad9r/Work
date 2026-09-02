@@ -1,10 +1,5 @@
 package com.worktime.app.ui.settings
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,8 +48,6 @@ import com.worktime.app.ui.components.CompactMoneyField
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
 
-private const val InlineEditorFadeMillis = 75
-
 @Composable
 fun SettingsScreen(
     defaultHourlyRateMicros: Long,
@@ -87,8 +80,9 @@ fun SettingsScreen(
     }
 
     // External preference changes (restore/system-driven state) remain authoritative.
-    // Direct taps update both the visual selection and global palette immediately; the
-    // segmented-control spring is presentation only and never delays the preference write.
+    // Direct taps update both the visual selection and global palette immediately. Theme
+    // selection itself is intentionally atomic so the palette never changes one frame before
+    // the segmented indicator reaches the same option.
     LaunchedEffect(themeMode) {
         if (themeMode != presentedThemeMode) {
             presentedThemeMode = themeMode
@@ -153,6 +147,7 @@ fun SettingsScreen(
                             onThemeChange(selectedMode)
                         }
                     },
+                    animateSelection = false,
                     modifier = Modifier.padding(vertical = AppDimens.rowGap),
                 )
 
@@ -224,7 +219,8 @@ private fun SectionDivider() {
 
 /**
  * The default-rate row: reads as a value row, edits inline through the same compact slot.
- * Only the trailing content fades through; the row and every following row stay fixed.
+ * The trailing value/editor swaps atomically. A fade-through briefly rendered the old `370`
+ * underneath the focused field on device, which looked like a duplicate-value flash.
  */
 @Composable
 private fun RateRow(
@@ -255,39 +251,30 @@ private fun RateRow(
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
-        AnimatedContent(
-            targetState = editing,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(InlineEditorFadeMillis)) togetherWith
-                    fadeOut(animationSpec = tween(InlineEditorFadeMillis))
-            },
-            label = "default rate editor",
-        ) { isEditing ->
-            if (isEditing) {
-                CompactMoneyField(
-                    text = rateInput,
-                    onTextChange = { text ->
-                        rateInput = text
-                        val value = runCatching { parseDecimalMicros(text) }.getOrNull()
-                        if (value != null && value <= MoneyLimits.MAX_COMPONENT_MICROS) {
-                            onRateChange(value)
-                        }
-                    },
-                    isError = parsed == null || parsed > MoneyLimits.MAX_COMPONENT_MICROS,
-                    contentDescription = label,
-                    autoFocus = true,
-                    onLostFocus = onDone,
+        if (editing) {
+            CompactMoneyField(
+                text = rateInput,
+                onTextChange = { text ->
+                    rateInput = text
+                    val value = runCatching { parseDecimalMicros(text) }.getOrNull()
+                    if (value != null && value <= MoneyLimits.MAX_COMPONENT_MICROS) {
+                        onRateChange(value)
+                    }
+                },
+                isError = parsed == null || parsed > MoneyLimits.MAX_COMPONENT_MICROS,
+                contentDescription = label,
+                autoFocus = true,
+                onLostFocus = onDone,
+            )
+        } else {
+            AppFieldValueSlot {
+                Text(
+                    text = formatDecimalMicros(rateMicros),
+                    modifier = Modifier.padding(end = 8.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
                 )
-            } else {
-                AppFieldValueSlot {
-                    Text(
-                        text = formatDecimalMicros(rateMicros),
-                        modifier = Modifier.padding(end = 8.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                    )
-                }
             }
         }
     }
