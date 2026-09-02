@@ -3,14 +3,20 @@ package com.worktime.app.ui.calendar
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -34,23 +40,27 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.window.core.layout.WindowSizeClass.Companion.HEIGHT_DP_MEDIUM_LOWER_BOUND
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppSheetShape
-import com.worktime.app.ui.components.pagerSwipeHapticFeedback
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 internal enum class CalendarLayoutMode {
@@ -59,7 +69,9 @@ internal enum class CalendarLayoutMode {
     SupportingPane,
 }
 
-private val SummarySheetPeekHeight = 64.dp
+// 56 dp visible pill + 8 dp breathing room. System navigation inset is added separately so the
+// interactive pill always sits above three-button/gesture navigation rather than underneath it.
+private val SummaryStripFootprint = 64.dp
 
 internal fun calendarLayoutMode(
     maxHorizontalPartitions: Int,
@@ -117,6 +129,7 @@ fun CalendarScreen(
         onSelectMonth = onSelectMonth,
     )
 
+    val summaryMayHide by rememberUpdatedState(layoutMode == CalendarLayoutMode.SupportingPane)
     val summarySheetState = rememberStandardBottomSheetState(
         initialValue = if (layoutMode == CalendarLayoutMode.SupportingPane) {
             SheetValue.Hidden
@@ -124,6 +137,9 @@ fun CalendarScreen(
             SheetValue.PartiallyExpanded
         },
         skipHiddenState = false,
+        confirmValueChange = { target ->
+            target != SheetValue.Hidden || summaryMayHide
+        },
     )
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = summarySheetState,
@@ -167,214 +183,240 @@ fun CalendarScreen(
         }
     }
 
-    BottomSheetScaffold(
-        modifier = modifier,
-        scaffoldState = scaffoldState,
-        sheetPeekHeight = if (layoutMode == CalendarLayoutMode.SupportingPane) {
-            0.dp
-        } else {
-            SummarySheetPeekHeight
-        },
-        sheetDragHandle = null,
-        sheetSwipeEnabled = layoutMode != CalendarLayoutMode.SupportingPane,
-        sheetShape = AppSheetShape,
-        sheetTonalElevation = 0.dp,
-        sheetShadowElevation = 0.dp,
-        // Keep the collapsed calendar visually identical to the old standalone strip. The
-        // detailed report owns its opaque surface below the peek; the scaffold itself stays
-        // transparent so it does not draw a white/black rounded halo around the pill.
-        sheetContainerColor = Color.Transparent,
-        sheetContent = {
-            if (layoutMode == CalendarLayoutMode.SupportingPane) {
-                Spacer(modifier = Modifier.height(1.dp))
-            } else {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // This is the actual sheet peek. Vertical drags move the Material sheet
-                    // directly instead of waiting for a custom threshold and launching a second
-                    // animation after the finger has already been released.
-                    SummaryStrip(
-                        state = state,
-                        locale = locale,
-                        expanded = summaryTargetExpanded,
-                        onClick = toggleSummary,
-                        modifier = Modifier.padding(
-                            start = AppDimens.screenHorizontalPadding,
-                            end = AppDimens.screenHorizontalPadding,
-                            bottom = 8.dp,
-                        ),
-                    )
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = AppSheetShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        tonalElevation = 0.dp,
-                        shadowElevation = 0.dp,
-                    ) {
-                        MonthlySummaryPanel(
-                            state = state,
-                            onOpenYearSummary = { closeSummaryBehind(onOpenYearSummary) },
-                            locale = locale,
-                            modifier = Modifier
-                                .navigationBarsPadding()
-                                .padding(bottom = 10.dp),
-                        )
-                    }
-                }
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { innerPadding ->
-        val today = LocalDate.now()
+    val navigationBottomPadding =
+        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val compactSheetPeekHeight = SummaryStripFootprint + navigationBottomPadding
 
-        val primaryPane: @Composable (Modifier, Boolean) -> Unit = {
-                paneModifier,
-                useFlexibleSpacer,
-            ->
-            Column(
-                modifier = paneModifier,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // Header/summary metadata stays on the settled business month. Previously it was
-                // derived from PagerState.currentPage, which flips near the middle of a page move
-                // and made the title/footer jump while the calendar was still physically moving.
-                CalendarHeader(
-                    visibleMonth = state.visibleMonth,
-                    isReady = state.isReady,
-                    locale = locale,
-                    onPreviousMonth = {
-                        closeSummaryBehind {
-                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                            if (!pager.navigatePrevious(scope)) onPreviousMonth()
-                        }
-                    },
-                    onNextMonth = {
-                        closeSummaryBehind {
-                            haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                            if (!pager.navigateNext(scope)) onNextMonth()
-                        }
-                    },
-                    onSelectMonth = { monthPickerOpen = true },
-                    onSettingsClick = { closeSummaryBehind(onSettingsClick) },
-                )
-                if (!state.isReady) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 72.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                } else {
-                    HorizontalPager(
-                        state = pager.pagerState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(calendarGridHeight())
-                            .pagerSwipeHapticFeedback()
-                            .testTag("calendar-pager"),
-                        beyondViewportPageCount = 1,
-                        flingBehavior = pagerFlingBehavior,
-                        key = { page -> pager.monthForPage(page).toString() },
-                    ) { page ->
-                        val month = pager.monthForPage(page)
-                        val entries = state.monthEntries[month]
-                            ?: if (month == state.visibleMonth) state.entries else emptyMap()
-                        CalendarGrid(
-                            state = state.copy(
-                                visibleMonth = month,
-                                entries = entries,
-                            ),
-                            onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
-                            locale = locale,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-                    if (
-                        shouldShowTodayEntryPrompt(
-                            visibleMonth = state.visibleMonth,
-                            entryDates = state.entries.keys,
-                            today = today,
-                        )
-                    ) {
-                        TodayEntryPrompt(
-                            onClick = { closeSummaryBehind { onDayClick(today) } },
-                        )
-                    }
-                    if (useFlexibleSpacer) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
+    BoxWithConstraints(modifier = modifier) {
+        val density = LocalDensity.current
+        val collapsedSheetOffsetPx = with(density) {
+            (maxHeight - compactSheetPeekHeight).toPx()
         }
 
-        when (layoutMode) {
-            CalendarLayoutMode.Compact -> {
-                primaryPane(
-                    Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .padding(innerPadding),
-                    true,
-                )
-            }
-
-            CalendarLayoutMode.CompactShort -> {
-                primaryPane(
-                    Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .padding(innerPadding)
-                        .verticalScroll(shortScrollState),
-                    false,
-                )
-            }
-
-            CalendarLayoutMode.SupportingPane -> {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .navigationBarsPadding()
-                        .padding(innerPadding)
-                        .padding(
-                            start = AppDimens.screenHorizontalPadding,
-                            end = AppDimens.screenHorizontalPadding,
-                            bottom = 8.dp,
-                        ),
-                ) {
-                    primaryPane(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                        true,
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Surface(
-                        modifier = Modifier
-                            .width(320.dp)
-                            .fillMaxHeight()
-                            .testTag("calendar-supporting-pane"),
-                        shape = MaterialTheme.shapes.large,
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        tonalElevation = 0.dp,
-                    ) {
-                        if (state.isReady) {
+        BottomSheetScaffold(
+            modifier = Modifier.fillMaxSize(),
+            scaffoldState = scaffoldState,
+            sheetPeekHeight = if (layoutMode == CalendarLayoutMode.SupportingPane) {
+                0.dp
+            } else {
+                compactSheetPeekHeight
+            },
+            sheetDragHandle = null,
+            sheetSwipeEnabled = layoutMode != CalendarLayoutMode.SupportingPane,
+            sheetShape = AppSheetShape,
+            sheetTonalElevation = 0.dp,
+            sheetShadowElevation = 0.dp,
+            sheetContainerColor = Color.Transparent,
+            sheetContent = {
+                if (layoutMode == CalendarLayoutMode.SupportingPane) {
+                    Spacer(modifier = Modifier.height(1.dp))
+                } else {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // The pill remains a child of the Material sheet so a drag that starts on it
+                        // is still handled by the sheet's real anchored-drag physics. We counter the
+                        // sheet's current vertical offset, however, so only the report moves while
+                        // the pill remains visually fixed at its collapsed position.
+                        SummaryStrip(
+                            state = state,
+                            locale = locale,
+                            expanded = summaryTargetExpanded,
+                            onClick = toggleSummary,
+                            modifier = Modifier
+                                .offset {
+                                    val sheetOffset = runCatching {
+                                        summarySheetState.requireOffset()
+                                    }.getOrDefault(collapsedSheetOffsetPx)
+                                    IntOffset(
+                                        x = 0,
+                                        y = (collapsedSheetOffsetPx - sheetOffset).roundToInt(),
+                                    )
+                                }
+                                .zIndex(1f)
+                                .padding(
+                                    start = AppDimens.screenHorizontalPadding,
+                                    end = AppDimens.screenHorizontalPadding,
+                                    bottom = 8.dp,
+                                ),
+                        )
+                        // This transparent footprint is the system navigation area. It keeps the
+                        // collapsed sheet exactly below the visible pill instead of allowing Android
+                        // three-button navigation to cover an interactive control.
+                        Spacer(modifier = Modifier.height(navigationBottomPadding))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = AppSheetShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp,
+                        ) {
                             MonthlySummaryPanel(
                                 state = state,
-                                onOpenYearSummary = onOpenYearSummary,
+                                onOpenYearSummary = { closeSummaryBehind(onOpenYearSummary) },
                                 locale = locale,
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(supportingPaneScrollState)
-                                    .padding(vertical = 8.dp),
+                                    .navigationBarsPadding()
+                                    .padding(bottom = 10.dp),
                             )
-                        } else {
-                            Box(
+                        }
+                    }
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.background,
+        ) { innerPadding ->
+            val today = LocalDate.now()
+
+            val primaryPane: @Composable (Modifier, Boolean) -> Unit = {
+                    paneModifier,
+                    useFlexibleSpacer,
+                ->
+                Column(
+                    modifier = paneModifier,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CalendarHeader(
+                        visibleMonth = state.visibleMonth,
+                        isReady = state.isReady,
+                        locale = locale,
+                        onPreviousMonth = {
+                            closeSummaryBehind {
+                                if (pager.navigatePrevious(scope)) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                } else {
+                                    onPreviousMonth()
+                                }
+                            }
+                        },
+                        onNextMonth = {
+                            closeSummaryBehind {
+                                if (pager.navigateNext(scope)) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                } else {
+                                    onNextMonth()
+                                }
+                            }
+                        },
+                        onSelectMonth = { monthPickerOpen = true },
+                        onSettingsClick = { closeSummaryBehind(onSettingsClick) },
+                    )
+                    if (!state.isReady) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 72.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    } else {
+                        HorizontalPager(
+                            state = pager.pagerState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(calendarGridHeight())
+                                .testTag("calendar-pager"),
+                            beyondViewportPageCount = 1,
+                            flingBehavior = pagerFlingBehavior,
+                            key = { page -> pager.monthForPage(page).toString() },
+                        ) { page ->
+                            val month = pager.monthForPage(page)
+                            val entries = state.monthEntries[month]
+                                ?: if (month == state.visibleMonth) state.entries else emptyMap()
+                            CalendarGrid(
+                                state = state.copy(
+                                    visibleMonth = month,
+                                    entries = entries,
+                                ),
+                                onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
+                                locale = locale,
                                 modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator()
+                            )
+                        }
+                        if (
+                            shouldShowTodayEntryPrompt(
+                                visibleMonth = state.visibleMonth,
+                                entryDates = state.entries.keys,
+                                today = today,
+                            )
+                        ) {
+                            TodayEntryPrompt(
+                                onClick = { closeSummaryBehind { onDayClick(today) } },
+                            )
+                        }
+                        if (useFlexibleSpacer) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+
+            when (layoutMode) {
+                CalendarLayoutMode.Compact -> {
+                    primaryPane(
+                        Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding()
+                            .padding(innerPadding),
+                        true,
+                    )
+                }
+
+                CalendarLayoutMode.CompactShort -> {
+                    primaryPane(
+                        Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding()
+                            .padding(innerPadding)
+                            .verticalScroll(shortScrollState),
+                        false,
+                    )
+                }
+
+                CalendarLayoutMode.SupportingPane -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding()
+                            .navigationBarsPadding()
+                            .padding(innerPadding)
+                            .padding(
+                                start = AppDimens.screenHorizontalPadding,
+                                end = AppDimens.screenHorizontalPadding,
+                                bottom = 8.dp,
+                            ),
+                    ) {
+                        primaryPane(
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            true,
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Surface(
+                            modifier = Modifier
+                                .width(320.dp)
+                                .fillMaxHeight()
+                                .testTag("calendar-supporting-pane"),
+                            shape = MaterialTheme.shapes.large,
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            tonalElevation = 0.dp,
+                        ) {
+                            if (state.isReady) {
+                                MonthlySummaryPanel(
+                                    state = state,
+                                    onOpenYearSummary = onOpenYearSummary,
+                                    locale = locale,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .verticalScroll(supportingPaneScrollState)
+                                        .padding(vertical = 8.dp),
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator()
+                                }
                             }
                         }
                     }
