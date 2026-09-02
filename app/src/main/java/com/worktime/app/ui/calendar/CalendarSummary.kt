@@ -1,16 +1,12 @@
 package com.worktime.app.ui.calendar
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -76,8 +71,6 @@ internal fun SummaryStrip(
     )
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
     var dragProgress by remember { mutableFloatStateOf(0f) }
     var dragging by remember { mutableStateOf(false) }
     val visualDragProgress by animateFloatAsState(
@@ -92,14 +85,6 @@ internal fun SummaryStrip(
         },
         label = "summary drag progress",
     )
-    val pressScale by animateFloatAsState(
-        targetValue = if (isPressed) AppMotion.PressedScale else 1f,
-        animationSpec = spring(
-            dampingRatio = AppMotion.NoBounceDampingRatio,
-            stiffness = AppMotion.ControlStiffness,
-        ),
-        label = "summary press",
-    )
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = tween(
@@ -108,19 +93,7 @@ internal fun SummaryStrip(
         ),
         label = "summary chevron",
     )
-    val baseContainerColor = MaterialTheme.colorScheme.secondaryContainer
-    val pressedContainerColor = MaterialTheme.colorScheme.onSecondaryContainer
-        .copy(alpha = AppMotion.PressedStateAlpha)
-        .compositeOver(baseContainerColor)
-    val containerColor by animateColorAsState(
-        targetValue = if (isPressed) pressedContainerColor else baseContainerColor,
-        animationSpec = tween(
-            durationMillis = AppMotion.MicroMillis,
-            easing = AppMotion.StandardEasing,
-        ),
-        label = "summary container press",
-    )
-    val maxLiftPx = with(density) { 8.dp.toPx() }
+    val maxLiftPx = with(density) { 6.dp.toPx() }
 
     Box(
         modifier = modifier
@@ -132,9 +105,6 @@ internal fun SummaryStrip(
                 .fillMaxSize()
                 .graphicsLayer {
                     translationY = -maxLiftPx * visualDragProgress
-                    val dragScale = 1f - AppMotion.DragScaleReduction * visualDragProgress
-                    scaleX = pressScale * dragScale
-                    scaleY = pressScale * dragScale
                 }
                 .pointerInput(haptics, onClick, onSwipeUp) {
                     val threshold = 40.dp.toPx()
@@ -185,10 +155,8 @@ internal fun SummaryStrip(
                     )
                 }
                 .clip(MaterialTheme.shapes.medium)
-                .background(containerColor)
+                .background(MaterialTheme.colorScheme.secondaryContainer)
                 .clickable(
-                    interactionSource = interactionSource,
-                    indication = LocalIndication.current,
                     onClickLabel = stringResource(R.string.monthly_summary),
                     onClick = onClick,
                 )
