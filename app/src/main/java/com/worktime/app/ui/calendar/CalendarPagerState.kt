@@ -12,7 +12,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.worktime.app.ui.components.AppMotion
+import com.worktime.app.ui.components.PagerHapticGate
 import java.time.YearMonth
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
@@ -37,6 +40,9 @@ internal class CalendarPagerState(
     private var programmaticPage by mutableStateOf<Int?>(null)
     private var programmaticScrollJob: Job? = null
 
+    val isProgrammaticScrollInProgress: Boolean
+        get() = programmaticPage != null
+
     fun monthForPage(page: Int): YearMonth =
         yearMonthFromIndex(originMonthIndex + page - PagerAnchorPage)
 
@@ -58,8 +64,14 @@ internal class CalendarPagerState(
         } else {
             programmaticPage = targetPage
             programmaticScrollJob?.cancel()
-            pagerState.scrollToPage(targetPage)
-            programmaticPosition.snapTo(targetPage.toFloat())
+            try {
+                pagerState.scrollToPage(targetPage)
+                programmaticPosition.snapTo(targetPage.toFloat())
+            } finally {
+                if (programmaticPage == targetPage) {
+                    programmaticPage = null
+                }
+            }
         }
     }
 
@@ -92,41 +104,51 @@ internal class CalendarPagerState(
         programmaticPage = targetPage
         programmaticScrollJob?.cancel()
         programmaticScrollJob = scope.launch {
-            val actualPosition = pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction
-            if (
-                !wasRunning ||
-                abs(programmaticPosition.value - actualPosition) > PagerPositionResyncTolerance
-            ) {
-                programmaticPosition.snapTo(actualPosition)
-            }
-
-            val pageSizePx = pagerState.layoutInfo.pageSize.toFloat()
-            if (pageSizePx <= 0f) {
-                pagerState.scrollToPage(targetPage)
-                programmaticPosition.snapTo(targetPage.toFloat())
-                return@launch
-            }
-
-            pagerState.scroll {
-                val scrollScope = this
-                var consumedPosition = programmaticPosition.value
-                programmaticPosition.animateTo(
-                    targetValue = targetPage.toFloat(),
-                    animationSpec = spring(
-                        dampingRatio = AppMotion.NoBounceDampingRatio,
-                        stiffness = AppMotion.PagerStiffness,
-                    ),
-                    initialVelocity = carriedVelocity,
+            try {
+                val actualPosition =
+                    pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction
+                if (
+                    !wasRunning ||
+                    abs(programmaticPosition.value - actualPosition) > PagerPositionResyncTolerance
                 ) {
-                    val deltaPages = value - consumedPosition
-                    val consumedPx = scrollScope.scrollBy(deltaPages * pageSizePx)
-                    consumedPosition += consumedPx / pageSizePx
+                    programmaticPosition.snapTo(actualPosition)
+                }
+
+                val pageSizePx = pagerState.layoutInfo.pageSize.toFloat()
+                if (pageSizePx <= 0f) {
+                    pagerState.scrollToPage(targetPage)
+                    programmaticPosition.snapTo(targetPage.toFloat())
+                    return@launch
+                }
+
+                pagerState.scroll {
+                    val scrollScope = this
+                    var consumedPosition = programmaticPosition.value
+                    programmaticPosition.animateTo(
+                        targetValue = targetPage.toFloat(),
+                        animationSpec = spring(
+                            dampingRatio = AppMotion.NoBounceDampingRatio,
+                            stiffness = AppMotion.PagerStiffness,
+                        ),
+                        initialVelocity = carriedVelocity,
+                    ) {
+                        val deltaPages = value - consumedPosition
+                        val consumedPx = scrollScope.scrollBy(deltaPages * pageSizePx)
+                        consumedPosition += consumedPx / pageSizePx
+                    }
+                }
+
+                programmaticPosition.snapTo(
+                    pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction,
+                )
+            } finally {
+                // A user drag can interrupt the arrow animation. Clearing this in finally lets the
+                // gesture haptic observer take over immediately instead of remaining suppressed
+                // until the next settled-page callback.
+                if (programmaticPage == targetPage) {
+                    programmaticPage = null
                 }
             }
-
-            programmaticPosition.snapTo(
-                pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction,
-            )
         }
     }
 }
@@ -153,14 +175,34 @@ internal fun CalendarPagerEffects(
     scope: CoroutineScope,
     onSelectMonth: (YearMonth) -> Unit,
 ) {
+    val haptics = LocalHapticFeedback.current
+
     // Month picker/restored state drives the pager. Adjacent changes use the same interruptible
     // spring as arrow navigation; large jumps are immediate.
     LaunchedEffect(pager, visibleMonth) {
         pager.syncToVisibleMonth(scope, visibleMonth)
     }
 
-    // Settling only commits business state. Tactile feedback is deliberately handled earlier:
-    // arrow taps tick immediately and direct swipes tick at the finger-crossed snap threshold.
+    // Observe the pager's actual continuous position, not raw pointer travel. This also covers a
+    // fast fling released before 35%: when pager physics commits the page and crosses the same snap
+    // threshold a threshold haptic is emitted during the movement, never after settledPage.
+    LaunchedEffect(pager) {
+        val gate = PagerHapticGate(AppMotion.PagerSnapPositionalThreshold)
+        snapshotFlow {
+            val position =
+                pager.pagerState.currentPage.toFloat() + pager.pagerState.currentPageOffsetFraction
+            val deltaFromSettled = position - pager.pagerState.settledPage.toFloat()
+            deltaFromSettled to pager.isProgrammaticScrollInProgress
+        }.collect { (deltaFromSettled, programmatic) ->
+            if (programmatic) {
+                gate.reset()
+            } else if (gate.update(deltaFromSettled)) {
+                haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+            }
+        }
+    }
+
+    // Settling only commits business state; it never emits tactile feedback.
     LaunchedEffect(pager, visibleMonth) {
         var previousSettledPage = pager.pagerState.settledPage
         snapshotFlow { pager.pagerState.settledPage }.collect { settledPage ->
