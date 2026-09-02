@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -69,8 +68,6 @@ internal enum class CalendarLayoutMode {
     SupportingPane,
 }
 
-// 56 dp visible pill + 8 dp breathing room. System navigation inset is added separately so the
-// interactive pill always sits above three-button/gesture navigation rather than underneath it.
 private val SummaryStripFootprint = 64.dp
 
 internal fun calendarLayoutMode(
@@ -212,10 +209,6 @@ fun CalendarScreen(
                     Spacer(modifier = Modifier.height(1.dp))
                 } else {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        // The pill remains a child of the Material sheet so a drag that starts on it
-                        // is still handled by the sheet's real anchored-drag physics. We counter the
-                        // sheet's current vertical offset, however, so only the report moves while
-                        // the pill remains visually fixed at its collapsed position.
                         SummaryStrip(
                             state = state,
                             locale = locale,
@@ -238,9 +231,6 @@ fun CalendarScreen(
                                     bottom = 8.dp,
                                 ),
                         )
-                        // This transparent footprint is the system navigation area. It keeps the
-                        // collapsed sheet exactly below the visible pill instead of allowing Android
-                        // three-button navigation to cover an interactive control.
                         Spacer(modifier = Modifier.height(navigationBottomPadding))
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
