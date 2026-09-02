@@ -24,7 +24,7 @@ class FullScreenMotionUiTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun settingsExitTravelsBeyondLegacyPartialWidthTarget() {
+    fun settingsExitUsesRestrainedPartialWidthTravel() {
         val settings = composeRule.activity.getString(R.string.settings)
 
         composeRule
@@ -33,7 +33,7 @@ class FullScreenMotionUiTest {
             .performClick()
         composeRule.waitForIdle()
 
-        assertHorizontalFullScreenExitTravelsFarEnough(
+        assertHorizontalFullScreenExitUsesRestrainedTravel(
             composeRule.onNodeWithText(settings),
         )
     }
@@ -63,7 +63,7 @@ class FullScreenMotionUiTest {
         )
     }
 
-    private fun assertHorizontalFullScreenExitTravelsFarEnough(node: SemanticsNodeInteraction) {
+    private fun assertHorizontalFullScreenExitUsesRestrainedTravel(node: SemanticsNodeInteraction) {
         node.assertIsDisplayed()
         val initialLeft = node.fetchSemanticsNode().boundsInRoot.left
         val rootWidth = composeRule.onRoot().fetchSemanticsNode().boundsInRoot.width
@@ -73,9 +73,10 @@ class FullScreenMotionUiTest {
             composeRule.activity.onBackPressedDispatcher.onBackPressed()
         }
 
-        // Sample the whole transition instead of assuming a device-specific position at one
-        // timestamp. The old regression targeted exactly width/5, so while composed it could
-        // never travel beyond 20% of the viewport. The intended settings exit must cross it.
+        // Sample the whole transition instead of relying on one device-specific frame. Settings
+        // intentionally uses short spatial travel: enough to preserve hierarchy direction, but
+        // well below the old width/5-or-more exit that made dismissal feel much heavier than
+        // entry. The current shared navigation contract targets one eighth of the viewport.
         var maxTravelled = 0f
         repeat(60) {
             composeRule.mainClock.advanceTimeByFrame()
@@ -87,9 +88,9 @@ class FullScreenMotionUiTest {
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()
         assertTrue(
-            "Expected full-screen exit to travel beyond the old width/5 target; " +
+            "Expected a visible but restrained full-screen exit; " +
                 "maxTravelled=$maxTravelled rootWidth=$rootWidth",
-            maxTravelled > rootWidth * 0.21f,
+            maxTravelled >= rootWidth * 0.10f && maxTravelled <= rootWidth * 0.16f,
         )
         node.assertDoesNotExist()
     }
