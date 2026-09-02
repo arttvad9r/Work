@@ -18,6 +18,7 @@ import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.PagerHapticGate
 import java.time.YearMonth
 import kotlin.math.abs
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -40,7 +41,7 @@ internal class CalendarPagerState(
     private var programmaticPage by mutableStateOf<Int?>(null)
     private var programmaticScrollJob: Job? = null
 
-    val isProgrammaticScrollInProgress: Boolean
+    val isProgrammaticNavigationPending: Boolean
         get() = programmaticPage != null
 
     fun monthForPage(page: Int): YearMonth =
@@ -64,14 +65,8 @@ internal class CalendarPagerState(
         } else {
             programmaticPage = targetPage
             programmaticScrollJob?.cancel()
-            try {
-                pagerState.scrollToPage(targetPage)
-                programmaticPosition.snapTo(targetPage.toFloat())
-            } finally {
-                if (programmaticPage == targetPage) {
-                    programmaticPage = null
-                }
-            }
+            pagerState.scrollToPage(targetPage)
+            programmaticPosition.snapTo(targetPage.toFloat())
         }
     }
 
@@ -141,13 +136,16 @@ internal class CalendarPagerState(
                 programmaticPosition.snapTo(
                     pagerState.currentPage.toFloat() + pagerState.currentPageOffsetFraction,
                 )
-            } finally {
-                // A user drag can interrupt the arrow animation. Clearing this in finally lets the
-                // gesture haptic observer take over immediately instead of remaining suppressed
-                // until the next settled-page callback.
+                // Keep programmaticPage set until settledPage commits the month. This prevents the
+                // continuous position observer from generating a second tick after an arrow tap.
+            } catch (cancellation: CancellationException) {
+                // If a user's drag interrupts arrow motion, stop suppressing gesture haptics at
+                // once. A repeated arrow retarget sets programmaticPage to its new target first, so
+                // cancelling the previous job cannot clear the new suppression state.
                 if (programmaticPage == targetPage) {
                     programmaticPage = null
                 }
+                throw cancellation
             }
         }
     }
@@ -184,20 +182,20 @@ internal fun CalendarPagerEffects(
     }
 
     // Observe the pager's actual continuous position, not raw pointer travel. This also covers a
-    // fast fling released before 35%: when pager physics commits the page and crosses the same snap
-    // threshold a threshold haptic is emitted during the movement, never after settledPage.
+    // fast fling released before 35%: pager physics can still commit the new page, and the haptic
+    // fires when that moving page crosses the snap threshold rather than after settledPage.
     LaunchedEffect(pager) {
         val gate = PagerHapticGate(AppMotion.PagerSnapPositionalThreshold)
         snapshotFlow {
             val position =
                 pager.pagerState.currentPage.toFloat() + pager.pagerState.currentPageOffsetFraction
             val deltaFromSettled = position - pager.pagerState.settledPage.toFloat()
-            deltaFromSettled to pager.isProgrammaticScrollInProgress
+            deltaFromSettled to pager.isProgrammaticNavigationPending
         }.collect { (deltaFromSettled, programmatic) ->
             if (programmatic) {
                 gate.reset()
             } else if (gate.update(deltaFromSettled)) {
-                haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
             }
         }
     }
