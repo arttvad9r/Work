@@ -57,7 +57,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `deleting an existing entry stores exact entry and undo restores it`() = runTest {
-        val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000, note = "original")
+        val entry = WorkEntry(YearMonth.now().atDay(10), 480, 10_000_000, note = "original")
         val repository = FakeWorkEntryRepository(listOf(entry))
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
@@ -78,7 +78,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `external data replacement invalidates pending undo`() = runTest {
-        val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val entry = WorkEntry(YearMonth.now().atDay(10), 480, 10_000_000)
         val repository = FakeWorkEntryRepository(listOf(entry))
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
@@ -169,7 +169,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `successful delete emits one root event without replay`() = runTest {
-        val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val entry = WorkEntry(YearMonth.now().atDay(10), 480, 10_000_000)
         val repository = FakeWorkEntryRepository(listOf(entry))
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
@@ -211,7 +211,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `new save supersedes undo snapshot`() = runTest {
-        val entry = WorkEntry(LocalDate.of(2026, 8, 10), 480, 10_000_000)
+        val entry = WorkEntry(YearMonth.now().atDay(10), 480, 10_000_000)
         val replacement = entry.copy(note = "replacement")
         val repository = FakeWorkEntryRepository(listOf(entry))
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
