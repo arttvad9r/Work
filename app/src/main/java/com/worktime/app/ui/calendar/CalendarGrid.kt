@@ -1,8 +1,8 @@
 package com.worktime.app.ui.calendar
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -202,21 +202,29 @@ private fun DayCell(
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
     }
-    val baseBackgroundColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        visibleEntry != null -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
-        else -> Color.Transparent
+
+    // The editor opens immediately after a day click, so a persistent full-cell selected fill
+    // competes with the touch indication and reads as a flash. Keep the cell visually stable and
+    // use one quiet, immediate press layer that simply fades away after release.
+    val baseBackgroundColor = if (visibleEntry != null) {
+        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
+    } else {
+        Color.Transparent
     }
     val pressedBackgroundColor = MaterialTheme.colorScheme.onSurface
         .copy(alpha = AppMotion.PressedStateAlpha)
         .compositeOver(baseBackgroundColor)
     val backgroundColor by animateColorAsState(
         targetValue = if (isPressed) pressedBackgroundColor else baseBackgroundColor,
-        animationSpec = tween(
-            durationMillis = AppMotion.MicroMillis,
-            easing = AppMotion.StandardEasing,
-        ),
-        label = "calendar day state",
+        animationSpec = if (isPressed) {
+            snap()
+        } else {
+            tween(
+                durationMillis = AppMotion.MicroMillis,
+                easing = AppMotion.StandardEasing,
+            )
+        },
+        label = "calendar day press",
     )
 
     Box(
@@ -236,7 +244,7 @@ private fun DayCell(
             .clickable(
                 enabled = isInVisibleMonth,
                 interactionSource = interactionSource,
-                indication = LocalIndication.current,
+                indication = null,
                 onClick = onClick,
             ),
     ) {
