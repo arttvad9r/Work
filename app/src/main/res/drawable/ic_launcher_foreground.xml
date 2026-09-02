@@ -1,6 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:src="@drawable/ic_launcher_exact"
-    android:gravity="fill"
-    android:antialias="true"
-    android:filter="true" />
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!--
+        Keep the launcher mark vector-native and geometrically centered. The previous foreground
+        was a raster bitmap, so zoomed launcher masks exposed uneven antialiasing/margins. The
+        clock is a true circle; the earnings badge masks the lower-right arc with the same launcher
+        background before drawing its own outline.
+    -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.78"
+        android:scaleY="0.78"
+        android:translateY="1.5">
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M80.5,49 A30.5,30.5 0,1 0,19.5 49 A30.5,30.5 0,1 0,80.5 49"
+            android:strokeColor="#1975F1"
+            android:strokeWidth="7.6"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M50,49 L50,34 M50,49 L63,58"
+            android:strokeColor="#1975F1"
+            android:strokeWidth="5.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#1975F1"
+            android:pathData="M50,44.5 A4.5,4.5 0,1 0,50 53.5 A4.5,4.5 0,1 0,50 44.5" />
+        <path
+            android:fillColor="@color/ic_launcher_background"
+            android:pathData="M76,60 A14,14 0,1 0,76 88 A14,14 0,1 0,76 60"
+            android:strokeColor="#1975F1"
+            android:strokeWidth="4.6" />
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M81,67 C79,65.5 74,65.5 72,68.5 C70,71.5 73,73.5 77,74.5 C81,75.5 83,78 81,81 C79,84 74,84 71,82 M76,64.5 L76,85"
+            android:strokeColor="#1975F1"
+            android:strokeWidth="3.0"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>
