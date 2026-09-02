@@ -82,14 +82,18 @@ should feel responsive rather than animated for its own sake.
 - Local content/position changes: roughly 150–220 ms or a non-bouncy spring.
 - Full-screen hierarchy changes use restrained, symmetric travel; entering and leaving the same
   hierarchy must not use dramatically different distances.
-- Settings enters from the side with a short symmetric transition. Year summary rises only a
-  short distance from below because it is launched from the bottom monthly report and returns
-  toward that source when dismissed. The Year summary transition should read primarily as an
-  appearance/disappearance, not as a full-height sliding page.
+- Settings enters from the side with about one-sixth of the viewport width and returns by the same
+  distance. Year Summary rises about one-tenth of the viewport from below with a short fade and
+  returns downward. Device-video QA showed that the previous one-eighth/one-sixteenth travel read
+  almost as a hard cut, while full-screen travel remained unnecessarily heavy.
 - Calendar month navigation uses `HorizontalPager`: content follows the finger during a drag and
   arrows animate the same pager programmatically. Adjacent month data stays warm.
+- The fixed calendar header, `Fill today` affordance and monthly summary do not switch when
+  `PagerState.currentPage` flips in the middle of a drag. They keep the last committed month until
+  paging settles, preventing a one-frame title/summary jump while the page is still moving.
 - Year-summary paging uses the same pager stiffness, snap threshold and interruptible arrow
-  retargeting as the calendar. Month/year paging therefore shares one physical language.
+  retargeting as the calendar. Its fixed year label follows the same committed-state rule instead
+  of changing halfway through a swipe.
 - Pager springs are deliberately softer than compact control springs; direct manipulation must
   settle smoothly rather than snap sharply after the finger is released.
 - The persistent numeric editor may move between its fixed rows with a non-bouncy spring;
@@ -127,10 +131,15 @@ not change business state timing.
 Haptics are sparse and semantic, not a vibration on every tap. They use Compose/platform
 feedback types so device and system settings remain authoritative.
 
-- `SegmentTick` — only when a segmented option actually changes.
-- Month/year pager swipes and arrows are deliberately silent. Physical-device QA showed that a
-  vibration emitted from `settledPage` necessarily arrives after the direct gesture and feels
-  detached/delayed rather than confirming it.
+- `SegmentTick` — when a segmented option actually changes and as the light pager detent.
+- A direct month/year swipe emits one `SegmentTick` when horizontal finger travel crosses the same
+  35% positional threshold used by pager snapping. The observer never consumes the gesture. If the
+  finger returns close to the origin, the detent re-arms so a later deliberate crossing can tick.
+- Month/year arrow navigation emits the same light tick immediately when a valid arrow action is
+  accepted, at animation start rather than after animation completion.
+- `settledPage` is never a haptic source. It commits the new month/year only; attaching vibration
+  there produced the delayed, detached feedback observed on physical devices.
+- Vertical-dominant movement does not trigger the pager detent.
 - Monthly-summary dragging is deliberately silent. There is no synthetic activation threshold now:
   Material sheet physics directly track the finger, so adding a separate threshold haptic would
   reintroduce a second feedback timeline for the same gesture.
