@@ -63,8 +63,8 @@ visually distinct without turning the grid into a heatmap:
 - worked duration → `onSurface`, the strongest text inside a populated cell;
 - amount → restrained `primary`; negative amounts → `error`;
 - populated cells get only a very light neutral container tint;
-- selected state is carried by `primaryContainer` + cell geometry, not by recoloring
-  every piece of data;
+- tapping a day opens the editor immediately, so the closed grid has no persistent selected fill;
+  the selected date remains business/accessibility state, not another broad color layer;
 - out-of-month dates are reduced by alpha.
 
 ## Shapes
@@ -77,17 +77,20 @@ corners). No ad-hoc `RoundedCornerShape(13.dp)`-style values.
 Motion communicates continuity and feedback; it is never decorative. The interface
 should feel responsive rather than animated for its own sake.
 
-- Micro state/color feedback: roughly 75–160 ms.
-- Local content/position changes: roughly 160–220 ms or a non-bouncy spring.
-- Full-screen hierarchy changes: roughly 220–300 ms with a short directional slide + fade.
-- Settings enters from the side; Year summary rises only a short distance from below because it
-  is launched from the bottom monthly report and returns toward that source when dismissed.
-  The Year summary transition should read primarily as an appearance/disappearance, not as a
-  full-height sliding page.
-- Calendar month navigation uses `HorizontalPager`: content follows the finger during a
-  drag and arrows animate the same pager programmatically. Adjacent month data stays warm.
+- Micro state/color feedback: roughly 75–150 ms.
+- Local content/position changes: roughly 150–220 ms or a non-bouncy spring.
+- Full-screen hierarchy changes use restrained, symmetric travel; entering and leaving the same
+  hierarchy must not use dramatically different distances.
+- Settings enters from the side with a short symmetric transition. Year summary rises only a
+  short distance from below because it is launched from the bottom monthly report and returns
+  toward that source when dismissed. The Year summary transition should read primarily as an
+  appearance/disappearance, not as a full-height sliding page.
+- Calendar month navigation uses `HorizontalPager`: content follows the finger during a drag and
+  arrows animate the same pager programmatically. Adjacent month data stays warm.
 - Year-summary paging uses the same pager stiffness, snap threshold and interruptible arrow
   retargeting as the calendar. Month/year paging therefore shares one physical language.
+- Pager springs are deliberately softer than compact control springs; direct manipulation must
+  settle smoothly rather than snap sharply after the finger is released.
 - The persistent numeric editor may move between its fixed rows with a non-bouncy spring;
   it must remain one focusable node so the OEM IME session is preserved.
 - Bonus/Penalty Add/value states use a short fade-through while that persistent editor
@@ -95,20 +98,19 @@ should feel responsive rather than animated for its own sake.
 - Selected segmented state is one moving pill rather than unrelated hard-swapped fills. Each
   segment gets a restrained rounded press state on touch-down without a rectangular flash.
 - Conditional contextual content such as `Fill today` may fade/expand in and collapse out.
-- Calendar state colors (selected/today/populated) should interpolate rather than flash;
-  entry content may use a short fade/very small scale-in when saved data appears or changes.
-  Day cells retain normal bounded press/ripple feedback so touch-down is acknowledged before
-  the editor sheet appears.
-- The monthly summary strip slightly compresses while pressed, retains normal ripple feedback,
-  and follows upward drag progress with a small direct lift/scale response before the sheet
-  settles. Its chevron rotates with the open/closed report state.
+- A calendar day uses exactly one custom press signal: an immediate very light tone on touch-down
+  that fades out quickly after release. It deliberately has no framework ripple and no persistent
+  selected background, because stacking those layers caused a visible flash before the editor.
+- The monthly summary strip keeps normal Material click indication. During an upward drag it
+  follows the finger only with a small vertical lift; it does not additionally scale or tint.
+  Its chevron rotates with the open/closed report state.
 - Month/year numeric summary values may use short fade-through transitions rather than
   replacing text in one frame.
-- Year-to-year report changes move laterally in time while screen entry/exit remains vertical.
+- Year-to-year report changes follow the pager laterally while screen entry/exit remains vertical.
 - Modal sheets keep the Material platform motion and drag physics they already provide.
 - App launch uses the Android SplashScreen API and a short exit fade into real content.
 - Never add looping motion, bounce/overshoot for routine controls, artificial action delays,
-  animated data-layout reflow, or motion whose only purpose is decoration.
+  animated data-layout reflow, or multiple simultaneous feedback effects for one routine action.
 
 Press/ripple feedback from Material components remains enabled unless a custom control provides
 an equivalent shape-aware press state. Motion must remain interruptible where practical and must
@@ -119,11 +121,13 @@ not change business state timing.
 Haptics are sparse and semantic, not a vibration on every tap. They use Compose/platform
 feedback types so device and system settings remain authoritative.
 
-- `SegmentTick` — when the selected segmented option actually changes and when direct user
-  month/year navigation settles on a different page, whether initiated by swipe or an arrow.
-  Restored/external pager synchronization stays silent.
+- `SegmentTick` — only when a segmented option actually changes.
+- Month/year pager swipes and arrows are deliberately silent. Physical-device QA showed that a
+  vibration emitted from `settledPage` necessarily arrives after the direct gesture and feels
+  detached/delayed rather than confirming it.
 - `GestureThresholdActivate` — once when an upward monthly-summary drag becomes actionable;
-  moving back below the threshold re-arms it.
+  moving back below the threshold re-arms it because this haptic is tied to the finger crossing
+  the threshold, not to a later animation completion.
 - `Confirm` — only after persistence succeeds for saving/deleting an entry or applying a
   non-empty rate change.
 - `Reject` — once for an explicit persistence/backup/calendar operation failure.
