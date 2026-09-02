@@ -27,7 +27,7 @@ object AppMotion {
     // settle than the first feedback pass: the previous high stiffness read as abrupt on-device.
     const val NoBounceDampingRatio = 1f
     const val ControlStiffness = 900f
-    const val NavigationStiffness = 700f
+    const val NavigationStiffness = 420f
     const val PagerStiffness = 500f
     const val PagerSnapPositionalThreshold = 0.35f
 
