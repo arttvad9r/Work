@@ -11,7 +11,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -93,8 +92,6 @@ fun WorkTimeApp(
         snackbarHostState = snackbarHostState,
     )
 
-    val fullScreenDirection = fullScreenNavigationDirection(LocalLayoutDirection.current)
-
     WorkTimeTheme(themeMode = preferencesState.themeMode) {
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
@@ -105,18 +102,9 @@ fun WorkTimeApp(
                     rememberSaveableStateHolderNavEntryDecorator(),
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
-                transitionSpec = {
-                    fullScreenEnterTransition(fullScreenDirection) togetherWith
-                        ExitTransition.KeepUntilTransitionsFinished
-                },
-                popTransitionSpec = {
-                    EnterTransition.None togetherWith
-                        fullScreenExitTransition(fullScreenDirection)
-                },
-                predictivePopTransitionSpec = { _ ->
-                    EnterTransition.None togetherWith
-                        fullScreenExitTransition(fullScreenDirection)
-                },
+                // Settings deliberately uses Navigation3's maintained default transition. The
+                // previous custom one-sided pop transition produced alternating Settings/Calendar
+                // frames in physical-device recordings instead of one continuous back motion.
                 entryProvider = entryProvider {
                     entry<AppDestination.Calendar> {
                         CalendarScreen(
