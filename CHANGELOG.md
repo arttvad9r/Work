@@ -6,13 +6,14 @@ All notable product changes are documented here. Detailed intermediate implement
 
 ### Motion and interaction
 
-- Added direct touch-down feedback to the calendar's primary interaction surface: enabled bounded press/ripple indication for day cells and short state-color interpolation for selected/populated/pressed states instead of an atomic background swap.
+- Calendar day cells now use one restrained custom touch-down tone only. Framework ripple and the persistent selected-cell fill were removed because their overlap with editor opening produced a visible flash; the closed calendar keeps selection as business/accessibility state rather than another broad color layer.
 - Segmented controls keep the single moving capsule but now add a restrained rounded press state to the touched segment; the custom state replaces the deliberately disabled rectangular framework indication without leaving the control visually silent before release.
 - Theme selection is now optimistic: the visible Material palette changes immediately on selection while the serialized DataStore write completes afterward. Failed persistence rolls the palette back to repository state and surfaces error feedback instead of making the user wait on storage or another app mutation.
-- Calendar and Year Summary paging now share the same spring stiffness and positional threshold. Year arrow navigation uses the same interruptible, velocity-preserving retargeting model as month arrows, and both swipe and arrow navigation emit one restrained `SegmentTick` only after the requested page actually settles.
+- Calendar and Year Summary paging now share a softer pager spring and the same positional threshold. Year arrow navigation uses the same interruptible, velocity-preserving retargeting model as month arrows. Paging haptics were removed entirely after physical-device QA showed that feedback emitted from settled-page state arrives after the direct gesture and feels delayed/detached.
 - Year Summary keeps its vertical hierarchy but reduces entry/exit travel to one-sixteenth of the viewport plus a short fade, so the screen reads as appearing from the monthly report rather than sliding a large distance.
-- The compact monthly summary now responds continuously during an upward drag with a small direct lift/scale treatment, springs back when the gesture is cancelled/insufficient, slightly compresses while pressed, and retains the normal ripple plus the existing threshold haptic.
-- Tappable sheet drag handles now acknowledge touch-down with a restrained tone change instead of remaining visually silent.
+- The compact monthly summary follows an upward drag with only a small direct vertical lift and springs back when the gesture is cancelled/insufficient. Normal Material click indication remains, while the previous extra scale and custom pressed-color layers were removed; the threshold haptic remains because it occurs at the actual finger-crossing event.
+- Full-screen side navigation now uses short symmetric enter/exit travel instead of entering a small distance and leaving by a full screen width.
+- Tappable sheet drag handles acknowledge touch-down with a restrained tone change instead of remaining visually silent.
 - Added semantic `Reject` haptics for explicit calendar, settings-persistence and backup failures; ordinary navigation/day/field taps remain silent and successful persistence keeps the existing `Confirm` feedback.
 - Reworked the motion system around a shared direct-feedback vocabulary and refresh-rate-independent timing: gesture motion follows the platform frame clock, compact positional controls use critically damped springs, and non-spatial feedback uses short real-time tiers rather than frame counts.
 - The persistent day-editor numeric node still preserves one IME session but now relocates between fixed slots without visually travelling up and down the form; Bonus/Penalty presentation changes are atomic so their labels and values do not cross-fade through an empty frame.
@@ -52,7 +53,7 @@ All notable product changes are documented here. Detailed intermediate implement
 
 - Standardized compact UI rhythm around 48 dp interactive rows, 44 dp inline fields/segmented controls and primary actions of at least 52 dp.
 - Unified typography, spacing, sheet titles, navigation/value rows and Material press feedback through the shared UI system.
-- Calendar hierarchy prioritizes worked duration, uses a restrained accent for income, neutral populated-cell surfaces, quieter grid lines and separate selected/today states.
+- Calendar hierarchy prioritizes worked duration, uses a restrained accent for income, neutral populated-cell surfaces and quieter grid lines; today remains distinct while tapping a day transitions directly into the editor without leaving a persistent selected fill on the closed grid.
 - Added the contextual `Fill today` action for the current month when today's entry is missing.
 - Day-editor Bonus/Penalty collapsed rows use Add affordances instead of navigation chevrons; empty optional fields collapse again when focus leaves.
 - Compact field borders, DatePicker styling and sheet spacing were refined without changing calculation/domain behavior.
