@@ -34,7 +34,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -48,6 +50,7 @@ import com.worktime.app.R
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppTopBar
+import com.worktime.app.ui.components.pagerSwipeHapticFeedback
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
 import java.time.Month
@@ -79,6 +82,7 @@ fun YearSummaryScreen(
     onSelectYear: (Int) -> Unit,
 ) {
     val locale = LocalLocale.current.platformLocale
+    val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val adaptiveInfo = currentWindowAdaptiveInfoV2()
     val layoutMode = yearSummaryLayoutMode(
@@ -124,22 +128,33 @@ fun YearSummaryScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
-                        onClick = { pager.navigatePrevious(scope) },
+                        onClick = {
+                            if (pager.navigatePrevious(scope)) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            }
+                        },
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                             contentDescription = stringResource(R.string.previous_year),
                         )
                     }
+                    // Keep the chrome on the settled business year. PagerState.currentPage flips
+                    // around the midpoint of a page move and made this label jump while content
+                    // was still travelling laterally in the device recordings.
                     Text(
-                        text = pager.displayedYear.toString(),
+                        text = selectedYear.toString(),
                         modifier = Modifier.padding(horizontal = 12.dp),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Medium,
                     )
                     IconButton(
-                        onClick = { pager.navigateNext(scope) },
+                        onClick = {
+                            if (pager.navigateNext(scope)) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            }
+                        },
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -154,6 +169,7 @@ fun YearSummaryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .pagerSwipeHapticFeedback()
                     .testTag("year-summary-pager"),
                 beyondViewportPageCount = 1,
                 flingBehavior = pagerFlingBehavior,
