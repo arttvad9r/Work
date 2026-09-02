@@ -24,25 +24,32 @@ class FullScreenMotionUiTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun settingsExitUsesRestrainedPartialWidthTravel() {
+    fun settingsExitReturnsCleanlyToCalendar() {
         val settings = composeRule.activity.getString(R.string.settings)
+        val settingsTitle = composeRule.onNodeWithText(settings)
 
         composeRule
             .onNodeWithContentDescription(settings)
             .assertIsDisplayed()
             .performClick()
         composeRule.waitForIdle()
+        settingsTitle.assertIsDisplayed()
 
-        assertHorizontalFullScreenExitUsesRestrainedTravel(
-            composeRule.onNodeWithText(settings),
-        )
+        // Settings now uses Navigation3's maintained default back transition. Do not pin it to a
+        // custom travel fraction again: the previous app-owned pop transition alternated visible
+        // Settings/Calendar frames on a physical device.
+        composeRule.runOnUiThread {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000L) {
+            runCatching { settingsTitle.fetchSemanticsNode() }.isFailure
+        }
+        settingsTitle.assertDoesNotExist()
+        composeRule.onNodeWithContentDescription(settings).assertIsDisplayed()
     }
 
     @Test
     fun yearSummaryExitMovesDown() {
-        // App readiness is asynchronous. Wait for the summary semantics node rather than racing
-        // the repository load. On compact managed devices the strip can also sit just below the
-        // visible viewport, so invoke its canonical semantics action instead of touch geometry.
         val summaryStrip = composeRule.onNodeWithTag("monthly-summary-strip")
         composeRule.waitUntil(timeoutMillis = 10_000L) {
             runCatching { summaryStrip.fetchSemanticsNode() }.isSuccess
@@ -61,37 +68,6 @@ class FullScreenMotionUiTest {
                 composeRule.activity.getString(R.string.previous_year),
             ),
         )
-    }
-
-    private fun assertHorizontalFullScreenExitUsesRestrainedTravel(node: SemanticsNodeInteraction) {
-        node.assertIsDisplayed()
-        val initialLeft = node.fetchSemanticsNode().boundsInRoot.left
-        val rootWidth = composeRule.onRoot().fetchSemanticsNode().boundsInRoot.width
-
-        composeRule.mainClock.autoAdvance = false
-        composeRule.runOnUiThread {
-            composeRule.activity.onBackPressedDispatcher.onBackPressed()
-        }
-
-        // Physical-device video showed that the old one-eighth transition read almost as a hard
-        // cut. Keep the hierarchy travel restrained, but require enough distance to remain
-        // perceptible across 60/90/120 Hz displays. The shared contract now targets one sixth.
-        var maxTravelled = 0f
-        repeat(60) {
-            composeRule.mainClock.advanceTimeByFrame()
-            val left = runCatching { node.fetchSemanticsNode().boundsInRoot.left }.getOrNull()
-                ?: return@repeat
-            maxTravelled = maxOf(maxTravelled, left - initialLeft)
-        }
-
-        composeRule.mainClock.autoAdvance = true
-        composeRule.waitForIdle()
-        assertTrue(
-            "Expected a visible but restrained full-screen exit; " +
-                "maxTravelled=$maxTravelled rootWidth=$rootWidth",
-            maxTravelled >= rootWidth * 0.14f && maxTravelled <= rootWidth * 0.19f,
-        )
-        node.assertDoesNotExist()
     }
 
     private fun assertVerticalExitMovesDown(node: SemanticsNodeInteraction) {
