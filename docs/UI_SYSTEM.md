@@ -50,9 +50,10 @@ Only `MaterialTheme.typography` (all styles carry tabular numerals):
 
 Theme-mode changes update the visible Material palette immediately when the user selects a
 mode. The preference write is optimistic and runs after the visual state has changed; a failed
-write rolls the palette back to repository state and surfaces error feedback. Segmented-pill
-motion is presentation only and must never delay the palette change. Geometry, typography and
-content order stay fixed while the theme changes.
+write rolls the palette back to repository state and surfaces error feedback. The theme segmented
+indicator and its labels snap to the selected option in the same frame as the palette: device-video
+QA showed that letting the pill continue a spring after the palette changed exposed a contradictory
+one-frame state. Geometry, typography and content order stay fixed while the theme changes.
 
 ### Calendar hierarchy
 
@@ -95,17 +96,22 @@ should feel responsive rather than animated for its own sake.
   it must remain one focusable node so the OEM IME session is preserved.
 - Bonus/Penalty Add/value states use a short fade-through while that persistent editor
   moves into or out of the fixed adjustment slot; row geometry stays unchanged.
-- Selected segmented state is one moving pill rather than unrelated hard-swapped fills. Each
-  segment gets a restrained rounded press state on touch-down without a rectangular flash.
+- Selected segmented state normally uses one moving pill rather than unrelated hard-swapped fills.
+  Theme mode is the explicit exception: because the whole palette changes at the same time, its pill
+  and labels snap atomically with the new palette instead of visually lagging behind it.
 - Conditional contextual content such as `Fill today` may fade/expand in and collapse out.
 - A calendar day uses exactly one custom press signal: an immediate very light tone on touch-down
   that fades out quickly after release. It deliberately has no framework ripple and no persistent
   selected background, because stacking those layers caused a visible flash before the editor.
-- The monthly summary strip keeps normal Material click indication. During an upward drag it
-  follows the finger only with a small vertical lift; it does not additionally scale or tint.
-  Its chevron rotates with the open/closed report state.
+- The monthly summary strip is the actual persistent peek/header of `BottomSheetScaffold`.
+  Vertical drag progress therefore moves the Material sheet itself under the finger; do not add a
+  second custom drag detector, activation distance, decorative lift/scale, or release-triggered
+  animation on top. Normal taps keep the Material click indication and the chevron follows the
+  report open/closed state.
+- The Settings default-rate value/editor swaps atomically inside the fixed value slot. Device-video
+  QA showed that a crossfade drew the old value underneath the focused field for a few frames.
 - Month/year numeric summary values may use short fade-through transitions rather than
-  replacing text in one frame.
+  replacing text in one frame when no interactive control occupies the same pixels.
 - Year-to-year report changes follow the pager laterally while screen entry/exit remains vertical.
 - Modal sheets keep the Material platform motion and drag physics they already provide.
 - App launch uses the Android SplashScreen API and a short exit fade into real content.
@@ -125,9 +131,9 @@ feedback types so device and system settings remain authoritative.
 - Month/year pager swipes and arrows are deliberately silent. Physical-device QA showed that a
   vibration emitted from `settledPage` necessarily arrives after the direct gesture and feels
   detached/delayed rather than confirming it.
-- `GestureThresholdActivate` — once when an upward monthly-summary drag becomes actionable;
-  moving back below the threshold re-arms it because this haptic is tied to the finger crossing
-  the threshold, not to a later animation completion.
+- Monthly-summary dragging is deliberately silent. There is no synthetic activation threshold now:
+  Material sheet physics directly track the finger, so adding a separate threshold haptic would
+  reintroduce a second feedback timeline for the same gesture.
 - `Confirm` — only after persistence succeeds for saving/deleting an entry or applying a
   non-empty rate change.
 - `Reject` — once for an explicit persistence/backup/calendar operation failure.
@@ -151,15 +157,17 @@ feedback types so device and system settings remain authoritative.
   row for a full-width form field and never changes the row height.
 - **`AppSegmentedControl(options, selectedIndex)`** — the only segmented presentation
   for mutually exclusive options (theme mode, rate period). A shared secondaryContainer
-  pill moves between equal-width options, each segment provides a rounded press state, and
-  one light tick is emitted on a real selection change.
+  pill normally moves between equal-width options, each segment provides a rounded press state,
+  and one light tick is emitted on a real selection change. Theme mode disables pill/label motion
+  so its visual selection changes atomically with the global palette.
 - **`AppPrimaryButton`** — full-width ≥52 dp primary action (Save, Change rate).
 - **`AppDestructiveAction`** — full-width error-colored text action (Delete entry).
 - **Contextual quick action** — lightweight `TextButton` with a leading semantic icon,
   no card/fill, and a ≥48 dp touch target. Use only for a timely optional shortcut such
   as “Fill today”; hide it when the shortcut is no longer relevant.
-- **`PlainDragHandle`** — tooltip-free drag handle shared by all sheets. When tappable it
-  provides a restrained tone change on touch-down rather than remaining visually silent.
+- **`PlainDragHandle`** — tooltip-free drag handle shared by modal sheets. When tappable it
+  provides a restrained tone change on touch-down rather than remaining visually silent. The
+  calendar monthly report does not use it: its persistent SummaryStrip is the sheet peek/handle.
 
 Row decision guide: opens another screen/sheet → `AppNavigationRow`; shows a computed
 or stored value → `LabelValueRow`; edits a number in place → value-slot contract;
