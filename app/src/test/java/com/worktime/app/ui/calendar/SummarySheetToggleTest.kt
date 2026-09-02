@@ -9,19 +9,24 @@ import org.junit.jupiter.api.Test
 @OptIn(ExperimentalMaterial3Api::class)
 class SummarySheetToggleTest {
     @Test
-    fun hiddenTargetRequestsExpansion() {
-        assertTrue(shouldExpandSummaryAfterToggle(SheetValue.Hidden))
+    fun collapsedPeekRequestsExpansion() {
+        assertTrue(shouldExpandSummaryAfterToggle(SheetValue.PartiallyExpanded))
     }
 
     @Test
-    fun expandedTargetRequestsHide() {
+    fun expandedTargetRequestsCollapse() {
         assertFalse(shouldExpandSummaryAfterToggle(SheetValue.Expanded))
     }
 
     @Test
-    fun closingAnimationCanBeReversedImmediately() {
-        // During closing, currentValue may still be Expanded while targetValue is already Hidden.
-        // The next tap must follow the latest target and reopen instead of issuing hide() again.
+    fun collapsingAnimationCanBeReversedImmediately() {
+        // During collapse, currentValue may still be Expanded while targetValue is already the
+        // persistent peek. The next tap follows the latest target and reopens immediately.
+        assertTrue(shouldExpandSummaryAfterToggle(SheetValue.PartiallyExpanded))
+    }
+
+    @Test
+    fun hiddenSupportingPaneStateCanExpandWhenCompactReturns() {
         assertTrue(shouldExpandSummaryAfterToggle(SheetValue.Hidden))
     }
 }
