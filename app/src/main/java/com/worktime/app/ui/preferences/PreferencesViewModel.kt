@@ -39,7 +39,14 @@ internal class PreferencesViewModel(
     ) { preferences, failed, optimisticThemeMode ->
         PreferencesUiState(
             defaultHourlyRateMicros = preferences.defaultHourlyRateMicros,
-            themeMode = optimisticThemeMode ?: preferences.themeMode,
+            // A failed persistence result is authoritative immediately, even if combine has not
+            // observed the pending-theme clear yet. This prevents a transient failed+DARK state
+            // from reaching the UI while rollback is being published.
+            themeMode = if (failed) {
+                preferences.themeMode
+            } else {
+                optimisticThemeMode ?: preferences.themeMode
+            },
             isReady = true,
             saveFailed = failed,
         )
