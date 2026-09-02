@@ -12,8 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.worktime.app.ui.components.AppMotion
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
@@ -31,7 +29,6 @@ internal class YearSummaryPagerState(
 ) {
     private val programmaticPosition = Animatable(YearPagerAnchorPage.toFloat())
     private var programmaticPage by mutableStateOf<Int?>(null)
-    private var hapticPage by mutableStateOf<Int?>(null)
     private var programmaticScrollJob: Job? = null
 
     val displayedYear: Int
@@ -52,7 +49,6 @@ internal class YearSummaryPagerState(
             return
         }
 
-        hapticPage = null
         if (abs(targetPage - pagerState.currentPage) <= 1) {
             animateToPage(scope, targetPage)
         } else {
@@ -63,16 +59,9 @@ internal class YearSummaryPagerState(
         }
     }
 
-    fun consumeSettledPage(settledPage: Int): SettledYearPage {
-        val expectedProgrammaticPage = programmaticPage
-        val userDriven = expectedProgrammaticPage == null || expectedProgrammaticPage != settledPage
-        val emitHaptic = userDriven || hapticPage == settledPage
+    fun consumeSettledPage(settledPage: Int): Int {
         programmaticPage = null
-        hapticPage = null
-        return SettledYearPage(
-            year = yearForPage(settledPage),
-            emitHaptic = emitHaptic,
-        )
+        return yearForPage(settledPage)
     }
 
     private fun pageForYear(year: Int): Int = YearPagerAnchorPage + year - originYear
@@ -81,7 +70,6 @@ internal class YearSummaryPagerState(
         val basePage = programmaticPage ?: pagerState.currentPage
         val targetPage = basePage + delta
         if (targetPage !in 0 until YearPagerPageCount) return false
-        hapticPage = targetPage
         animateToPage(scope, targetPage)
         return true
     }
@@ -135,11 +123,6 @@ internal class YearSummaryPagerState(
     }
 }
 
-internal data class SettledYearPage(
-    val year: Int,
-    val emitHaptic: Boolean,
-)
-
 @Composable
 internal fun rememberYearSummaryPagerState(initialYear: Int): YearSummaryPagerState {
     val originYear = rememberSaveable { initialYear }
@@ -162,23 +145,20 @@ internal fun YearSummaryPagerEffects(
     scope: CoroutineScope,
     onSelectYear: (Int) -> Unit,
 ) {
-    val haptics = LocalHapticFeedback.current
-
     LaunchedEffect(pager, selectedYear) {
         pager.syncToSelectedYear(scope, selectedYear)
     }
 
+    // Year swipes stay purely visual. Settle-time vibration is deliberately absent: by the time
+    // settledPage changes the gesture is already over, which makes the feedback feel detached.
     LaunchedEffect(pager, selectedYear) {
         var previousSettledPage = pager.pagerState.settledPage
         snapshotFlow { pager.pagerState.settledPage }.collect { settledPage ->
             if (settledPage == previousSettledPage) return@collect
 
-            val settled = pager.consumeSettledPage(settledPage)
-            if (settled.emitHaptic) {
-                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-            }
-            if (settled.year != selectedYear) {
-                onSelectYear(settled.year)
+            val settledYear = pager.consumeSettledPage(settledPage)
+            if (settledYear != selectedYear) {
+                onSelectYear(settledYear)
             }
             previousSettledPage = settledPage
         }
