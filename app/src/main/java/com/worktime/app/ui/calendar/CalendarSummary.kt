@@ -1,12 +1,9 @@
 package com.worktime.app.ui.calendar
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,18 +20,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -59,7 +48,6 @@ internal fun SummaryStrip(
     locale: Locale,
     expanded: Boolean,
     onClick: () -> Unit,
-    onSwipeUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val summary = state.summary
@@ -69,22 +57,6 @@ internal fun SummaryStrip(
         totalPayMicros = summary.totalPayMicros,
         locale = locale,
     )
-    val haptics = LocalHapticFeedback.current
-    val density = LocalDensity.current
-    var dragProgress by remember { mutableFloatStateOf(0f) }
-    var dragging by remember { mutableStateOf(false) }
-    val visualDragProgress by animateFloatAsState(
-        targetValue = dragProgress,
-        animationSpec = if (dragging) {
-            snap()
-        } else {
-            spring(
-                dampingRatio = AppMotion.NoBounceDampingRatio,
-                stiffness = AppMotion.ControlStiffness,
-            )
-        },
-        label = "summary drag progress",
-    )
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = tween(
@@ -93,7 +65,6 @@ internal fun SummaryStrip(
         ),
         label = "summary chevron",
     )
-    val maxLiftPx = with(density) { 6.dp.toPx() }
 
     Box(
         modifier = modifier
@@ -103,57 +74,6 @@ internal fun SummaryStrip(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer {
-                    translationY = -maxLiftPx * visualDragProgress
-                }
-                .pointerInput(haptics, onClick, onSwipeUp) {
-                    val threshold = 40.dp.toPx()
-                    var totalDragX = 0f
-                    var totalDragY = 0f
-                    var thresholdActive = false
-                    detectDragGestures(
-                        onDragStart = {
-                            totalDragX = 0f
-                            totalDragY = 0f
-                            thresholdActive = false
-                            dragging = true
-                            dragProgress = 0f
-                        },
-                        onDrag = { change, dragAmount ->
-                            totalDragX += dragAmount.x
-                            totalDragY += dragAmount.y
-                            dragProgress = (-totalDragY / threshold).coerceIn(0f, 1f)
-                            val isEligible = totalDragY <= -threshold
-                            if (isEligible && !thresholdActive) {
-                                haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                thresholdActive = true
-                            } else if (!isEligible) {
-                                thresholdActive = false
-                            }
-                            change.consume()
-                        },
-                        onDragEnd = {
-                            val dragDistanceSquared =
-                                totalDragX * totalDragX + totalDragY * totalDragY
-                            when {
-                                totalDragY <= -threshold -> onSwipeUp()
-                                dragDistanceSquared < threshold * threshold -> onClick()
-                            }
-                            totalDragX = 0f
-                            totalDragY = 0f
-                            thresholdActive = false
-                            dragging = false
-                            dragProgress = 0f
-                        },
-                        onDragCancel = {
-                            totalDragX = 0f
-                            totalDragY = 0f
-                            thresholdActive = false
-                            dragging = false
-                            dragProgress = 0f
-                        },
-                    )
-                }
                 .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.secondaryContainer)
                 .clickable(
