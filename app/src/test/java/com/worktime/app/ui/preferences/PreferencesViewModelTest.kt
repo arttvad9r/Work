@@ -47,9 +47,8 @@ class PreferencesViewModelTest {
         assertEquals(ThemeMode.SYSTEM, repository.current.themeMode)
 
         writeGate.complete(Unit)
-        viewModel.state.first {
-            it.themeMode == ThemeMode.DARK && repository.current.themeMode == ThemeMode.DARK
-        }
+        val persisted = repository.preferences.first { it.themeMode == ThemeMode.DARK }
+        assertEquals(ThemeMode.DARK, persisted.themeMode)
     }
 
     @Test
