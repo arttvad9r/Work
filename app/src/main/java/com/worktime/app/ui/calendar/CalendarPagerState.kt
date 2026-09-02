@@ -12,8 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.worktime.app.ui.components.AppMotion
 import java.time.YearMonth
 import kotlin.math.abs
@@ -37,7 +35,6 @@ internal class CalendarPagerState(
 ) {
     private val programmaticPosition = Animatable(PagerAnchorPage.toFloat())
     private var programmaticPage by mutableStateOf<Int?>(null)
-    private var hapticPage by mutableStateOf<Int?>(null)
     private var programmaticScrollJob: Job? = null
 
     val displayedMonth: YearMonth
@@ -59,9 +56,6 @@ internal class CalendarPagerState(
             return
         }
 
-        // External/restored state synchronization is intentionally silent. Only direct user
-        // gestures and user-initiated arrow navigation receive a tactile settle tick.
-        hapticPage = null
         if (abs(targetPage - pagerState.currentPage) <= 1) {
             animateToPage(scope, targetPage)
         } else {
@@ -72,16 +66,9 @@ internal class CalendarPagerState(
         }
     }
 
-    fun consumeSettledPage(settledPage: Int): SettledCalendarPage {
-        val expectedProgrammaticPage = programmaticPage
-        val userDriven = expectedProgrammaticPage == null || expectedProgrammaticPage != settledPage
-        val emitHaptic = userDriven || hapticPage == settledPage
+    fun consumeSettledPage(settledPage: Int): YearMonth {
         programmaticPage = null
-        hapticPage = null
-        return SettledCalendarPage(
-            month = monthForPage(settledPage),
-            emitHaptic = emitHaptic,
-        )
+        return monthForPage(settledPage)
     }
 
     private fun pageForMonth(month: YearMonth): Int =
@@ -91,7 +78,6 @@ internal class CalendarPagerState(
         val basePage = programmaticPage ?: pagerState.currentPage
         val targetPage = basePage + delta
         if (targetPage !in 0 until PagerPageCount) return false
-        hapticPage = targetPage
         animateToPage(scope, targetPage)
         return true
     }
@@ -148,11 +134,6 @@ internal class CalendarPagerState(
     }
 }
 
-internal data class SettledCalendarPage(
-    val month: YearMonth,
-    val emitHaptic: Boolean,
-)
-
 @Composable
 internal fun rememberCalendarPagerState(initialMonth: YearMonth): CalendarPagerState {
     val originMonthIndex = rememberSaveable { initialMonth.toMonthIndex() }
@@ -175,27 +156,22 @@ internal fun CalendarPagerEffects(
     scope: CoroutineScope,
     onSelectMonth: (YearMonth) -> Unit,
 ) {
-    val haptics = LocalHapticFeedback.current
-
     // Month picker/restored state drives the pager. Adjacent changes use the same interruptible
     // spring as arrow navigation; large jumps are immediate.
     LaunchedEffect(pager, visibleMonth) {
         pager.syncToVisibleMonth(scope, visibleMonth)
     }
 
-    // Gesture progress is rendered by HorizontalPager itself. Business state is committed only
-    // after settling, and direct user navigation receives one restrained tactile tick.
+    // Pager swipes stay purely visual. A settle-time haptic is intentionally omitted because the
+    // actuator fires after the user's finger has already finished the gesture and feels delayed.
     LaunchedEffect(pager, visibleMonth) {
         var previousSettledPage = pager.pagerState.settledPage
         snapshotFlow { pager.pagerState.settledPage }.collect { settledPage ->
             if (settledPage == previousSettledPage) return@collect
 
-            val settled = pager.consumeSettledPage(settledPage)
-            if (settled.emitHaptic) {
-                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
-            }
-            if (settled.month != visibleMonth) {
-                onSelectMonth(settled.month)
+            val settledMonth = pager.consumeSettledPage(settledPage)
+            if (settledMonth != visibleMonth) {
+                onSelectMonth(settledMonth)
             }
             previousSettledPage = settledPage
         }
