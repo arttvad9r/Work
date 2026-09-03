@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -74,7 +75,7 @@ internal fun shouldExpandSummaryAfterToggle(targetValue: SheetValue): Boolean =
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun CalendarScreen(
-    state: CalendarUiState,
+    state: CalendarContentState,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectMonth: (YearMonth) -> Unit,
@@ -168,13 +169,11 @@ fun CalendarScreen(
                 Spacer(modifier = Modifier.height(1.dp))
             } else {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    if (summaryTargetExpanded) {
-                        PlainDragHandle(
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            onClick = toggleSummary,
-                            accessibilityLabel = stringResource(R.string.monthly_summary),
-                        )
-                    }
+                    PlainDragHandle(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        onClick = toggleSummary,
+                        accessibilityLabel = stringResource(R.string.monthly_summary),
+                    )
                     MonthlySummaryPanel(
                         state = state,
                         onOpenYearSummary = { closeSummaryBehind(onOpenYearSummary) },
@@ -239,18 +238,20 @@ fun CalendarScreen(
                             .fillMaxWidth()
                             .height(calendarGridHeight())
                             .testTag("calendar-pager"),
-                        beyondViewportPageCount = 1,
-                        flingBehavior = pagerFlingBehavior,
+                         flingBehavior = pagerFlingBehavior,
                         key = { page -> pager.monthForPage(page).toString() },
                     ) { page ->
                         val month = pager.monthForPage(page)
                         val entries = state.monthEntries[month]
                             ?: if (month == state.visibleMonth) state.entries else emptyMap()
-                        CalendarGrid(
-                            state = state.copy(
+                        val pageState = remember(month, entries, state.selectedDate, state.isReady) {
+                            state.copy(
                                 visibleMonth = month,
                                 entries = entries,
-                            ),
+                            )
+                        }
+                        CalendarGrid(
+                            state = pageState,
                             onDayClick = { date -> closeSummaryBehind { onDayClick(date) } },
                             locale = locale,
                             modifier = Modifier.fillMaxSize(),

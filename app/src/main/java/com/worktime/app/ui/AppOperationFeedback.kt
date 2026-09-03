@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import com.worktime.app.R
 import com.worktime.app.ui.backup.BackupOperationEvent
+import com.worktime.app.ui.backup.BackupOperationError
 import com.worktime.app.ui.backup.BackupViewModel
 import com.worktime.app.ui.calendar.CalendarOperationError
 import com.worktime.app.ui.calendar.CalendarOperationEvent
@@ -29,6 +30,9 @@ internal fun AppOperationFeedback(
     val undoFailedMessage = stringResource(R.string.undo_failed)
     val backupExportedMessage = stringResource(R.string.backup_exported)
     val backupImportedMessage = stringResource(R.string.backup_imported)
+    val backupExportFailedMessage = stringResource(R.string.backup_export_failed)
+    val backupImportFailedMessage = stringResource(R.string.backup_import_failed)
+    val backupRollbackFailedMessage = stringResource(R.string.backup_import_rollback_failed)
     val defaultRateAdoptionFailedMessage = stringResource(R.string.default_rate_adoption_failed)
 
     LaunchedEffect(
@@ -88,6 +92,9 @@ internal fun AppOperationFeedback(
         backupViewModel,
         backupExportedMessage,
         backupImportedMessage,
+        backupExportFailedMessage,
+        backupImportFailedMessage,
+        backupRollbackFailedMessage,
     ) {
         backupViewModel.events.collect { event ->
             when (event) {
@@ -95,7 +102,14 @@ internal fun AppOperationFeedback(
                     snackbarHostState.showSnackbar(backupExportedMessage)
                 BackupOperationEvent.Success.IMPORTED ->
                     snackbarHostState.showSnackbar(backupImportedMessage)
-                is BackupOperationEvent.Error -> Unit
+                is BackupOperationEvent.Error -> snackbarHostState.showSnackbar(
+                    when (event.kind) {
+                        BackupOperationError.EXPORT -> backupExportFailedMessage
+                        BackupOperationError.IMPORT -> backupImportFailedMessage
+                        BackupOperationError.IMPORT_ROLLBACK -> backupRollbackFailedMessage
+                    },
+                    duration = SnackbarDuration.Long,
+                )
             }
         }
     }

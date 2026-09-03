@@ -1,5 +1,6 @@
 package com.worktime.app.ui.backup
 
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,7 @@ import com.worktime.app.domain.repository.UserPreferencesRepository
 import com.worktime.app.domain.repository.WorkEntryRepository
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -30,6 +32,8 @@ import kotlinx.coroutines.withContext
 internal data class BackupUiState(
     val pendingImportCount: Int? = null,
     val error: BackupOperationError? = null,
+    val lastExportAtMillis: Long? = null,
+    val lastExportEntryCount: Int? = null,
 )
 
 internal enum class BackupOperationError {
@@ -52,9 +56,13 @@ internal class BackupViewModel(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val backupDocumentSerializer: BackupDocumentSerializer,
     private val dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
+    private val metadataPreferences: SharedPreferences? = null,
+    private val internalBackupFile: File? = null,
 ) : ViewModel() {
     private val pendingImport = MutableStateFlow<BackupPayload?>(null)
     private val operationError = MutableStateFlow<BackupOperationError?>(null)
+    private val lastExportAtMillis = MutableStateFlow(metadataPreferences?.getLong(KEY_LAST_EXPORT_AT, 0L)?.takeIf { it > 0L })
+    private val lastExportEntryCount = MutableStateFlow(metadataPreferences?.getInt(KEY_LAST_EXPORT_COUNT, -1)?.takeIf { it >= 0 })
     private var operationGeneration = 0L
     private val _events = Channel<BackupOperationEvent>(Channel.BUFFERED)
     val events: Flow<BackupOperationEvent> = _events.receiveAsFlow()
@@ -62,10 +70,14 @@ internal class BackupViewModel(
     val state: StateFlow<BackupUiState> = combine(
         pendingImport,
         operationError,
-    ) { pending, error ->
+        lastExportAtMillis,
+        lastExportEntryCount,
+    ) { pending, error, exportedAt, exportedCount ->
         BackupUiState(
             pendingImportCount = pending?.entries?.size,
             error = error,
+            lastExportAtMillis = exportedAt,
+            lastExportEntryCount = exportedCount,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -74,27 +86,35 @@ internal class BackupViewModel(
     )
 
     fun exportBackup(stream: OutputStream) {
+        var exportedCount = 0
         runOperation(BackupOperationError.EXPORT, body = {
             withContext(Dispatchers.IO) {
+                val entries = workEntryRepository.getAll()
+                exportedCount = entries.size
                 val encoded = backupDocumentSerializer.encodeBackup(
-                    entries = workEntryRepository.getAll(),
+                    entries = entries,
                     preferences = userPreferencesRepository.preferences.first(),
                     defaultRateInitialized = userPreferencesRepository.defaultRateInitialized.first(),
                 )
                 stream.use { it.write(encoded.encodeToByteArray()) }
             }
         }, onSuccess = {
+            recordExport(exportedCount)
             _events.send(BackupOperationEvent.Success.EXPORTED)
         })
     }
 
     fun exportCsv(stream: OutputStream) {
+        var exportedCount = 0
         runOperation(BackupOperationError.EXPORT, body = {
             withContext(Dispatchers.IO) {
-                val encoded = backupDocumentSerializer.encodeCsv(workEntryRepository.getAll())
+                val entries = workEntryRepository.getAll()
+                exportedCount = entries.size
+                val encoded = backupDocumentSerializer.encodeCsv(entries)
                 stream.use { it.write(encoded.encodeToByteArray()) }
             }
         }, onSuccess = {
+            recordExport(exportedCount)
             _events.send(BackupOperationEvent.Success.EXPORTED)
         })
     }
@@ -116,6 +136,7 @@ internal class BackupViewModel(
             val oldEntries = workEntryRepository.getAll()
             val oldPreferences = userPreferencesRepository.preferences.first()
             val oldDefaultRateInitialized = userPreferencesRepository.defaultRateInitialized.first()
+            saveInternalBackup(oldEntries, oldPreferences, oldDefaultRateInitialized)
             var replaced = false
             try {
                 workEntryRepository.replaceAll(data.entries)
@@ -157,6 +178,31 @@ internal class BackupViewModel(
         _events.trySend(BackupOperationEvent.Error(error))
     }
 
+    private fun recordExport(entryCount: Int) {
+        val exportedAt = System.currentTimeMillis()
+        lastExportAtMillis.value = exportedAt
+        lastExportEntryCount.value = entryCount
+        metadataPreferences?.edit()
+            ?.putLong(KEY_LAST_EXPORT_AT, exportedAt)
+            ?.putInt(KEY_LAST_EXPORT_COUNT, entryCount)
+            ?.apply()
+    }
+
+    private suspend fun saveInternalBackup(
+        entries: List<com.worktime.app.domain.model.WorkEntry>,
+        preferences: com.worktime.app.domain.preferences.UserPreferences,
+        defaultRateInitialized: Boolean,
+    ) {
+        val file = internalBackupFile ?: return
+        val encoded = backupDocumentSerializer.encodeBackup(entries, preferences, defaultRateInitialized)
+        withContext(Dispatchers.IO) {
+            val temporaryFile = File(file.parentFile, "${file.name}.tmp")
+            temporaryFile.writeText(encoded)
+            temporaryFile.copyTo(file, overwrite = true)
+            check(temporaryFile.delete()) { "Could not clean internal backup temporary file" }
+        }
+    }
+
     private fun runOperation(
         errorKind: BackupOperationError,
         body: suspend () -> Unit,
@@ -186,11 +232,15 @@ internal class BackupViewModel(
     }
 
     companion object {
+        private const val KEY_LAST_EXPORT_AT = "last_export_at_millis"
+        private const val KEY_LAST_EXPORT_COUNT = "last_export_entry_count"
         fun factory(
             workEntryRepository: WorkEntryRepository,
             userPreferencesRepository: UserPreferencesRepository,
             backupDocumentSerializer: BackupDocumentSerializer,
             dataMutationCoordinator: DataMutationCoordinator = DataMutationCoordinator(),
+            metadataPreferences: SharedPreferences? = null,
+            internalBackupFile: File? = null,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 BackupViewModel(
@@ -198,6 +248,8 @@ internal class BackupViewModel(
                     userPreferencesRepository = userPreferencesRepository,
                     backupDocumentSerializer = backupDocumentSerializer,
                     dataMutationCoordinator = dataMutationCoordinator,
+                    metadataPreferences = metadataPreferences,
+                    internalBackupFile = internalBackupFile,
                 )
             }
         }

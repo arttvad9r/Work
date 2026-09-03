@@ -29,6 +29,7 @@ object AppDimens {
     /** Compact inline numeric editor slot (fits inside a [rowMinHeight] row). */
     val compactFieldWidth: Dp = 120.dp
     val compactFieldHeight: Dp = compactControlHeight
+    val dayEditorFieldHeight: Dp = 40.dp
 
     /** Minimum height of primary actions. */
     val primaryButtonMinHeight: Dp = 52.dp

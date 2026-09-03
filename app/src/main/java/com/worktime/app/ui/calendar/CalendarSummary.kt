@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,14 +49,14 @@ import java.util.Locale
 
 @Composable
 internal fun SummaryStrip(
-    state: CalendarUiState,
+    state: CalendarContentState,
     locale: Locale,
     expanded: Boolean,
     onClick: () -> Unit,
     onSwipeUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val summary = state.summary
+    val summary = remember(state.entries) { state.summary }
     val summaryText = summaryLine(
         shiftCount = summary.shiftCount,
         workedMinutes = summary.workedMinutes,
@@ -170,12 +171,12 @@ private fun summaryLine(
 
 @Composable
 internal fun MonthlySummaryPanel(
-    state: CalendarUiState,
+    state: CalendarContentState,
     onOpenYearSummary: () -> Unit,
     locale: Locale,
     modifier: Modifier = Modifier,
 ) {
-    val summary = state.summary
+    val summary = remember(state.entries) { state.summary }
     val totalText = stringResource(
         R.string.amount_with_currency,
         formatAmountMicros(summary.totalPayMicros, locale),

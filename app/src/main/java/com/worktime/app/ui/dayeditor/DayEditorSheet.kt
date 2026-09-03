@@ -9,16 +9,18 @@ import java.time.LocalDate
 fun DayEditorSheet(
     date: LocalDate,
     existing: WorkEntry?,
+    history: Collection<WorkEntry>,
     defaultHourlyRateMicros: Long,
     operationErrorMessage: String?,
     onDismiss: () -> Unit,
     onSave: (WorkEntry) -> Unit,
     onDelete: (LocalDate) -> Unit,
 ) {
-    key(date.toEpochDay(), existing) {
+    key(date.toEpochDay()) {
         DayEditorSheetContent(
             date = date,
             existing = existing,
+            history = history,
             defaultHourlyRateMicros = defaultHourlyRateMicros,
             operationErrorMessage = operationErrorMessage,
             onDismiss = onDismiss,

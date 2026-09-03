@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
@@ -26,10 +30,16 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -38,11 +48,16 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.window.core.layout.WindowSizeClass.Companion.HEIGHT_DP_MEDIUM_LOWER_BOUND
 import com.worktime.app.R
 import com.worktime.app.ui.components.AppDimens
@@ -57,6 +72,8 @@ private const val MonthLabelWeight = 1.2f
 private const val MonthDetailWeight = 1.2f
 private const val MonthAmountWeight = 0.9f
 private val ShortViewportMonthRowMinHeight = 32.dp
+private const val FirstSupportedYear = 1900
+private const val LastSupportedYear = 2100
 
 internal enum class YearSummaryLayoutMode {
     FixedViewport,
@@ -80,6 +97,7 @@ fun YearSummaryScreen(
 ) {
     val locale = LocalLocale.current.platformLocale
     val scope = rememberCoroutineScope()
+    var showYearPicker by remember { mutableStateOf(false) }
     val adaptiveInfo = currentWindowAdaptiveInfoV2()
     val layoutMode = yearSummaryLayoutMode(
         isHeightAtLeastMedium = adaptiveInfo.windowSizeClass.isHeightAtLeastBreakpoint(
@@ -133,7 +151,9 @@ fun YearSummaryScreen(
                     }
                     Text(
                         text = pager.displayedYear.toString(),
-                        modifier = Modifier.padding(horizontal = 12.dp),
+                        modifier = Modifier
+                            .clickable(role = Role.Button) { showYearPicker = true }
+                            .padding(horizontal = 12.dp),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Medium,
@@ -155,7 +175,6 @@ fun YearSummaryScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .testTag("year-summary-pager"),
-                beyondViewportPageCount = 1,
                 flingBehavior = pagerFlingBehavior,
                 key = { page -> pager.yearForPage(page) },
             ) { page ->
@@ -174,6 +193,49 @@ fun YearSummaryScreen(
                         locale = locale,
                         layoutMode = layoutMode,
                     )
+                }
+            }
+        }
+    }
+
+    if (showYearPicker) {
+        val yearListState = rememberLazyListState()
+        LaunchedEffect(pager.displayedYear) {
+            yearListState.scrollToItem(pager.displayedYear - FirstSupportedYear)
+        }
+        Dialog(
+            onDismissRequest = { showYearPicker = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Surface(
+                modifier = Modifier.width(200.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = stringResource(R.string.choose_year),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    LazyColumn(
+                        state = yearListState,
+                        modifier = Modifier.heightIn(max = 200.dp),
+                    ) {
+                        items((FirstSupportedYear..LastSupportedYear).toList()) { year ->
+                            TextButton(
+                                onClick = {
+                                    showYearPicker = false
+                                    onSelectYear(year)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Text(year.toString()) }
+                        }
+                    }
                 }
             }
         }
@@ -307,7 +369,8 @@ private fun YearSummaryContent(
                     detail = if (empty) {
                         null
                     } else {
-                        "${monthTotal.shiftCount} · ${formatDurationCompact(monthTotal.workedMinutes)}"
+                        "${pluralStringResource(R.plurals.shifts_short, monthTotal.shiftCount, monthTotal.shiftCount)} · " +
+                            formatDurationCompact(monthTotal.workedMinutes)
                     },
                     amount = formatAmountMicros(monthTotal.totalPayMicros, locale),
                     dimmed = empty,

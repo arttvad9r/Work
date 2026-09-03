@@ -67,6 +67,7 @@ fun SettingsScreen(
     onExportData: () -> Unit,
     onExportCsv: () -> Unit,
     onImportData: () -> Unit,
+    backupStatus: String? = null,
 ) {
     var rateEditing by rememberSaveable { mutableStateOf(false) }
     var exportFormatOpen by rememberSaveable { mutableStateOf(false) }
@@ -161,6 +162,7 @@ fun SettingsScreen(
                 AppSectionHeader(stringResource(R.string.section_data))
                 AppNavigationRow(
                     label = stringResource(R.string.export_data),
+                    subtitle = backupStatus,
                     onClick = {
                         finishRateEditing()
                         exportFormatOpen = true

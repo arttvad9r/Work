@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -48,11 +49,12 @@ class CalendarViewModel(
      * subscription is being established after the page settles.
      */
     private val monthWindow = visibleMonth.flatMapLatest { center ->
-        val start = center.minusMonths(1).atDay(1)
-        val end = center.plusMonths(1).atEndOfMonth()
-        workEntryRepository.observeDateRange(start, end).map { rows ->
+        workEntryRepository.observeDateRange(LocalDate.MIN, LocalDate.MAX)
+            .onStart { emit(emptyList()) }
+            .map { rows ->
             MonthWindow(
                 center = center,
+                allEntries = rows,
                 entriesByMonth = rows
                     .groupBy { YearMonth.from(it.date) }
                     .mapValues { (_, entries) -> entries.associateBy(WorkEntry::date) },
@@ -67,6 +69,7 @@ class CalendarViewModel(
         MonthUi(
             requestedMonth = requestedMonth,
             entries = window.entriesByMonth[requestedMonth].orEmpty(),
+            allEntries = window.allEntries,
             entriesByMonth = window.entriesByMonth,
         )
     }
@@ -79,6 +82,7 @@ class CalendarViewModel(
         CalendarUiState(
             visibleMonth = monthUi.requestedMonth,
             entries = monthUi.entries,
+            allEntries = monthUi.allEntries,
             monthEntries = monthUi.entriesByMonth,
             selectedDate = selected,
             isReady = true,
@@ -292,11 +296,13 @@ class CalendarViewModel(
 
 private data class MonthWindow(
     val center: YearMonth,
+    val allEntries: List<WorkEntry>,
     val entriesByMonth: Map<YearMonth, Map<LocalDate, WorkEntry>>,
 )
 
 private data class MonthUi(
     val requestedMonth: YearMonth,
     val entries: Map<LocalDate, WorkEntry>,
+    val allEntries: List<WorkEntry>,
     val entriesByMonth: Map<YearMonth, Map<LocalDate, WorkEntry>>,
 )

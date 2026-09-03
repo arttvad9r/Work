@@ -61,6 +61,7 @@ class CalendarViewModelTest {
         val repository = FakeWorkEntryRepository(listOf(entry))
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
+        viewModel.showMonth(YearMonth.from(entry.date))
         viewModel.state.first { it.isReady && it.entries[entry.date] == entry }
 
         viewModel.deleteEntry(entry.date)
@@ -82,6 +83,7 @@ class CalendarViewModelTest {
         val repository = FakeWorkEntryRepository(listOf(entry))
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
+        viewModel.showMonth(YearMonth.from(entry.date))
         viewModel.state.first { it.entries[entry.date] == entry }
 
         viewModel.deleteEntry(entry.date)
@@ -173,6 +175,7 @@ class CalendarViewModelTest {
         val repository = FakeWorkEntryRepository(listOf(entry))
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
+        viewModel.showMonth(YearMonth.from(entry.date))
         viewModel.state.first { it.entries[entry.date] == entry }
 
         viewModel.deleteEntry(entry.date)
@@ -216,6 +219,7 @@ class CalendarViewModelTest {
         val repository = FakeWorkEntryRepository(listOf(entry))
         val viewModel = CalendarViewModel(repository, FakeUserPreferencesRepository())
         val stateJob = launch { viewModel.state.collect() }
+        viewModel.showMonth(YearMonth.from(entry.date))
         viewModel.state.first { it.entries[entry.date] == entry }
 
         viewModel.deleteEntry(entry.date)

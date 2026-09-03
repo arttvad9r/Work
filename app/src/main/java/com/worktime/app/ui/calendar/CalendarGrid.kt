@@ -48,7 +48,7 @@ import java.util.Locale
 
 @Composable
 internal fun CalendarGrid(
-    state: CalendarUiState,
+    state: CalendarContentState,
     onDayClick: (LocalDate) -> Unit,
     locale: Locale,
     modifier: Modifier = Modifier,
@@ -61,10 +61,17 @@ internal fun CalendarGrid(
             .height(calendarGridHeight())
             .testTag("calendar-grid"),
     ) {
-        val weekdays = (0 until 7).map { DayOfWeek.MONDAY.plus(it.toLong()) }
-        val firstDay = state.visibleMonth.atDay(1)
-        val gridStart = firstDay.minusDays((firstDay.dayOfWeek.value - 1).toLong())
-        val cells = (0L until 42L).map { offset -> gridStart.plusDays(offset) }
+        val weekdays = remember {
+            (0 until 7).map { DayOfWeek.MONDAY.plus(it.toLong()) }
+        }
+        val cells = remember(state.visibleMonth) {
+            val firstDay = state.visibleMonth.atDay(1)
+            val gridStart = firstDay.minusDays((firstDay.dayOfWeek.value - 1).toLong())
+            (0L until 42L).map { offset -> gridStart.plusDays(offset) }
+        }
+        val dateFormatter = remember(locale) {
+            DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale)
+        }
         val today = LocalDate.now()
 
         Column(
@@ -114,7 +121,8 @@ internal fun CalendarGrid(
                                 isToday = date == today,
                                 isSelected = date == state.selectedDate,
                                 onClick = { onDayClick(date) },
-                                locale = locale,
+                                 locale = locale,
+                                 dateFormatter = dateFormatter,
                                 dateAreaHeight = dateAreaHeight,
                                 isLastGridRow = weekIndex == CalendarWeekCount - 1,
                             )
@@ -141,44 +149,65 @@ private fun DayCell(
     isSelected: Boolean,
     onClick: () -> Unit,
     locale: Locale,
+    dateFormatter: DateTimeFormatter,
     dateAreaHeight: Dp,
     isLastGridRow: Boolean,
 ) {
-    val visibleEntry = entry.takeIf { isInVisibleMonth }
+    val visibleEntry = remember(entry, isInVisibleMonth) {
+        entry.takeIf { isInVisibleMonth }
+    }
     val largeFont = LocalDensity.current.fontScale >= 1.5f
     val interactionSource = remember { MutableInteractionSource() }
-    val totalMicros = visibleEntry?.let {
-        runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull()
+    val totalMicros = remember(visibleEntry) {
+        visibleEntry?.let {
+            runCatching { SalaryCalculator.entryPay(it).totalPayMicros }.getOrNull()
+        }
     }
-    val dateLabel = date.format(
-        DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale),
-    )
-    val a11yDescription = buildDayCellDescription(
-        dateLabel = dateLabel,
-        todayLabel = if (isToday) stringResource(R.string.today) else null,
-        selectedLabel = if (isSelected) stringResource(R.string.day_selected) else null,
-        entryLabel = if (visibleEntry != null) stringResource(R.string.has_entry) else null,
-        durationText = if (visibleEntry != null && visibleEntry.workedMinutes > 0) {
-            formatDuration(visibleEntry.workedMinutes)
-        } else {
-            null
-        },
-        amountText = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
-            formatAmountMicros(totalMicros, locale)
-        } else {
-            null
-        },
-        bonusText = if ((visibleEntry?.bonusMicros ?: 0L) > 0L) {
-            stringResource(R.string.has_bonus)
-        } else {
-            null
-        },
-        penaltyText = if ((visibleEntry?.penaltyMicros ?: 0L) > 0L) {
-            stringResource(R.string.has_penalty)
-        } else {
-            null
-        },
-    )
+    val dateLabel = remember(date, dateFormatter) { date.format(dateFormatter) }
+    val todayLabel = if (isToday) stringResource(R.string.today) else null
+    val selectedLabel = if (isSelected) stringResource(R.string.day_selected) else null
+    val entryLabel = if (visibleEntry != null) stringResource(R.string.has_entry) else null
+    val durationText = if (visibleEntry != null && visibleEntry.workedMinutes > 0) {
+        formatDuration(visibleEntry.workedMinutes)
+    } else {
+        null
+    }
+    val amountText = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
+        formatAmountMicros(totalMicros, locale)
+    } else {
+        null
+    }
+    val bonusText = if ((visibleEntry?.bonusMicros ?: 0L) > 0L) {
+        stringResource(R.string.has_bonus)
+    } else {
+        null
+    }
+    val penaltyText = if ((visibleEntry?.penaltyMicros ?: 0L) > 0L) {
+        stringResource(R.string.has_penalty)
+    } else {
+        null
+    }
+    val a11yDescription = remember(
+        dateLabel,
+        todayLabel,
+        selectedLabel,
+        entryLabel,
+        durationText,
+        amountText,
+        bonusText,
+        penaltyText,
+    ) {
+        buildDayCellDescription(
+            dateLabel = dateLabel,
+            todayLabel = todayLabel,
+            selectedLabel = selectedLabel,
+            entryLabel = entryLabel,
+            durationText = durationText,
+            amountText = amountText,
+            bonusText = bonusText,
+            penaltyText = penaltyText,
+        )
+    }
     val dateColor = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.24f)
         isToday -> MaterialTheme.colorScheme.primary

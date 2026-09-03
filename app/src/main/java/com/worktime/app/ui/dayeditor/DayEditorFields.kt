@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +61,8 @@ internal fun NumericEditorSection(
     bonusVisible: Boolean,
     penaltyVisible: Boolean,
     durationInputTransformation: InputTransformation,
+    durationSuggestions: List<Int>,
+    onDurationSuggestion: (Int) -> Unit,
     moneyInputTransformation: InputTransformation,
     numericKeyboardOptions: KeyboardOptions,
     durationHasError: Boolean,
@@ -176,7 +179,42 @@ internal fun NumericEditorSection(
                 .height(rowHeight),
         )
     }
+
+    if (activeField == NumericField.Duration && durationState.text.isBlank()) {
+        DurationSuggestionRow(
+            suggestions = durationSuggestions,
+            onSuggestionClick = onDurationSuggestion,
+        )
+    }
 }
+
+@Composable
+private fun DurationSuggestionRow(
+    suggestions: List<Int>,
+    onSuggestionClick: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        suggestions.forEach { minutes ->
+            SuggestionChip(
+                onClick = { onSuggestionClick(minutes) },
+                label = {
+                    Text(
+                        formatDurationSuggestion(
+                            minutes / 60,
+                            stringResource(R.string.hours_short_unit),
+                        ),
+                    )
+                },
+                modifier = Modifier.height(32.dp),
+            )
+        }
+    }
+}
+
+internal fun formatDurationSuggestion(hours: Int, unit: String): String = "$hours $unit"
 
 @Composable
 private fun AdjustmentSlot(
@@ -308,7 +346,7 @@ private fun PersistentNumericEditor(
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
-        CompactInputChrome(isError = isError) {
+        CompactInputChrome(isError = isError, height = AppDimens.dayEditorFieldHeight) {
             BasicTextField(
                 state = state,
                 inputTransformation = if (isDuration) durationInputTransformation else moneyInputTransformation,

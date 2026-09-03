@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,6 +29,7 @@ import com.worktime.app.ui.backup.BackupViewModel
 import com.worktime.app.ui.backup.rememberBackupDocumentActions
 import com.worktime.app.ui.calendar.CalendarScreen
 import com.worktime.app.ui.calendar.CalendarViewModel
+import com.worktime.app.ui.calendar.contentState
 import com.worktime.app.ui.navigation.AppDestination
 import com.worktime.app.ui.preferences.PreferencesViewModel
 import com.worktime.app.ui.settings.SettingsScreen
@@ -35,6 +37,10 @@ import com.worktime.app.ui.theme.WorkTimeTheme
 import com.worktime.app.ui.yearsummary.YearSummaryScreen
 import com.worktime.app.ui.yearsummary.YearSummaryViewModel
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @Composable
 fun WorkTimeApp(
@@ -60,11 +66,23 @@ fun WorkTimeApp(
             userPreferencesRepository = container.userPreferencesRepository,
             backupDocumentSerializer = container.backupDocumentSerializer,
             dataMutationCoordinator = container.dataMutationCoordinator,
+            metadataPreferences = container.backupMetadataPreferences,
+            internalBackupFile = container.internalBackupFile,
         ),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     val preferencesState by preferencesViewModel.state.collectAsStateWithLifecycle()
     val backupState by backupViewModel.state.collectAsStateWithLifecycle()
+    val backupStatus = backupState.lastExportAtMillis?.let { exportedAt ->
+        stringResource(
+            R.string.last_backup_exported,
+            Instant.ofEpochMilli(exportedAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+                .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(LocalLocale.current.platformLocale)),
+            backupState.lastExportEntryCount ?: 0,
+        )
+    }
     val backStack = rememberNavBackStack(AppDestination.Calendar)
     val snackbarHostState = remember { SnackbarHostState() }
     val backupDocumentActions = rememberBackupDocumentActions(backupViewModel)
@@ -119,7 +137,7 @@ fun WorkTimeApp(
                 entryProvider = entryProvider {
                     entry<AppDestination.Calendar> {
                         CalendarScreen(
-                            state = state,
+                            state = state.contentState,
                             onPreviousMonth = viewModel::previousMonth,
                             onNextMonth = viewModel::nextMonth,
                             onSelectMonth = viewModel::showMonth,
@@ -164,6 +182,7 @@ fun WorkTimeApp(
                             onExportData = backupDocumentActions.exportBackup,
                             onExportCsv = backupDocumentActions.exportCsv,
                             onImportData = backupDocumentActions.importBackup,
+                            backupStatus = backupStatus,
                         )
                     }
                     entry<AppDestination.YearSummary>(

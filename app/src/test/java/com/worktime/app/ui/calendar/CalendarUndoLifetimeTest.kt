@@ -32,6 +32,7 @@ class CalendarUndoLifetimeTest {
 
         val firstViewModel = CalendarViewModel(repository, preferences)
         val firstStateJob = launch { firstViewModel.state.collect() }
+        firstViewModel.showMonth(YearMonth.from(entry.date))
         firstViewModel.state.first { it.isReady && it.entries[entry.date] == entry }
 
         firstViewModel.deleteEntry(entry.date)

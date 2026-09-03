@@ -43,6 +43,8 @@ class BackupViewModelTest {
 
         viewModel.exportBackup(output)
         assertEquals(BackupOperationEvent.Success.EXPORTED, viewModel.events.first())
+        val exportedState = viewModel.state.first { it.lastExportEntryCount == 2 }
+        assert(exportedState.lastExportAtMillis != null)
 
         assertEquals("backup", output.toString("UTF-8"))
         assertEquals(

@@ -56,6 +56,7 @@ import java.time.format.DateTimeFormatter
 internal fun DayEditorSheetContent(
     date: LocalDate,
     existing: WorkEntry?,
+    history: Collection<WorkEntry>,
     defaultHourlyRateMicros: Long,
     operationErrorMessage: String?,
     onDismiss: () -> Unit,
@@ -92,7 +93,7 @@ internal fun DayEditorSheetContent(
     val editorState = rememberTextFieldState(initialText = durationState.text.toString())
     var activeField by remember { mutableStateOf(NumericField.Duration) }
     var editorHasFocus by remember { mutableStateOf(false) }
-    var focusEditorOnActivate by remember { mutableStateOf(false) }
+    var focusEditorOnActivate by remember { mutableStateOf(true) }
 
     var bonusVisible by rememberSaveable { mutableStateOf((existing?.bonusMicros ?: 0L) > 0L) }
     var penaltyVisible by rememberSaveable { mutableStateOf((existing?.penaltyMicros ?: 0L) > 0L) }
@@ -251,6 +252,10 @@ internal fun DayEditorSheetContent(
                     bonusVisible = bonusVisible,
                     penaltyVisible = penaltyVisible,
                     durationInputTransformation = durationInputTransformation,
+                    durationSuggestions = durationSuggestions(date, history),
+                    onDurationSuggestion = { minutes ->
+                        editorState.setTextAndPlaceCursorAtEnd("${minutes / 60}:00")
+                    },
                     moneyInputTransformation = moneyInputTransformation,
                     numericKeyboardOptions = numericKeyboardOptions,
                     durationHasError = durationHasError,
@@ -270,7 +275,10 @@ internal fun DayEditorSheetContent(
                             NumericField.Bonus -> if (penaltyVisible) {
                                 activateField(NumericField.Penalty)
                             }
-                            NumericField.Penalty -> Unit
+                            NumericField.Penalty -> draft?.let {
+                                keyboardController?.hide()
+                                onSave(it)
+                            }
                         }
                     },
                     editorFocusRequester = editorFocusRequester,

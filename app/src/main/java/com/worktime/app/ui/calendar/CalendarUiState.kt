@@ -1,5 +1,6 @@
 package com.worktime.app.ui.calendar
 
+import androidx.compose.runtime.Immutable
 import com.worktime.app.domain.calculation.SalaryCalculator
 import com.worktime.app.domain.model.MonthSummary
 import com.worktime.app.domain.model.WorkEntry
@@ -9,6 +10,7 @@ import java.time.YearMonth
 data class CalendarUiState(
     val visibleMonth: YearMonth = YearMonth.now(),
     val entries: Map<LocalDate, WorkEntry> = emptyMap(),
+    val allEntries: List<WorkEntry> = emptyList(),
     /**
      * Loaded month window used by the horizontal calendar pager. The current repository
      * subscription keeps the visible month plus its immediate neighbours warm so a drag
@@ -25,6 +27,27 @@ data class CalendarUiState(
     val summary: MonthSummary
         get() = SalaryCalculator.monthSummary(entries.values)
 }
+
+@Immutable
+data class CalendarContentState(
+    val visibleMonth: YearMonth,
+    val entries: Map<LocalDate, WorkEntry>,
+    val monthEntries: Map<YearMonth, Map<LocalDate, WorkEntry>>,
+    val selectedDate: LocalDate?,
+    val isReady: Boolean,
+) {
+    val summary: MonthSummary
+        get() = SalaryCalculator.monthSummary(entries.values)
+}
+
+val CalendarUiState.contentState: CalendarContentState
+    get() = CalendarContentState(
+        visibleMonth = visibleMonth,
+        entries = entries,
+        monthEntries = monthEntries,
+        selectedDate = selectedDate,
+        isReady = isReady,
+    )
 
 enum class CalendarOperationError {
     SAVE_ENTRY,

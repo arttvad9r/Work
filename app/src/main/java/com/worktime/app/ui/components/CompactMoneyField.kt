@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.worktime.app.ui.format.sanitizeMoneyInput
 
 /**
@@ -47,6 +48,7 @@ import com.worktime.app.ui.format.sanitizeMoneyInput
 fun CompactInputChrome(
     isError: Boolean,
     modifier: Modifier = Modifier,
+    height: Dp = AppDimens.compactFieldHeight,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val borderColor by animateColorAsState(
@@ -62,7 +64,7 @@ fun CompactInputChrome(
     Surface(
         modifier = modifier
             .width(AppDimens.compactFieldWidth)
-            .height(AppDimens.compactFieldHeight),
+            .height(height),
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         border = BorderStroke(

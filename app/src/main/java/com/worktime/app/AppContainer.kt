@@ -23,4 +23,6 @@ class AppContainer(context: Context) {
     val userPreferencesRepository: UserPreferencesRepository =
         DataStoreUserPreferencesRepository(context.applicationContext)
     val backupDocumentSerializer: BackupDocumentSerializer = DefaultBackupDocumentSerializer()
+    val backupMetadataPreferences = context.getSharedPreferences("backup_metadata", Context.MODE_PRIVATE)
+    val internalBackupFile = context.getFileStreamPath("pre-import-backup.json")
 }
