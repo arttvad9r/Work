@@ -58,6 +58,7 @@ fun StorePrivacyDarkScreenshot() {
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @PreviewTest
 @Preview(name = "Store export format", widthDp = 360, heightDp = 800, locale = "ru")
 @Composable
