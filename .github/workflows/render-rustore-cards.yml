@@ -37,6 +37,14 @@ jobs:
       - name: Install renderer dependency
         run: python3 -m pip install --disable-pip-version-check Pillow==11.3.0
 
+      - name: Remove stale store source references
+        run: |
+          find app/src/screenshotTestDebug/reference -type f \
+            \( -name 'StoreDayEditorPopulatedScreenshot_*.png' \
+            -o -name 'StorePrivacyDarkScreenshot_*.png' \
+            -o -name 'StoreExportFormatScreenshot_*.png' \) \
+            -delete
+
       - name: Refresh reproducible store source screenshots
         run: ./gradlew --no-daemon :app:updateDebugScreenshotTest --stacktrace
 
