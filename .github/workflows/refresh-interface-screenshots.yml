@@ -1,0 +1,44 @@
+name: Refresh interface screenshots
+
+on:
+  push:
+    branches:
+      - ui/full-interface-polish
+    paths:
+      - app/src/main/java/com/worktime/app/ui/**
+      - .github/workflows/refresh-interface-screenshots.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ui/full-interface-polish
+
+      - name: Set up JDK
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+
+      - name: Refresh screenshot baselines
+        run: ./gradlew --no-daemon :app:updateDebugScreenshotTest --stacktrace
+
+      - name: Commit refreshed interface baselines
+        run: |
+          git add app/src/screenshotTestDebug/reference/com/worktime/app/ui/screenshot/WorkTimeScreenshotTestKt/*.png
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "test: refresh interface screenshot baselines"
+          git push origin HEAD:ui/full-interface-polish
