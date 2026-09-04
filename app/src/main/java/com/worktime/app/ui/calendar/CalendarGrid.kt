@@ -91,7 +91,7 @@ internal fun CalendarGrid(
             }
 
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.48f),
             )
 
             cells.chunked(7).forEachIndexed { weekIndex, week ->
@@ -182,7 +182,7 @@ private fun DayCell(
     val dateColor = when {
         !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.24f)
         isToday -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
     }
     val amountColor = if ((totalMicros ?: 0L) < 0L) {
         MaterialTheme.colorScheme.error
@@ -192,7 +192,7 @@ private fun DayCell(
     val borderColor = if (isToday && isInVisibleMonth) {
         MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.48f)
     }
     val backgroundColor = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer
@@ -232,7 +232,7 @@ private fun DayCell(
                 Text(
                     text = date.dayOfMonth.toString(),
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = dateColor,
                     maxLines = 1,
                 )
@@ -255,13 +255,16 @@ private fun DayCell(
                                 fontSize = 10.sp,
                                 lineHeight = 11.sp,
                             ),
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 2.dp),
                             text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
                                 formatWholeAmountMicros(totalMicros, locale)
                             } else {
@@ -271,8 +274,9 @@ private fun DayCell(
                                 fontSize = 7.sp,
                                 lineHeight = 8.sp,
                             ),
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             color = amountColor,
+                            textAlign = TextAlign.Start,
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Ellipsis,
@@ -294,7 +298,7 @@ private fun DayCell(
                                 fontSize = 15.sp,
                                 lineHeight = 18.sp,
                             ),
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
@@ -303,10 +307,9 @@ private fun DayCell(
                         )
                         Text(
                             modifier = Modifier
-                                .align(Alignment.BottomCenter)
+                                .align(Alignment.BottomStart)
                                 .fillMaxWidth()
-                                .padding(bottom = 3.dp)
-                                .padding(horizontal = 2.dp),
+                                .padding(start = 4.dp, end = 2.dp, bottom = 3.dp),
                             text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
                                 formatWholeAmountMicros(totalMicros, locale)
                             } else {
@@ -316,9 +319,9 @@ private fun DayCell(
                                 fontSize = 10.sp,
                                 lineHeight = 13.sp,
                             ),
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             color = amountColor,
-                            textAlign = TextAlign.Center,
+                            textAlign = TextAlign.Start,
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Ellipsis,
