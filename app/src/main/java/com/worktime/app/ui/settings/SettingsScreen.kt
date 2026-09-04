@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -45,15 +44,16 @@ import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppFieldValueSlot
 import com.worktime.app.ui.components.AppModalBottomSheet
+import com.worktime.app.ui.components.AppMotion
 import com.worktime.app.ui.components.AppNavigationRow
-import com.worktime.app.ui.components.AppSegmentedControl
+import com.worktime.app.ui.components.AppRowDivider
 import com.worktime.app.ui.components.AppSectionHeader
+import com.worktime.app.ui.components.AppSectionSurface
+import com.worktime.app.ui.components.AppSegmentedControl
 import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.components.CompactMoneyField
 import com.worktime.app.ui.format.formatDecimalMicros
 import com.worktime.app.ui.format.parseDecimalMicros
-
-private const val InlineEditorFadeMillis = 75
 
 @Composable
 fun SettingsScreen(
@@ -86,9 +86,6 @@ fun SettingsScreen(
         onDismiss()
     }
 
-    // External preference changes (restore/system-driven state) remain authoritative.
-    // Direct taps update both the visual selection and global palette immediately; the
-    // segmented-control spring is presentation only and never delays the preference write.
     LaunchedEffect(themeMode) {
         if (themeMode != presentedThemeMode) {
             presentedThemeMode = themeMode
@@ -102,7 +99,6 @@ fun SettingsScreen(
         }
     }
 
-    // Surface sets LocalContentColor=onSurface so titles/icons follow the theme.
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -123,64 +119,70 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings),
                     onBack = dismissSettings,
                 )
-                AppSectionHeader(stringResource(R.string.section_calculation))
-                RateRow(
-                    rateMicros = defaultHourlyRateMicros,
-                    editing = rateEditing,
-                    onEdit = { rateEditing = true },
-                    onDone = { rateEditing = false },
-                    onRateChange = onRateChange,
-                )
-                AppNavigationRow(
-                    label = stringResource(R.string.change_rate_for_period),
-                    onClick = {
-                        finishRateEditing()
-                        onOpenChangeRate()
-                    },
-                )
 
-                SectionDivider()
+                AppSectionHeader(stringResource(R.string.section_calculation))
+                AppSectionSurface {
+                    RateRow(
+                        rateMicros = defaultHourlyRateMicros,
+                        editing = rateEditing,
+                        onEdit = { rateEditing = true },
+                        onDone = { rateEditing = false },
+                        onRateChange = onRateChange,
+                    )
+                    AppRowDivider()
+                    AppNavigationRow(
+                        label = stringResource(R.string.change_rate_for_period),
+                        onClick = {
+                            finishRateEditing()
+                            onOpenChangeRate()
+                        },
+                    )
+                }
 
                 AppSectionHeader(stringResource(R.string.section_appearance))
-                AppSegmentedControl(
-                    options = ThemeMode.entries.map { themeLabel(it) },
-                    selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
-                    onSelect = { index ->
-                        val selectedMode = ThemeMode.entries[index]
-                        finishRateEditing()
-                        presentedThemeMode = selectedMode
-                        if (selectedMode != themeMode) {
-                            onThemeChange(selectedMode)
-                        }
-                    },
-                    modifier = Modifier.padding(vertical = AppDimens.rowGap),
-                )
-
-                SectionDivider()
+                AppSectionSurface {
+                    AppSegmentedControl(
+                        options = ThemeMode.entries.map { themeLabel(it) },
+                        selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
+                        onSelect = { index ->
+                            val selectedMode = ThemeMode.entries[index]
+                            finishRateEditing()
+                            presentedThemeMode = selectedMode
+                            if (selectedMode != themeMode) {
+                                onThemeChange(selectedMode)
+                            }
+                        },
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
+                }
 
                 AppSectionHeader(stringResource(R.string.section_data))
-                AppNavigationRow(
-                    label = stringResource(R.string.export_data),
-                    onClick = {
-                        finishRateEditing()
-                        exportFormatOpen = true
-                    },
-                )
-                AppNavigationRow(
-                    label = stringResource(R.string.import_data),
-                    onClick = {
-                        finishRateEditing()
-                        onImportData()
-                    },
-                )
-                AppNavigationRow(
-                    label = stringResource(R.string.privacy_and_data),
-                    subtitle = stringResource(R.string.privacy_local_subtitle),
-                    onClick = {
-                        finishRateEditing()
-                        privacyDataOpen = true
-                    },
-                )
+                AppSectionSurface {
+                    AppNavigationRow(
+                        label = stringResource(R.string.export_data),
+                        onClick = {
+                            finishRateEditing()
+                            exportFormatOpen = true
+                        },
+                    )
+                    AppRowDivider()
+                    AppNavigationRow(
+                        label = stringResource(R.string.import_data),
+                        onClick = {
+                            finishRateEditing()
+                            onImportData()
+                        },
+                    )
+                    AppRowDivider()
+                    AppNavigationRow(
+                        label = stringResource(R.string.privacy_and_data),
+                        subtitle = stringResource(R.string.privacy_local_subtitle),
+                        onClick = {
+                            finishRateEditing()
+                            privacyDataOpen = true
+                        },
+                    )
+                }
 
                 Box(modifier = Modifier.navigationBarsPadding().height(24.dp))
             }
@@ -215,18 +217,6 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SectionDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(top = 8.dp),
-        color = MaterialTheme.colorScheme.outlineVariant,
-    )
-}
-
-/**
- * The default-rate row: reads as a value row, edits inline through the same compact slot.
- * Only the trailing content fades through; the row and every following row stay fixed.
- */
-@Composable
 private fun RateRow(
     rateMicros: Long,
     editing: Boolean,
@@ -246,11 +236,12 @@ private fun RateRow(
             .fillMaxWidth()
             .heightIn(min = AppDimens.rowMinHeight)
             .clickable(enabled = !editing, onClick = onEdit),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
+            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -258,8 +249,8 @@ private fun RateRow(
         AnimatedContent(
             targetState = editing,
             transitionSpec = {
-                fadeIn(animationSpec = tween(InlineEditorFadeMillis)) togetherWith
-                    fadeOut(animationSpec = tween(InlineEditorFadeMillis))
+                fadeIn(animationSpec = tween(AppMotion.MicroMillis)) togetherWith
+                    fadeOut(animationSpec = tween(AppMotion.MicroMillis))
             },
             label = "default rate editor",
         ) { isEditing ->
@@ -311,15 +302,18 @@ private fun ExportFormatDialog(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.export_format_title),
     ) {
-        AppNavigationRow(
-            label = stringResource(R.string.export_json_option),
-            subtitle = stringResource(R.string.export_json_hint),
-            onClick = onSelectJson,
-        )
-        AppNavigationRow(
-            label = stringResource(R.string.export_csv_option),
-            subtitle = stringResource(R.string.export_csv_hint),
-            onClick = onSelectCsv,
-        )
+        AppSectionSurface {
+            AppNavigationRow(
+                label = stringResource(R.string.export_json_option),
+                subtitle = stringResource(R.string.export_json_hint),
+                onClick = onSelectJson,
+            )
+            AppRowDivider()
+            AppNavigationRow(
+                label = stringResource(R.string.export_csv_option),
+                subtitle = stringResource(R.string.export_csv_hint),
+                onClick = onSelectCsv,
+            )
+        }
     }
 }

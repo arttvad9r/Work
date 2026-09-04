@@ -28,7 +28,7 @@ fun AppSectionSurface(
         tonalElevation = 0.dp,
         border = BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f),
+            color = MaterialTheme.colorScheme.outlineVariant,
         ),
     ) {
         Column(
@@ -45,6 +45,6 @@ fun AppSectionSurface(
 fun AppRowDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.82f),
     )
 }

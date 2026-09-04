@@ -3,6 +3,7 @@ package com.worktime.app.ui.calendar
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -122,7 +123,12 @@ internal fun SummaryStrip(
                     )
                 }
                 .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = MaterialTheme.shapes.medium,
+                )
                 .clickable(
                     onClickLabel = stringResource(R.string.monthly_summary),
                     onClick = onClick,
@@ -135,8 +141,8 @@ internal fun SummaryStrip(
                 text = summaryText,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
             )
@@ -144,7 +150,7 @@ internal fun SummaryStrip(
                 Icons.Filled.KeyboardArrowUp,
                 modifier = Modifier.graphicsLayer { rotationZ = chevronRotation },
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -213,7 +219,7 @@ internal fun MonthlySummaryPanel(
                 color = if (shouldUseErrorColorForTotal(summary.totalPayMicros)) {
                     MaterialTheme.colorScheme.error
                 } else {
-                    MaterialTheme.colorScheme.onSurface
+                    MaterialTheme.colorScheme.primary
                 },
                 maxLines = 1,
             )
@@ -241,7 +247,7 @@ internal fun MonthlySummaryPanel(
                 )
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.82f))
 
             if (summary.shiftCount > 0) {
                 LabelValueRow(
