@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/render-rustore-cards.yml
       - scripts/generate_rustore_assets.py
+      - scripts/refine_rustore_cards.py
       - app/src/screenshotTest/kotlin/com/worktime/app/ui/screenshot/StoreScreenshotSources.kt
       - app/src/screenshotTest/kotlin/com/worktime/app/ui/screenshot/WorkTimeScreenshotTest.kt
 
@@ -39,8 +40,10 @@ jobs:
       - name: Refresh reproducible store source screenshots
         run: ./gradlew --no-daemon :app:updateDebugScreenshotTest --stacktrace
 
-      - name: Render premium RuStore gallery
-        run: python3 scripts/generate_rustore_assets.py
+      - name: Render and refine premium RuStore gallery
+        run: |
+          python3 scripts/generate_rustore_assets.py
+          python3 scripts/refine_rustore_cards.py
 
       - name: Validate generated gallery
         run: |
