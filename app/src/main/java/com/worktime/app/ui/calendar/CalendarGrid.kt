@@ -231,7 +231,10 @@ private fun DayCell(
             ) {
                 Text(
                     text = date.dayOfMonth.toString(),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp,
+                    ),
                     fontWeight = FontWeight.SemiBold,
                     color = dateColor,
                     maxLines = 1,
@@ -271,8 +274,8 @@ private fun DayCell(
                                 ""
                             },
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 7.sp,
-                                lineHeight = 8.sp,
+                                fontSize = 8.sp,
+                                lineHeight = 9.sp,
                             ),
                             fontWeight = FontWeight.SemiBold,
                             color = amountColor,
@@ -316,8 +319,8 @@ private fun DayCell(
                                 ""
                             },
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                lineHeight = 13.sp,
+                                fontSize = 11.sp,
+                                lineHeight = 14.sp,
                             ),
                             fontWeight = FontWeight.SemiBold,
                             color = amountColor,
