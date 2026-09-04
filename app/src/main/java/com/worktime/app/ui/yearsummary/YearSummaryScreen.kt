@@ -1,10 +1,12 @@
 package com.worktime.app.ui.yearsummary
 
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,8 @@ import androidx.window.core.layout.WindowSizeClass.Companion.HEIGHT_DP_MEDIUM_LO
 import com.worktime.app.R
 import com.worktime.app.ui.components.AppDimens
 import com.worktime.app.ui.components.AppMotion
+import com.worktime.app.ui.components.AppRowDivider
+import com.worktime.app.ui.components.AppSectionSurface
 import com.worktime.app.ui.components.AppTopBar
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
@@ -119,32 +122,39 @@ fun YearSummaryScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(AppDimens.rowMinHeight),
+                    .height(56.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = { pager.navigatePrevious(scope) },
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = stringResource(R.string.previous_year),
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = 0.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { pager.navigatePrevious(scope) },
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                contentDescription = stringResource(R.string.previous_year),
+                            )
+                        }
+                        Text(
+                            text = pager.displayedYear.toString(),
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
                         )
-                    }
-                    Text(
-                        text = pager.displayedYear.toString(),
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    IconButton(
-                        onClick = { pager.navigateNext(scope) },
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = stringResource(R.string.next_year),
-                        )
+                        IconButton(
+                            onClick = { pager.navigateNext(scope) },
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = stringResource(R.string.next_year),
+                            )
+                        }
                     }
                 }
             }
@@ -212,108 +222,118 @@ private fun YearSummaryContent(
             .padding(bottom = AppDimens.rowGap)
             .then(scrollModifier)
             .testTag("year-summary-content"),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
+        verticalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
     ) {
-        YearMetricRow(
-            label = stringResource(R.string.year_income),
-            value = stringResource(
-                R.string.amount_with_currency,
-                formatAmountMicros(summary.total.totalPayMicros, locale),
-            ),
-            style = metricStyle,
-            valueColor = if (summary.total.totalPayMicros < 0L) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-            emphasized = true,
-        )
-        YearMetricRow(
-            label = stringResource(R.string.shift_count_label),
-            value = summary.total.shiftCount.toString(),
-            style = metricStyle,
-        )
-        YearMetricRow(
-            label = stringResource(R.string.worked_duration),
-            value = formatDurationCompact(summary.total.workedMinutes),
-            style = metricStyle,
-        )
-        if (summary.monthsWithData > 0) {
+        AppSectionSurface {
             YearMetricRow(
-                label = stringResource(R.string.average_working_month),
-                value = formatAmountMicros(
-                    summary.total.totalPayMicros / summary.monthsWithData,
-                    locale,
+                label = stringResource(R.string.year_income),
+                value = stringResource(
+                    R.string.amount_with_currency,
+                    formatAmountMicros(summary.total.totalPayMicros, locale),
                 ),
                 style = metricStyle,
+                valueColor = if (summary.total.totalPayMicros < 0L) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+                emphasized = true,
             )
-            if (summary.total.shiftCount > 0) {
+            YearMetricRow(
+                label = stringResource(R.string.shift_count_label),
+                value = summary.total.shiftCount.toString(),
+                style = metricStyle,
+            )
+            YearMetricRow(
+                label = stringResource(R.string.worked_duration),
+                value = formatDurationCompact(summary.total.workedMinutes),
+                style = metricStyle,
+            )
+            if (summary.monthsWithData > 0) {
                 YearMetricRow(
-                    label = stringResource(R.string.average_shift),
-                    value = formatDurationCompact(
-                        summary.total.workedMinutes / summary.total.shiftCount,
+                    label = stringResource(R.string.average_working_month),
+                    value = formatAmountMicros(
+                        summary.total.totalPayMicros / summary.monthsWithData,
+                        locale,
                     ),
+                    style = metricStyle,
+                )
+                if (summary.total.shiftCount > 0) {
+                    YearMetricRow(
+                        label = stringResource(R.string.average_shift),
+                        value = formatDurationCompact(
+                            summary.total.workedMinutes / summary.total.shiftCount,
+                        ),
+                        style = metricStyle,
+                    )
+                }
+            }
+            if (summary.total.bonusMicros > 0L) {
+                YearMetricRow(
+                    label = stringResource(R.string.year_bonuses),
+                    value = "+${formatAmountMicros(summary.total.bonusMicros, locale)}",
+                    style = metricStyle,
+                )
+            }
+            if (summary.total.penaltyMicros > 0L) {
+                YearMetricRow(
+                    label = stringResource(R.string.calculation_penalty),
+                    value = "−${formatAmountMicros(summary.total.penaltyMicros, locale)}",
                     style = metricStyle,
                 )
             }
         }
-        if (summary.total.bonusMicros > 0L) {
-            YearMetricRow(
-                label = stringResource(R.string.year_bonuses),
-                value = "+${formatAmountMicros(summary.total.bonusMicros, locale)}",
-                style = metricStyle,
-            )
-        }
-        if (summary.total.penaltyMicros > 0L) {
-            YearMetricRow(
-                label = stringResource(R.string.calculation_penalty),
-                value = "−${formatAmountMicros(summary.total.penaltyMicros, locale)}",
-                style = metricStyle,
-            )
-        }
 
-        HorizontalDivider(
-            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
-            color = MaterialTheme.colorScheme.outlineVariant,
-        )
-        MonthSectionHeader(compactText = compactText)
-
-        Column(
+        AppSectionSurface(
             modifier = if (layoutMode == YearSummaryLayoutMode.FixedViewport) {
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .testTag("year-summary-months")
+                Modifier.weight(1f)
             } else {
                 Modifier
-                    .fillMaxWidth()
-                    .testTag("year-summary-months")
             },
         ) {
-            Month.entries.forEachIndexed { index, month ->
-                val monthTotal = summary.months[month.value - 1]
-                val empty = !summary.monthHasData.getOrElse(index) { false }
-                MonthLine(
-                    modifier = if (layoutMode == YearSummaryLayoutMode.FixedViewport) {
-                        Modifier
-                            .weight(1f)
-                            .testTag("year-summary-month-${month.value}")
-                    } else {
-                        Modifier
-                            .heightIn(min = ShortViewportMonthRowMinHeight)
-                            .testTag("year-summary-month-${month.value}")
-                    },
-                    label = monthDisplayName(month, locale),
-                    detail = if (empty) {
-                        null
-                    } else {
-                        "${monthTotal.shiftCount} · ${formatDurationCompact(monthTotal.workedMinutes)}"
-                    },
-                    amount = formatAmountMicros(monthTotal.totalPayMicros, locale),
-                    dimmed = empty,
-                    style = monthStyle,
-                )
+            MonthSectionHeader(compactText = compactText)
+            AppRowDivider()
+            Column(
+                modifier = if (layoutMode == YearSummaryLayoutMode.FixedViewport) {
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .testTag("year-summary-months")
+                } else {
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag("year-summary-months")
+                },
+            ) {
+                Month.entries.forEachIndexed { index, month ->
+                    val monthTotal = summary.months[month.value - 1]
+                    val empty = !summary.monthHasData.getOrElse(index) { false }
+                    MonthLine(
+                        modifier = if (layoutMode == YearSummaryLayoutMode.FixedViewport) {
+                            Modifier
+                                .weight(1f)
+                                .testTag("year-summary-month-${month.value}")
+                        } else {
+                            Modifier
+                                .heightIn(min = ShortViewportMonthRowMinHeight)
+                                .testTag("year-summary-month-${month.value}")
+                        },
+                        label = monthDisplayName(month, locale),
+                        detail = if (empty) {
+                            null
+                        } else {
+                            "${monthTotal.shiftCount} · ${formatDurationCompact(monthTotal.workedMinutes)}"
+                        },
+                        amount = formatAmountMicros(monthTotal.totalPayMicros, locale),
+                        dimmed = empty,
+                        style = monthStyle,
+                    )
+                }
             }
+        }
+
+        if (layoutMode == YearSummaryLayoutMode.CompactShort) {
+            Spacer(modifier = Modifier.height(1.dp))
         }
     }
 }
@@ -329,7 +349,7 @@ private fun YearMetricRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 24.dp),
+            .heightIn(min = 26.dp),
         horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -344,7 +364,7 @@ private fun YearMetricRow(
         Text(
             text = value,
             style = style,
-            fontWeight = if (emphasized) FontWeight.Medium else FontWeight.Normal,
+            fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Medium,
             color = valueColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -362,7 +382,7 @@ private fun MonthSectionHeader(compactText: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 22.dp),
+            .heightIn(min = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -370,6 +390,7 @@ private fun MonthSectionHeader(compactText: Boolean) {
             text = stringResource(R.string.by_month),
             modifier = Modifier.weight(MonthLabelWeight),
             style = primaryHeaderStyle,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -378,7 +399,7 @@ private fun MonthSectionHeader(compactText: Boolean) {
             text = stringResource(R.string.year_month_detail_header),
             modifier = Modifier.weight(MonthDetailWeight),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
             textAlign = TextAlign.End,
             maxLines = 1,
         )
@@ -386,7 +407,7 @@ private fun MonthSectionHeader(compactText: Boolean) {
             text = stringResource(R.string.year_month_income_header),
             modifier = Modifier.weight(MonthAmountWeight),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
             textAlign = TextAlign.End,
             maxLines = 1,
         )
@@ -402,7 +423,7 @@ private fun MonthLine(
     dimmed: Boolean,
     style: TextStyle,
 ) {
-    val alpha = if (dimmed) 0.38f else 1f
+    val alpha = if (dimmed) 0.46f else 1f
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
@@ -428,7 +449,7 @@ private fun MonthLine(
             text = if (dimmed) "—" else amount,
             modifier = Modifier.weight(MonthAmountWeight).alpha(alpha),
             style = style,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             textAlign = if (dimmed) TextAlign.Center else TextAlign.End,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

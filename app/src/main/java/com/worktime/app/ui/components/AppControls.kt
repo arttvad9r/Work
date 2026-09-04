@@ -65,10 +65,10 @@ fun AppSegmentedControl(
             .fillMaxWidth()
             .height(AppDimens.compactControlHeight)
             .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.46f))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f),
                 shape = MaterialTheme.shapes.small,
             ),
     ) {
@@ -91,7 +91,7 @@ fun AppSegmentedControl(
                 .fillMaxHeight()
                 .padding(3.dp)
                 .clip(MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.secondaryContainer),
+                .background(MaterialTheme.colorScheme.primaryContainer),
         )
 
         Row(
@@ -104,7 +104,7 @@ fun AppSegmentedControl(
                 val interactionSource = remember(index) { MutableInteractionSource() }
                 val contentColor by animateColorAsState(
                     targetValue = if (selected) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
+                        MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
@@ -135,7 +135,7 @@ fun AppSegmentedControl(
                     Text(
                         text = option,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                         color = contentColor,
                         maxLines = 1,
                     )
@@ -163,7 +163,7 @@ fun AppPrimaryButton(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
         )
     }
 }
