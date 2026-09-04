@@ -1,0 +1,64 @@
+name: Repair date-sensitive calendar tests
+
+on:
+  push:
+    paths:
+      - .github/workflows/fix-date-sensitive-calendar-tests.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: release/rustore-publication
+
+      - name: Make calendar tests independent of wall-clock month
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          vm_test = Path('app/src/test/java/com/worktime/app/ui/calendar/CalendarViewModelTest.kt')
+          text = vm_test.read_text()
+          needle = '        val stateJob = launch { viewModel.state.collect() }\n'
+          replacement = (
+              '        viewModel.showMonth(YearMonth.of(2026, 8))\n'
+              '        val stateJob = launch { viewModel.state.collect() }\n'
+          )
+          count = text.count(needle)
+          if count < 10:
+              raise SystemExit(f'Expected many CalendarViewModelTest collectors, found {count}')
+          vm_test.write_text(text.replace(needle, replacement))
+
+          lifetime = Path('app/src/test/java/com/worktime/app/ui/calendar/CalendarUndoLifetimeTest.kt')
+          text = lifetime.read_text()
+          first = '        val firstStateJob = launch { firstViewModel.state.collect() }\n'
+          recreated = '        val recreatedStateJob = launch { recreatedViewModel.state.collect() }\n'
+          if text.count(first) != 1 or text.count(recreated) != 1:
+              raise SystemExit('Unexpected CalendarUndoLifetimeTest structure')
+          text = text.replace(
+              first,
+              '        firstViewModel.showMonth(YearMonth.of(2026, 8))\n' + first,
+          )
+          text = text.replace(
+              recreated,
+              '        recreatedViewModel.showMonth(YearMonth.of(2026, 8))\n' + recreated,
+          )
+          lifetime.write_text(text)
+          PY
+
+          rm .github/workflows/fix-date-sensitive-calendar-tests.yml
+
+      - name: Commit repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/test/java/com/worktime/app/ui/calendar/CalendarViewModelTest.kt \
+                  app/src/test/java/com/worktime/app/ui/calendar/CalendarUndoLifetimeTest.kt \
+                  .github/workflows/fix-date-sensitive-calendar-tests.yml
+          git commit -m "test: make calendar view model tests month deterministic"
+          git push origin HEAD:release/rustore-publication
