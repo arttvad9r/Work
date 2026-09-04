@@ -2,7 +2,6 @@ package com.worktime.app.ui.format
 
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -46,18 +45,11 @@ fun formatCompactAmountMicros(
 ): String = amountFormatter(locale, grouping = false, maximumFractionDigits = 2)
     .format(BigDecimal.valueOf(micros, 6))
 
-/** Whole-unit display for dense calendar surfaces; 4_810_000_000 micros -> "4 810" in every locale. */
+/** Whole-unit display for dense calendar surfaces; 4_810_000_000 micros -> "4810". */
 fun formatWholeAmountMicros(
     micros: Long,
     locale: Locale = Locale.getDefault(),
-): String = amountFormatter(locale, grouping = true, maximumFractionDigits = 0)
-    .apply {
-        if (this is DecimalFormat) {
-            decimalFormatSymbols = decimalFormatSymbols.apply {
-                groupingSeparator = ' '
-            }
-        }
-    }
+): String = amountFormatter(locale, grouping = false, maximumFractionDigits = 0)
     .format(BigDecimal.valueOf(micros, 6))
 
 private fun amountFormatter(
