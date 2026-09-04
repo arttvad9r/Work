@@ -22,6 +22,7 @@
 - [`ANDROID_DEVICE_TESTING.md`](ANDROID_DEVICE_TESTING.md) — device-test setup and commands.
 - [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) — general release gate.
 - [`PRIVACY.md`](PRIVACY.md) — local data and privacy posture.
+- [`rustore/RESEARCH_RU.md`](rustore/RESEARCH_RU.md) — RuStore requirements, comparable listings and the resulting publication strategy.
 - [`rustore/LISTING_RU.md`](rustore/LISTING_RU.md) — ready-to-paste RuStore listing metadata and data-safety notes.
 - [`rustore/PUBLICATION_CHECKLIST_RU.md`](rustore/PUBLICATION_CHECKLIST_RU.md) — RuStore submission and post-publication gate.
 - [`rustore/PRIVACY_POLICY_RU.template.md`](rustore/PRIVACY_POLICY_RU.template.md) — public privacy-policy template; legal placeholders must be filled before submission.
