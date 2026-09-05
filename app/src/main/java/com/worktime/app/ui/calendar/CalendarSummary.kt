@@ -123,10 +123,10 @@ internal fun SummaryStrip(
                     )
                 }
                 .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.68f))
                 .border(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
                     shape = MaterialTheme.shapes.medium,
                 )
                 .clickable(
