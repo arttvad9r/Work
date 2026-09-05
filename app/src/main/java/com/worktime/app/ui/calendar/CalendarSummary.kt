@@ -43,7 +43,6 @@ import com.worktime.app.ui.components.AppNavigationRow
 import com.worktime.app.ui.components.LabelValueRow
 import com.worktime.app.ui.format.formatAmountMicros
 import com.worktime.app.ui.format.formatDurationCompact
-import com.worktime.app.ui.format.formatWholeAmountMicros
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -169,7 +168,7 @@ private fun summaryLine(
     if (totalPayMicros == null) return line
     val money = stringResource(
         R.string.amount_with_currency,
-        formatWholeAmountMicros(totalPayMicros, locale),
+        formatAmountMicros(totalPayMicros, locale),
     )
     return "$line · $money"
 }
