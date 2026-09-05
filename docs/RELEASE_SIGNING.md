@@ -6,13 +6,14 @@ WorkTime uses a developer-controlled Android app-signing key. The private key is
 
 The private key that signed the early direct GitHub build `0.1.0` has been lost. That key cannot be reconstructed from the APK, certificate, fingerprint or repository history.
 
-There is no public installed user base on `0.1.0`; the developer uses an isolated debug package for development. Therefore WorkTime `0.2.0` is treated as the first actual production launch and establishes a new permanent signing identity.
+We cannot guarantee that no `0.1.0` production APK remains installed outside the developer's current devices. Development now uses an isolated debug package, but any `0.1.0` production install signed by the lost certificate cannot be updated in place. WorkTime `0.2.0` is therefore the first RuStore production identity and establishes a new permanent signing identity for all `0.2.0+` production builds.
 
 Consequences:
 
 - the first RuStore release can start with the newly generated certificate because WorkTime has not previously established a RuStore signing identity;
 - WorkTime `0.2.0` and every later RuStore/direct production APK must use the **same new key**;
-- an old `0.1.0` APK, if it happens to be installed on a test device, cannot be updated in place with the replacement certificate and should simply be removed before installing the new production identity;
+- any installed `0.1.0` APK cannot be updated in place with the replacement certificate;
+- if data from an installed `0.1.0` must be preserved, export JSON first, save it outside the app, uninstall `0.1.0`, install `0.2.0+`, then import the JSON and verify the restored entries/settings;
 - the debug build remains isolated through `com.worktime.app.debug` and does not determine production update identity.
 
 The legacy public certificate fingerprint remains in `release/production-signing-cert-sha256.txt` only until the replacement key is generated. Do not build or publish the `0.2.0` production candidate until that file has been replaced with the new public SHA-256 fingerprint and committed.
