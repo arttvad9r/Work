@@ -146,21 +146,18 @@ fun SettingsScreen(
                 }
 
                 AppSectionHeader(stringResource(R.string.section_appearance))
-                AppSectionSurface {
-                    AppSegmentedControl(
-                        options = ThemeMode.entries.map { themeLabel(it) },
-                        selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
-                        onSelect = { index ->
-                            val selectedMode = ThemeMode.entries[index]
-                            finishRateEditing()
-                            presentedThemeMode = selectedMode
-                            if (selectedMode != themeMode) {
-                                onThemeChange(selectedMode)
-                            }
-                        },
-                        modifier = Modifier.padding(vertical = 4.dp),
-                    )
-                }
+                AppSegmentedControl(
+                    options = ThemeMode.entries.map { themeLabel(it) },
+                    selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
+                    onSelect = { index ->
+                        val selectedMode = ThemeMode.entries[index]
+                        finishRateEditing()
+                        presentedThemeMode = selectedMode
+                        if (selectedMode != themeMode) {
+                            onThemeChange(selectedMode)
+                        }
+                    },
+                )
 
                 AppSectionHeader(stringResource(R.string.section_data))
                 AppSectionSurface {
