@@ -80,7 +80,9 @@ internal fun NumericEditorSection(
     editorFocusRequester: FocusRequester,
     onEditorFocusChanged: (Boolean) -> Unit,
 ) {
-    val rowHeight = AppDimens.rowMinHeight
+    // The editor chrome is 48 dp high. A 52 dp row leaves a deliberate 2 dp visual inset
+    // above and below focused fields so their outline never collides with the section frame.
+    val rowHeight = 52.dp
     val rateY = rowHeight
     val adjustmentTop = rateY + rowHeight
     val penaltyTop = adjustmentTop + rowHeight
