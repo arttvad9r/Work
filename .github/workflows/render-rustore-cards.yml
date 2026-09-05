@@ -8,6 +8,9 @@ on:
       - .github/workflows/render-rustore-cards.yml
       - scripts/generate_rustore_assets.py
       - scripts/refine_rustore_cards.py
+      - app/src/main/java/com/worktime/app/ui/calendar/CalendarGrid.kt
+      - app/src/main/java/com/worktime/app/ui/calendar/CalendarSummary.kt
+      - app/src/main/java/com/worktime/app/ui/yearsummary/YearSummaryScreen.kt
       - app/src/screenshotTest/kotlin/com/worktime/app/ui/screenshot/StoreScreenshotSources.kt
       - app/src/screenshotTest/kotlin/com/worktime/app/ui/screenshot/WorkTimeScreenshotTest.kt
 
@@ -37,13 +40,12 @@ jobs:
       - name: Install renderer dependency
         run: python3 -m pip install --disable-pip-version-check Pillow==11.3.0
 
-      - name: Remove stale store source references
+      - name: Remove stale screenshot references
         run: |
-          find app/src/screenshotTestDebug/reference -type f \
-            \( -name 'StoreDayEditorPopulatedScreenshot_*.png' \
-            -o -name 'StorePrivacyDarkScreenshot_*.png' \
-            -o -name 'StoreExportFormatScreenshot_*.png' \) \
-            -delete
+          # Preview hashes change when locale or production UI code changes. Clearing the
+          # generated reference tree prevents stale and fresh hashes from coexisting and
+          # makes the renderer consume exactly one current source image per preview.
+          find app/src/screenshotTestDebug/reference -type f -name '*.png' -delete
 
       - name: Refresh reproducible store source screenshots
         run: ./gradlew --no-daemon :app:updateDebugScreenshotTest --stacktrace
