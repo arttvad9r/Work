@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -286,10 +287,20 @@ private fun DayCell(
                         )
                     }
                 } else {
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                top = dateAreaHeight,
+                                start = 2.dp,
+                                end = 2.dp,
+                                bottom = 2.dp,
+                            ),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Text(
                             modifier = Modifier
-                                .align(Alignment.Center)
                                 .fillMaxWidth()
                                 .padding(horizontal = 2.dp),
                             text = if (visibleEntry.workedMinutes > 0) {
@@ -310,9 +321,8 @@ private fun DayCell(
                         )
                         Text(
                             modifier = Modifier
-                                .align(Alignment.BottomStart)
                                 .fillMaxWidth()
-                                .padding(start = 4.dp, end = 2.dp, bottom = 3.dp),
+                                .padding(start = 2.dp, end = 1.dp),
                             text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
                                 formatWholeAmountMicros(totalMicros, locale)
                             } else {
