@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.worktime.app.R
 import com.worktime.app.domain.model.MoneyLimits
@@ -84,6 +85,11 @@ fun SettingsScreen(
     val dismissSettings: () -> Unit = {
         finishRateEditing()
         onDismiss()
+    }
+
+    if (privacyDataOpen) {
+        PrivacyScreen(onDismiss = { privacyDataOpen = false })
+        return
     }
 
     LaunchedEffect(themeMode) {
@@ -140,21 +146,18 @@ fun SettingsScreen(
                 }
 
                 AppSectionHeader(stringResource(R.string.section_appearance))
-                AppSectionSurface {
-                    AppSegmentedControl(
-                        options = ThemeMode.entries.map { themeLabel(it) },
-                        selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
-                        onSelect = { index ->
-                            val selectedMode = ThemeMode.entries[index]
-                            finishRateEditing()
-                            presentedThemeMode = selectedMode
-                            if (selectedMode != themeMode) {
-                                onThemeChange(selectedMode)
-                            }
-                        },
-                        modifier = Modifier.padding(vertical = 4.dp),
-                    )
-                }
+                AppSegmentedControl(
+                    options = ThemeMode.entries.map { themeLabel(it) },
+                    selectedIndex = ThemeMode.entries.indexOf(presentedThemeMode),
+                    onSelect = { index ->
+                        val selectedMode = ThemeMode.entries[index]
+                        finishRateEditing()
+                        presentedThemeMode = selectedMode
+                        if (selectedMode != themeMode) {
+                            onThemeChange(selectedMode)
+                        }
+                    },
+                )
 
                 AppSectionHeader(stringResource(R.string.section_data))
                 AppSectionSurface {
@@ -173,18 +176,16 @@ fun SettingsScreen(
                             onImportData()
                         },
                     )
-                    AppRowDivider()
-                    AppNavigationRow(
-                        label = stringResource(R.string.privacy_and_data),
-                        subtitle = stringResource(R.string.privacy_local_subtitle),
-                        onClick = {
-                            finishRateEditing()
-                            privacyDataOpen = true
-                        },
-                    )
                 }
 
-                Box(modifier = Modifier.navigationBarsPadding().height(24.dp))
+                PrivacyFooterLink(
+                    onClick = {
+                        finishRateEditing()
+                        privacyDataOpen = true
+                    },
+                )
+
+                Box(modifier = Modifier.navigationBarsPadding().height(16.dp))
             }
 
             SnackbarHost(
@@ -210,9 +211,25 @@ fun SettingsScreen(
             onDismiss = { exportFormatOpen = false },
         )
     }
+}
 
-    if (privacyDataOpen) {
-        PrivacyDataSheet(onDismiss = { privacyDataOpen = false })
+@Composable
+private fun PrivacyFooterLink(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.privacy_and_data),
+            modifier = Modifier
+                .heightIn(min = AppDimens.rowMinHeight)
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 14.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

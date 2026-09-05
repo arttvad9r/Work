@@ -113,52 +113,44 @@ fun ChangeRateSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                AppSegmentedControl(
+                    options = listOf(
+                        stringResource(R.string.current_month),
+                        stringResource(R.string.custom_period),
+                    ),
+                    selectedIndex = if (period == RatePeriod.CURRENT_MONTH) 0 else 1,
+                    onSelect = { index ->
+                        period = if (index == 0) RatePeriod.CURRENT_MONTH else RatePeriod.CUSTOM
+                    },
+                )
+
                 AppSectionSurface {
-                    AppSegmentedControl(
-                        options = listOf(
-                            stringResource(R.string.current_month),
-                            stringResource(R.string.custom_period),
-                        ),
-                        selectedIndex = if (period == RatePeriod.CURRENT_MONTH) 0 else 1,
-                        onSelect = { index ->
-                            period = if (index == 0) RatePeriod.CURRENT_MONTH else RatePeriod.CUSTOM
-                        },
-                        modifier = Modifier.padding(vertical = 4.dp),
-                    )
-
-                    AppRowDivider()
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(0.dp),
-                    ) {
-                        if (period == RatePeriod.CURRENT_MONTH) {
-                            LabelValueRow(
-                                label = stringResource(R.string.start_date),
-                                value = visibleMonth.atDay(1).format(dateFormatter),
-                                modifier = Modifier.heightIn(min = AppDimens.rowMinHeight),
-                            )
-                            AppRowDivider()
-                            LabelValueRow(
-                                label = stringResource(R.string.end_date),
-                                value = visibleMonth.atEndOfMonth().format(dateFormatter),
-                                modifier = Modifier.heightIn(min = AppDimens.rowMinHeight),
-                            )
-                        } else {
-                            AppNavigationRow(
-                                label = stringResource(R.string.start_date),
-                                value = customStart?.format(dateFormatter) ?: "",
-                                onClick = { pickingDate = DateField.Start },
-                            )
-                            AppRowDivider()
-                            AppNavigationRow(
-                                label = stringResource(R.string.end_date),
-                                value = customEnd?.format(dateFormatter) ?: "",
-                                onClick = { pickingDate = DateField.End },
-                            )
-                        }
+                    if (period == RatePeriod.CURRENT_MONTH) {
+                        LabelValueRow(
+                            label = stringResource(R.string.start_date),
+                            value = visibleMonth.atDay(1).format(dateFormatter),
+                            modifier = Modifier.heightIn(min = AppDimens.rowMinHeight),
+                        )
+                        AppRowDivider()
+                        LabelValueRow(
+                            label = stringResource(R.string.end_date),
+                            value = visibleMonth.atEndOfMonth().format(dateFormatter),
+                            modifier = Modifier.heightIn(min = AppDimens.rowMinHeight),
+                        )
+                    } else {
+                        AppNavigationRow(
+                            label = stringResource(R.string.start_date),
+                            value = customStart?.format(dateFormatter) ?: "",
+                            onClick = { pickingDate = DateField.Start },
+                        )
+                        AppRowDivider()
+                        AppNavigationRow(
+                            label = stringResource(R.string.end_date),
+                            value = customEnd?.format(dateFormatter) ?: "",
+                            onClick = { pickingDate = DateField.End },
+                        )
                     }
 
                     AppRowDivider()

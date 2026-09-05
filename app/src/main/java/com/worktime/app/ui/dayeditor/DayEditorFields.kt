@@ -80,7 +80,9 @@ internal fun NumericEditorSection(
     editorFocusRequester: FocusRequester,
     onEditorFocusChanged: (Boolean) -> Unit,
 ) {
-    val rowHeight = AppDimens.rowMinHeight
+    // The editor chrome is 48 dp high. A 52 dp row leaves a deliberate 2 dp visual inset
+    // above and below focused fields so their outline never collides with the section frame.
+    val rowHeight = 52.dp
     val rateY = rowHeight
     val adjustmentTop = rateY + rowHeight
     val penaltyTop = adjustmentTop + rowHeight
@@ -232,7 +234,9 @@ private fun EditorValueRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -266,7 +270,9 @@ private fun AdjustmentAddRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -315,7 +321,7 @@ private fun PersistentNumericEditor(
     var isFocused by remember { mutableStateOf(false) }
 
     Row(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

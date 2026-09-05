@@ -117,12 +117,13 @@ fun YearSummaryScreen(
             AppTopBar(
                 title = stringResource(R.string.year_summary),
                 onBack = onDismiss,
+                modifier = Modifier.height(52.dp),
             )
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(48.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Surface(
@@ -142,7 +143,7 @@ fun YearSummaryScreen(
                         }
                         Text(
                             text = pager.displayedYear.toString(),
-                            modifier = Modifier.padding(horizontal = 8.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp),
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
@@ -219,10 +220,10 @@ private fun YearSummaryContent(
             .fillMaxSize()
             .padding(horizontal = AppDimens.screenHorizontalPadding)
             .navigationBarsPadding()
-            .padding(bottom = AppDimens.rowGap)
+            .padding(bottom = 4.dp)
             .then(scrollModifier)
             .testTag("year-summary-content"),
-        verticalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         AppSectionSurface {
             YearMetricRow(
@@ -346,11 +347,14 @@ private fun YearMetricRow(
     valueColor: Color = MaterialTheme.colorScheme.onSurface,
     emphasized: Boolean = false,
 ) {
+    val largeFont = LocalDensity.current.fontScale >= 1.4f
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 26.dp),
-        horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
+            .heightIn(min = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(
+            if (largeFont) 4.dp else AppDimens.rowGap,
+        ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -358,7 +362,7 @@ private fun YearMetricRow(
             modifier = Modifier.weight(1f),
             style = style,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
+            maxLines = if (largeFont) 2 else 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(

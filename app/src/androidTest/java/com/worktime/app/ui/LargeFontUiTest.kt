@@ -30,7 +30,6 @@ import java.time.LocalDate
 import java.time.Month
 import java.time.YearMonth
 import java.time.format.TextStyle
-import kotlin.math.abs
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -190,7 +189,7 @@ class LargeFontUiTest {
     }
 
     @Test
-    fun calendarMacroHeightIsUnchangedAtLargeFontScale() {
+    fun calendarUsesAvailableHeightAtLargeFontScale() {
         var deviceDensity = 1f
         composeRule.setContent {
             deviceDensity = LocalDensity.current.density
@@ -221,7 +220,10 @@ class LargeFontUiTest {
             .height
         val largeHeightDp = largeHeightPx / deviceDensity
 
-        assert(abs(largeHeightDp - 420f) < 1f) { "calendar pager height changed: ${largeHeightDp}dp" }
+        assert(largeHeightDp > 500f) {
+            "calendar pager did not expand into the available tall viewport: ${largeHeightDp}dp"
+        }
+        composeRule.onNodeWithTag("monthly-summary-strip").assertIsDisplayed()
     }
 
     private fun summary() = YearSummary(

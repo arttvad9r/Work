@@ -8,6 +8,7 @@ import com.worktime.app.domain.model.WorkEntry
 import com.worktime.app.domain.preferences.ThemeMode
 import com.worktime.app.ui.calendar.CalendarScreen
 import com.worktime.app.ui.calendar.CalendarUiState
+import com.worktime.app.ui.settings.SettingsScreen
 import com.worktime.app.ui.theme.WorkTimeTheme
 import com.worktime.app.ui.yearsummary.YearSummary
 import com.worktime.app.ui.yearsummary.YearSummaryScreen
@@ -34,7 +35,7 @@ fun CalendarPopulatedLightScreenshot() {
 }
 
 @PreviewTest
-@Preview(name = "Calendar populated dark", widthDp = 360, heightDp = 800, locale = "en")
+@Preview(name = "Calendar populated dark", widthDp = 360, heightDp = 800, locale = "ru")
 @Composable
 fun CalendarPopulatedDarkScreenshot() {
     WorkTimeTheme(themeMode = ThemeMode.DARK) {
@@ -97,6 +98,26 @@ fun YearSummaryLargeFontScreenshot() {
             summaries = mapOf(summary.year to summary),
             onDismiss = {},
             onSelectYear = {},
+        )
+    }
+}
+
+@PreviewTest
+@Preview(name = "Settings light", widthDp = 360, heightDp = 800, locale = "ru")
+@Composable
+fun SettingsLightScreenshot() {
+    WorkTimeTheme(themeMode = ThemeMode.LIGHT) {
+        SettingsScreen(
+            defaultHourlyRateMicros = 500_000_000L,
+            themeMode = ThemeMode.SYSTEM,
+            operationErrorMessage = null,
+            onDismiss = {},
+            onThemeChange = {},
+            onRateChange = {},
+            onOpenChangeRate = {},
+            onExportData = {},
+            onExportCsv = {},
+            onImportData = {},
         )
     }
 }
