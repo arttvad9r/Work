@@ -122,7 +122,7 @@ fun YearSummaryScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(48.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Surface(
@@ -142,7 +142,7 @@ fun YearSummaryScreen(
                         }
                         Text(
                             text = pager.displayedYear.toString(),
-                            modifier = Modifier.padding(horizontal = 8.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp),
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
@@ -219,10 +219,10 @@ private fun YearSummaryContent(
             .fillMaxSize()
             .padding(horizontal = AppDimens.screenHorizontalPadding)
             .navigationBarsPadding()
-            .padding(bottom = AppDimens.rowGap)
+            .padding(bottom = 4.dp)
             .then(scrollModifier)
             .testTag("year-summary-content"),
-        verticalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         AppSectionSurface {
             YearMetricRow(
@@ -349,7 +349,7 @@ private fun YearMetricRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 26.dp),
+            .heightIn(min = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
