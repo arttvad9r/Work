@@ -34,7 +34,7 @@ fun AppSectionSurface(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(horizontal = 16.dp, vertical = 6.dp),
             content = content,
         )
     }
