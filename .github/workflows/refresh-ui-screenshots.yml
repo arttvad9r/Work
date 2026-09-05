@@ -6,6 +6,9 @@ on:
       - release/rustore-publication
     paths:
       - .github/workflows/refresh-ui-screenshots.yml
+      - app/src/main/java/com/worktime/app/ui/calendar/CalendarGrid.kt
+      - app/src/main/java/com/worktime/app/ui/calendar/CalendarScreen.kt
+      - app/src/main/java/com/worktime/app/ui/yearsummary/YearSummaryScreen.kt
 
 permissions:
   contents: write
@@ -46,5 +49,5 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "test: refresh adaptive calendar screenshots"
+          git commit -m "test: refresh adaptive UI screenshots"
           git push origin "HEAD:${GITHUB_REF_NAME}"
