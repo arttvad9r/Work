@@ -59,6 +59,7 @@ internal fun CalendarGrid(
     Box(
         modifier = modifier
             .height(calendarGridHeight())
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
             .testTag("calendar-grid"),
     ) {
         val weekdays = (0 until 7).map { DayOfWeek.MONDAY.plus(it.toLong()) }
@@ -83,15 +84,16 @@ internal fun CalendarGrid(
                         text = day.getDisplayName(TextStyle.SHORT, locale),
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.90f),
                         style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
                         maxLines = 1,
                     )
                 }
             }
 
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.48f),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.56f),
             )
 
             cells.chunked(7).forEachIndexed { weekIndex, week ->
@@ -180,23 +182,23 @@ private fun DayCell(
         },
     )
     val dateColor = when {
-        !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.24f)
+        !isInVisibleMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.32f)
         isToday -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
+        else -> MaterialTheme.colorScheme.onSurface
     }
     val amountColor = if ((totalMicros ?: 0L) < 0L) {
         MaterialTheme.colorScheme.error
     } else {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.90f)
+        MaterialTheme.colorScheme.primary
     }
     val borderColor = if (isToday && isInVisibleMonth) {
         MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.48f)
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.58f)
     }
     val backgroundColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        visibleEntry != null -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
+        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.88f)
+        visibleEntry != null -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.30f)
         else -> Color.Transparent
     }
 
@@ -204,7 +206,7 @@ private fun DayCell(
         modifier = Modifier
             .fillMaxSize()
             .border(
-                width = if (isToday && isInVisibleMonth) 1.dp else 0.5.dp,
+                width = if (isToday && isInVisibleMonth) 1.25.dp else 0.5.dp,
                 brush = SolidColor(borderColor),
                 shape = RectangleShape,
             )
@@ -235,7 +237,7 @@ private fun DayCell(
                         fontSize = 13.sp,
                         lineHeight = 16.sp,
                     ),
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     color = dateColor,
                     maxLines = 1,
                 )
@@ -274,10 +276,10 @@ private fun DayCell(
                                 ""
                             },
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 8.sp,
-                                lineHeight = 9.sp,
+                                fontSize = 9.sp,
+                                lineHeight = 10.sp,
                             ),
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = amountColor,
                             textAlign = TextAlign.Start,
                             maxLines = 1,
@@ -319,10 +321,10 @@ private fun DayCell(
                                 ""
                             },
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 lineHeight = 14.sp,
                             ),
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = amountColor,
                             textAlign = TextAlign.Start,
                             maxLines = 1,
