@@ -197,7 +197,7 @@ private fun DayCell(
     }
     val backgroundColor = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.88f)
-        visibleEntry != null -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.30f)
+        visibleEntry != null -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.34f)
         else -> Color.Transparent
     }
 
@@ -268,7 +268,7 @@ private fun DayCell(
                         Text(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 2.dp),
+                                .padding(horizontal = 2.dp),
                             text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
                                 formatWholeAmountMicros(totalMicros, locale)
                             } else {
@@ -280,7 +280,7 @@ private fun DayCell(
                             ),
                             fontWeight = FontWeight.Bold,
                             color = amountColor,
-                            textAlign = TextAlign.Start,
+                            textAlign = TextAlign.Center,
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Ellipsis,
@@ -322,7 +322,7 @@ private fun DayCell(
                         Text(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 2.dp, end = 1.dp),
+                                .padding(horizontal = 2.dp),
                             text = if (totalMicros != null && shouldShowDayAmount(totalMicros)) {
                                 formatWholeAmountMicros(totalMicros, locale)
                             } else {
@@ -334,7 +334,7 @@ private fun DayCell(
                             ),
                             fontWeight = FontWeight.Bold,
                             color = amountColor,
-                            textAlign = TextAlign.Start,
+                            textAlign = TextAlign.Center,
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Ellipsis,
