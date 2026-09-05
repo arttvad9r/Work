@@ -117,6 +117,7 @@ fun YearSummaryScreen(
             AppTopBar(
                 title = stringResource(R.string.year_summary),
                 onBack = onDismiss,
+                modifier = Modifier.height(52.dp),
             )
 
             Box(
