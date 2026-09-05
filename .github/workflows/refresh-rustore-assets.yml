@@ -23,8 +23,10 @@ jobs:
           python-version: "3.13"
       - name: Install Pillow
         run: python -m pip install --disable-pip-version-check pillow==11.3.0
-      - name: Generate RuStore gallery
-        run: python scripts/generate_rustore_assets.py
+      - name: Generate and refine RuStore gallery
+        run: |
+          python scripts/generate_rustore_assets.py
+          python scripts/refine_rustore_cards.py
       - name: Upload generated gallery
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -41,5 +43,5 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "store: refresh RuStore gallery from final UI"
+          git commit -m "store: restore refined RuStore gallery"
           git push origin "HEAD:${GITHUB_REF_NAME}"
