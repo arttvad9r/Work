@@ -1,0 +1,45 @@
+name: Refresh RuStore assets
+
+on:
+  push:
+    branches:
+      - release/rustore-publication
+    paths:
+      - .github/workflows/refresh-rustore-assets.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: "3.13"
+      - name: Install Pillow
+        run: python -m pip install --disable-pip-version-check pillow==11.3.0
+      - name: Generate RuStore gallery
+        run: python scripts/generate_rustore_assets.py
+      - name: Upload generated gallery
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rustore-final-gallery
+          path: docs/rustore/assets
+          if-no-files-found: error
+          retention-days: 7
+      - name: Commit generated assets
+        run: |
+          git add docs/rustore/assets
+          if git diff --cached --quiet; then
+            echo "RuStore assets are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "store: refresh RuStore gallery from final UI"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
