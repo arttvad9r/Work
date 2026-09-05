@@ -31,9 +31,9 @@ def hero_card() -> None:
         canvas,
         screen,
         center=(540, 1240),
-        width=600,
+        width=575,
         radius=42,
-        angle=-0.8,
+        angle=-0.6,
         shadow_alpha=50,
         shadow_blur=26,
     )
@@ -51,25 +51,25 @@ def shift_card() -> None:
     editor = Image.open(g.SCREENSHOTS["day_editor"]()).convert("RGBA")
     calendar = Image.open(g.SCREENSHOTS["calendar_light"]()).convert("RGBA")
 
-    # A compact calendar context sits above the editor. The two surfaces do not overlap.
+    # Deliberately separated layers: context above, complete editor below.
     calendar_focus = g.crop_norm(calendar, 0.02, 0.18, 0.98, 0.58)
     g.shadowed_panel(
         canvas,
         calendar_focus,
-        center=(540, 720),
-        width=660,
+        center=(540, 680),
+        width=640,
         radius=38,
-        angle=-0.8,
+        angle=-0.6,
         shadow_alpha=32,
         shadow_blur=22,
     )
     g.shadowed_panel(
         canvas,
         editor,
-        center=(540, 1485),
-        width=540,
+        center=(540, 1440),
+        width=500,
         radius=42,
-        angle=0.7,
+        angle=0.5,
         shadow_alpha=54,
         shadow_blur=26,
     )
@@ -87,7 +87,7 @@ def summary_card() -> None:
         center=(540, 1260),
         width=560,
         radius=42,
-        angle=0.4,
+        angle=0.3,
         shadow_alpha=52,
         shadow_blur=26,
     )
@@ -105,7 +105,7 @@ def themes_card() -> None:
     light = Image.open(g.SCREENSHOTS["calendar_light"]()).convert("RGBA")
     dark = Image.open(g.SCREENSHOTS["calendar_dark"]()).convert("RGBA")
 
-    # Keep matching vertical crops so the theme comparison feels deliberately symmetrical.
+    # Matching crops and equal widths make the comparison deliberately symmetrical.
     light = g.crop_norm(light, 0.0, 0.02, 1.0, 0.84)
     dark = g.crop_norm(dark, 0.0, 0.02, 1.0, 0.84)
 
@@ -116,7 +116,7 @@ def themes_card() -> None:
         center=(310, 1300),
         width=440,
         radius=42,
-        angle=-0.8,
+        angle=-0.7,
         shadow_alpha=40,
         shadow_blur=24,
     )
@@ -126,7 +126,7 @@ def themes_card() -> None:
         center=(770, 1300),
         width=440,
         radius=42,
-        angle=0.8,
+        angle=0.7,
         shadow_alpha=48,
         shadow_blur=24,
     )
@@ -151,7 +151,7 @@ def privacy_card() -> None:
         center=(540, 1270),
         width=540,
         radius=42,
-        angle=0.4,
+        angle=0.3,
         shadow_alpha=58,
         shadow_blur=28,
         border=(48, 54, 68, 255),
@@ -172,7 +172,7 @@ def export_card() -> None:
         center=(540, 1260),
         width=820,
         radius=44,
-        angle=0.3,
+        angle=0.2,
         shadow_alpha=52,
         shadow_blur=26,
     )
