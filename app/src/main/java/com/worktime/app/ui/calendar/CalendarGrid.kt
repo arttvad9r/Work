@@ -53,12 +53,10 @@ internal fun CalendarGrid(
     locale: Locale,
     modifier: Modifier = Modifier,
 ) {
-    val weekRowHeight = WeekRowHeight
     val weekdayRowHeight = 28.dp
     val dateAreaHeight = 28.dp
     Box(
         modifier = modifier
-            .height(calendarGridHeight())
             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
             .testTag("calendar-grid"),
     ) {
@@ -100,7 +98,7 @@ internal fun CalendarGrid(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(weekRowHeight),
+                        .weight(1f),
                 ) {
                     week.forEach { date ->
                         val isInVisibleMonth = YearMonth.from(date) == state.visibleMonth
