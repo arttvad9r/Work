@@ -347,11 +347,14 @@ private fun YearMetricRow(
     valueColor: Color = MaterialTheme.colorScheme.onSurface,
     emphasized: Boolean = false,
 ) {
+    val largeFont = LocalDensity.current.fontScale >= 1.4f
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(AppDimens.rowGap),
+        horizontalArrangement = Arrangement.spacedBy(
+            if (largeFont) 4.dp else AppDimens.rowGap,
+        ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -359,7 +362,7 @@ private fun YearMetricRow(
             modifier = Modifier.weight(1f),
             style = style,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
+            maxLines = if (largeFont) 2 else 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
