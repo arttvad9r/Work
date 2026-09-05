@@ -35,7 +35,7 @@ fun CalendarPopulatedLightScreenshot() {
 }
 
 @PreviewTest
-@Preview(name = "Calendar populated dark", widthDp = 360, heightDp = 800, locale = "en")
+@Preview(name = "Calendar populated dark", widthDp = 360, heightDp = 800, locale = "ru")
 @Composable
 fun CalendarPopulatedDarkScreenshot() {
     WorkTimeTheme(themeMode = ThemeMode.DARK) {
