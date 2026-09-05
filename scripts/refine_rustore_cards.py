@@ -51,8 +51,8 @@ def shift_card() -> None:
     editor = Image.open(g.SCREENSHOTS["day_editor"]()).convert("RGBA")
     calendar = Image.open(g.SCREENSHOTS["calendar_light"]()).convert("RGBA")
 
-    # Deliberately separated layers: context above, complete editor below.
-    calendar_focus = g.crop_norm(calendar, 0.02, 0.18, 0.98, 0.58)
+    # Crop exactly on calendar row boundaries: no half-visible dates or values.
+    calendar_focus = g.crop_norm(calendar, 0.02, 0.245, 0.98, 0.635)
     g.shadowed_panel(
         canvas,
         calendar_focus,
